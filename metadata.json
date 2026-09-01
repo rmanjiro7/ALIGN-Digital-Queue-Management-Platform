@@ -1,0 +1,6 @@
+{
+  "name": "ALIGN — Digital Queue Management Platform",
+  "description": "Production-oriented multi-tenant Digital Queue Management Platform and PWA featuring real-time token tracking, staff operations console, announcement system, and public display.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
