@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: align-qms-backend
+
+  # ── DataSource ──────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:align_qms}
+    username: ${DB_USERNAME:align_user}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: AlignHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+
+  # ── JPA / Hibernate ──────────────────────────────────────────────────────
+  # ddl-auto: validate — Flyway owns all schema changes. Hibernate only validates.
+  # No schema auto-generation. Fail fast if entity/column mismatch detected.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: UTC
+        types:
+          print:
+            banner: false
+
+  # ── Flyway ───────────────────────────────────────────────────────────────
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    out-of-order: false
+    # Table name is the Flyway default; explicit for clarity
+    table: flyway_schema_history
+
+# ── Server ───────────────────────────────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    # Controlled error responses via GlobalExceptionHandler
+    # Stack traces and binding errors suppressed in all profiles
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+# ── Actuator ─────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose only health and info; all others opt-in per phase
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      # Phase 1: show details only when authorized (Spring Security controls access).
+      # /actuator/health is public (permit-all in SecurityConfig).
+      # /actuator/health with show-details: when-authorized requires authentication.
+      show-details: when-authorized
+      show-components: when-authorized
+  health:
+    db:
+      enabled: true
+  info:
+    env:
+      enabled: true
+
+# ── Application Info ─────────────────────────────────────────────────────
+info:
+  app:
+    name: ALIGN QMS Backend
+    version: 0.1.0-SNAPSHOT
+    phase: "Phase 1 — Security"
+
+# ── ALIGN Application Properties ─────────────────────────────────────────
+align:
+  # JWT configuration — all values must come from environment variables
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
+    refresh-token-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+  # CORS — comma-separated list of allowed frontend origins
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}

@@ -1,0 +1,25 @@
+# ── Development Profile ───────────────────────────────────────────────────
+# Active when: spring.profiles.active=dev
+# Purpose: Developer-friendly overrides — verbose logging, SQL visibility
+# WARNING: Never use in production.
+
+logging:
+  level:
+    root: INFO
+    com.align.qms: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.flywaydb: DEBUG
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

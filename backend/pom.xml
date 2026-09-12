@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Spring Boot 3.2.5 BOM manages:
+          flyway-core           → 9.22.3   (via ${flyway.version})
+          postgresql driver     → BOM-managed
+          testcontainers        → NOT in BOM — pinned explicitly below
+
+        Flyway 9.22.3 has PostgreSQL support built into flyway-core.
+        flyway-database-postgresql is a Flyway 10+ artifact — removed.
+
+        JPA / Hibernate / HikariCP are NOT included in Phase 0.
+        Spring Security is NOT included in Phase 0.
+        JWT, WebSocket, STOMP are NOT included in Phase 0.
+        Domain entities, services, repositories are NOT in Phase 0.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.align</groupId>
+    <artifactId>align-qms-backend</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>ALIGN QMS Backend</name>
+    <description>ALIGN Digital Queue Management Platform — Backend</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <!--
+            Testcontainers 1.21.4 is required for Docker 29+ compatibility.
+            Docker 29.0.0+ raised minimum API version to 1.44. Earlier
+            Testcontainers versions (1.19.x) use docker-java 3.3.6 which
+            hardcodes API 1.32 and causes HTTP 400 errors. Testcontainers
+            1.21.4 upgrades to docker-java 3.7.x with API 1.44 support.
+            Not managed by Spring Boot 3.2.5 BOM.
+        -->
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <!--
+            jjwt 0.12.6 — JJWT library for JWT generation and validation.
+            Chosen per SECURITY.md / CONTEXT.md ADR (jjwt 0.12.x).
+            Not managed by Spring Boot 3.2.5 BOM — pinned explicitly.
+            Requires 3 artifacts: jjwt-api (compile), jjwt-impl (runtime),
+            jjwt-jackson (runtime, for JSON serialization of claims).
+        -->
+        <jjwt.version>0.12.6</jjwt.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- ── Web ───────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- ── Spring Security ───────────────────────────────────────── -->
+        <!--
+            Phase 1: Authentication and authorization foundation.
+            Includes SecurityFilterChain, PasswordEncoder (BCrypt),
+            AuthenticationManager, @PreAuthorize support.
+            Version managed by Spring Boot 3.2.5 BOM.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- ── Spring Data JPA ───────────────────────────────────────── -->
+        <!--
+            Phase 1: ORM for User and RefreshToken entities.
+            Brings in Hibernate 6.x and HikariCP (connection pool).
+            Version managed by Spring Boot 3.2.5 BOM.
+            ddl-auto: validate — Flyway owns all schema changes.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- ── JWT: jjwt-api ─────────────────────────────────────────── -->
+        <!--
+            Compile-scope API jar: Jwts builder/parser factories, Claims,
+            JwtException hierarchy. Application code depends on this only.
+            Version pinned at 0.12.6 (ADR-011).
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+
+        <!-- ── JWT: jjwt-impl ────────────────────────────────────────── -->
+        <!--
+            Runtime implementation — not referenced at compile time.
+            Contains JwtBuilder and JwtParser concrete implementations.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── JWT: jjwt-jackson ─────────────────────────────────────── -->
+        <!--
+            Runtime Jackson serializer for JWT claims.
+            Required when claim values include non-primitive types (UUID, etc.).
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── Actuator ──────────────────────────────────────────────── -->
+        <!--
+            Exposes /actuator/health and /actuator/info.
+            No Spring Security in Phase 0 — these endpoints are public
+            by default when security is absent (Spring Boot auto-config).
+            Phase 1 adds Spring Security and locks non-health endpoints.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- ── Validation ────────────────────────────────────────────── -->
+        <!--
+            Included in Phase 0 because GlobalExceptionHandler must handle
+            MethodArgumentNotValidException. Required by the base
+            error-handling architecture (docs/ERROR_HANDLING.md).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- ── PostgreSQL Driver ─────────────────────────────────────── -->
+        <!--
+            Version managed by Spring Boot 3.2.5 BOM.
+            runtime scope: not needed for compilation.
+        -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── Flyway ────────────────────────────────────────────────── -->
+        <!--
+            Version: 9.22.3 — managed by Spring Boot 3.2.5 BOM
+            (${flyway.version}=9.22.3 in spring-boot-dependencies-3.2.5.pom).
+
+            In Flyway 9.x, PostgreSQL support is BUILT INTO flyway-core.
+            The separate flyway-database-postgresql artifact exists only in
+            Flyway 10+, which is NOT managed by Spring Boot 3.2.5.
+            No additional Flyway artifact is required.
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!-- ── Test ──────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Spring Security Test — MockMvc security support, WithMockUser,
+            SecurityMockMvcRequestPostProcessors. Phase 1 security tests.
+            Version managed by Spring Boot 3.2.5 BOM.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Apache HttpClient 5 (test scope) — used by TestRestTemplate.
+            Without this, TestRestTemplate falls back to JDK HttpURLConnection
+            (SimpleClientHttpRequestFactory), which has a known limitation:
+            when the server returns 401 on a POST request with a body, JDK
+            HttpURLConnection enters streaming mode and throws
+            HttpRetryException ("cannot retry due to server authentication,
+            in streaming mode") before the response can be read.
+            When httpclient5 is on the classpath, Spring Boot's TestRestTemplate
+            auto-configuration switches to HttpComponentsClientHttpRequestFactory,
+            which handles 401 responses correctly.
+            Version managed by Spring Boot 3.2.5 BOM.
+        -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Testcontainers PostgreSQL — ADR-006.
+            Required for Phase 0 base test infrastructure.
+            Concurrency tests (Phases 3 and 4) will extend PostgresIntegrationTest.
+            Version pinned explicitly (not in Spring Boot 3.2.5 BOM).
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!--
+                Maven Wrapper plugin.
+                Enables ./mvnw without requiring a system Maven install.
+                The wrapper JAR is pre-downloaded to .mvn/wrapper/.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-wrapper-plugin</artifactId>
+                <version>3.3.2</version>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
