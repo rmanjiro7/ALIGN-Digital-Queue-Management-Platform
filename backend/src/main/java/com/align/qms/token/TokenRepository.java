@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,4 +24,9 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
             @Param("states") Collection<TokenState> states, 
             @Param("joinedAt") Instant joinedAt
     );
+
+    @Query(value = "SELECT * FROM tokens WHERE location_id = :locationId AND state = 'WAITING' ORDER BY joined_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    Optional<Token> findNextWaitingTokenWithLock(@Param("locationId") UUID locationId);
+
+    List<Token> findByQueueIdAndStateOrderByJoinedAtAsc(UUID queueId, TokenState state);
 }

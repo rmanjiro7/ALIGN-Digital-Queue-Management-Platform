@@ -30,4 +30,9 @@ public interface CounterRepository extends JpaRepository<Counter, UUID> {
 
     /** Check whether a counter number is already taken at a location. */
     boolean existsByLocationIdAndNumber(UUID locationId, int number);
+
+    /** Acquire row-level lock on Counter for CALL NEXT operations */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM Counter c WHERE c.id = :id")
+    Optional<Counter> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") UUID id);
 }
