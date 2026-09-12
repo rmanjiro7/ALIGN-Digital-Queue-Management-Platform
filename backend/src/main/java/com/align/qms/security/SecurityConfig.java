@@ -136,6 +136,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
                 // Public discovery endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/services").permitAll()
+                // Phase 3 Token Engine endpoints (public for customers via UUID knowledge)
+                .requestMatchers(HttpMethod.POST, "/api/v1/tokens/join").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tokens/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tokens/{id}/position").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/tokens/{id}/cancel").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/tokens/{id}/step-away").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/tokens/{id}/return").permitAll()
                 // Health endpoint (no auth required for load-balancer probes)
                 .requestMatchers("/actuator/health").permitAll()
                 // WebSocket upgrade (future Phase 5; permit here to avoid blocking)

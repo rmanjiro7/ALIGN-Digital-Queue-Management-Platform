@@ -135,4 +135,5 @@ public class Queue {
     public void setStatus(QueueStatus status)                     { this.status = status; }
     public void setMaxCapacity(int maxCapacity)                   { this.maxCapacity = maxCapacity; }
     public void setAutoPauseAtCapacity(boolean autoPause)         { this.autoPauseAtCapacity = autoPause; }
+    public void setNextTokenNumber(long nextTokenNumber)          { this.nextTokenNumber = nextTokenNumber; }
 }

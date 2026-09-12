@@ -1,6 +1,10 @@
 package com.align.qms.queue;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,14 @@ public interface QueueRepository extends JpaRepository<Queue, UUID> {
     /** Get the queue for a given service. Empty if no queue created yet. */
     Optional<Queue> findByServiceId(UUID serviceId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Queue q WHERE q.serviceId = :serviceId")
+    Optional<Queue> findByServiceIdForUpdate(@Param("serviceId") UUID serviceId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Queue q WHERE q.id = :id")
+    Optional<Queue> findByIdForUpdate(@Param("id") UUID id);
+
     /** All queues at a specific location. */
     List<Queue> findByLocationId(UUID locationId);
 
@@ -32,4 +44,10 @@ public interface QueueRepository extends JpaRepository<Queue, UUID> {
 
     /** Check whether a queue already exists for a given service. */
     boolean existsByServiceId(UUID serviceId);
+
+    /**
+     * Atomically increments the token counter and returns the PRE-INCREMENT value.
+     */
+    @Query(value = "UPDATE queues SET next_token_number = next_token_number + 1 WHERE id = :queueId RETURNING next_token_number - 1", nativeQuery = true)
+    Long allocateNextTokenNumber(@Param("queueId") UUID queueId);
 }
