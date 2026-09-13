@@ -1,5 +1,9 @@
 package com.align.qms.token;
 
+import com.align.qms.counter.Counter;
+import com.align.qms.counter.CounterRepository;
+import com.align.qms.token.event.TokenRealtimePayload;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,9 +14,15 @@ import java.util.Map;
 public class TokenEventService {
 
     private final TokenEventRepository tokenEventRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final CounterRepository counterRepository;
 
-    public TokenEventService(TokenEventRepository tokenEventRepository) {
+    public TokenEventService(TokenEventRepository tokenEventRepository,
+                             ApplicationEventPublisher applicationEventPublisher,
+                             CounterRepository counterRepository) {
         this.tokenEventRepository = tokenEventRepository;
+        this.applicationEventPublisher = applicationEventPublisher;
+        this.counterRepository = counterRepository;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -37,5 +47,16 @@ public class TokenEventService {
         event.setMetadata(metadata);
         
         tokenEventRepository.save(event);
+        
+        Integer counterNumber = null;
+        if (token.getCounterId() != null) {
+            counterNumber = counterRepository.findById(token.getCounterId())
+                .map(Counter::getNumber)
+                .orElse(null);
+        }
+        
+        // Publish realtime event snapshot
+        TokenRealtimePayload payload = new TokenRealtimePayload(event, token, counterNumber);
+        applicationEventPublisher.publishEvent(new com.align.qms.token.event.TokenRealtimeEvent(this, payload));
     }
 }

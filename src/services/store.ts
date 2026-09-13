@@ -41,6 +41,13 @@ export interface AppState {
   alerts: SystemAlert[];
   auditLogs: AuditLogEntry[];
   historyTokens: QueueToken[];
+
+  // Authentication State
+  authStatus: 'UNAUTHENTICATED' | 'AUTHENTICATING' | 'AUTHENTICATED' | 'ERROR';
+  currentUser: any | null;
+
+  // Realtime Sync Status
+  syncStatus: 'DISCONNECTED' | 'CONNECTING' | 'SUBSCRIBING' | 'SNAPSHOT_SYNC' | 'LIVE' | 'RECONNECTING' | 'ERROR';
 }
 
 const INITIAL_TENANTS: Tenant[] = [
@@ -639,14 +646,22 @@ const INITIAL_STATE: AppState = {
     }
   ],
   historyTokens: INITIAL_HISTORY,
+  authStatus: 'UNAUTHENTICATED',
+  currentUser: null,
+  syncStatus: 'DISCONNECTED',
 };
 
 type Listener = (state: AppState) => void;
 
-class QueueStore {
+export class QueueStore {
   private state: AppState;
   private listeners: Set<Listener> = new Set();
   private audioCtx: AudioContext | null = null;
+
+  // Ephemeral Realtime Synchronization Internals (Not Persisted)
+  private syncGenerationId: number = 0;
+  private eventBuffer: any[] = [];
+  private processedEvents: string[] = [];
 
   constructor() {
     this.state = this.loadState();
@@ -722,6 +737,137 @@ class QueueStore {
       this.state.currentScreen = 'SCREEN_22_PUBLIC_DISPLAY';
     }
     this.saveState();
+  }
+
+  public setAuthStatus(status: AppState['authStatus'], user?: any) {
+    this.state.authStatus = status;
+    if (user !== undefined) {
+      this.state.currentUser = user;
+    }
+    this.saveState();
+  }
+
+  // --- REALTIME SYNCHRONIZATION (GATE 2D) ---
+  public setSyncStatus(status: AppState['syncStatus']) {
+    this.state.syncStatus = status;
+    this.saveState();
+  }
+
+  public startSyncCycle(locationId: string): number {
+    this.syncGenerationId += 1;
+    this.eventBuffer = [];
+    this.state.syncStatus = 'SNAPSHOT_SYNC';
+    this.saveState();
+    return this.syncGenerationId;
+  }
+
+  public applySnapshot(snapshot: any, generationId: number, expectedLocationId: string) {
+    if (this.syncGenerationId !== generationId) {
+      return; // Discard stale response
+    }
+    if (!snapshot || snapshot.locationId !== expectedLocationId) {
+      this.state.syncStatus = 'ERROR';
+      this.saveState();
+      return;
+    }
+
+    // Replace canonical queue state
+    this.state.tokens = [...(snapshot.activeTokens || []), ...(snapshot.waitingTokens || [])];
+    if (snapshot.counters) {
+      snapshot.counters.forEach((snapCounter: any) => {
+        const c = this.state.counters.find(x => x.number === snapCounter.number);
+        if (c) {
+          Object.assign(c, snapCounter);
+        }
+      });
+    }
+
+    // Replay buffer
+    const buffer = [...this.eventBuffer];
+    this.eventBuffer = [];
+    buffer.forEach(evt => this.processLiveEvent(evt));
+
+    this.state.syncStatus = 'LIVE';
+    this.saveState();
+  }
+
+  public handleRealtimeEvent(event: any, expectedLocationId: string) {
+    // Structural Validation
+    if (!event || !event.eventId || !event.eventType || !event.tokenId) return;
+    if (event.locationId !== expectedLocationId) return;
+
+    // Duplicate Check
+    if (this.processedEvents.includes(event.eventId)) {
+      return;
+    }
+    this.processedEvents.push(event.eventId);
+    if (this.processedEvents.length > 500) {
+      this.processedEvents.shift();
+    }
+
+    if (this.state.syncStatus === 'SNAPSHOT_SYNC') {
+      this.eventBuffer.push(event);
+    } else if (this.state.syncStatus === 'LIVE') {
+      this.processLiveEvent(event);
+      this.saveState();
+    }
+  }
+
+  private processLiveEvent(event: any) {
+    let token = this.state.tokens.find(t => t.id === event.tokenId);
+
+    if (!token && event.tokenNumber) {
+      token = {
+        id: event.tokenId,
+        orgId: event.orgId || this.state.selectedOrgId,
+        locationId: event.locationId,
+        queueId: event.queueId || 'q-triage',
+        serviceId: 'srv-general',
+        tokenNumber: event.tokenNumber,
+        state: 'WAITING',
+        customerName: 'Customer',
+        customerPhone: '',
+        joinedAt: event.timestamp || new Date().toISOString(),
+        peopleAhead: 0,
+        estWaitMins: 0,
+        estRange: '-',
+        confidence: 'High'
+      };
+      this.state.tokens.push(token);
+    }
+
+    if (token) {
+      if (event.eventType === 'TOKEN_CALLED' || event.eventType === 'TOKEN_RECALLED') {
+        token.state = 'CALLED';
+        token.counterNumber = event.counterNumber || token.counterNumber;
+        token.calledAt = event.timestamp || new Date().toISOString();
+        const counter = this.state.counters.find(c => c.number === token!.counterNumber);
+        if (counter) {
+          counter.currentServingTokenId = token.id;
+          counter.currentServingTokenNumber = token.tokenNumber;
+        }
+      } else if (event.eventType === 'TOKEN_SERVING_STARTED') {
+        token.state = 'IN_SERVICE';
+        token.servedAt = event.timestamp || new Date().toISOString();
+        
+        const counter = this.state.counters.find(c => c.number === token!.counterNumber);
+        if (counter && counter.currentServingTokenId === token!.id) {
+          counter.serviceStartTime = token.servedAt;
+        }
+      } else if (event.eventType === 'TOKEN_COMPLETED' || event.eventType === 'TOKEN_NO_SHOW') {
+        token.state = event.eventType === 'TOKEN_COMPLETED' ? 'COMPLETED' : 'NO_SHOW';
+        token.completedAt = event.timestamp || new Date().toISOString();
+        
+        const counter = this.state.counters.find(c => c.currentServingTokenId === token!.id || c.number === token!.counterNumber);
+        if (counter && counter.currentServingTokenId === token.id) {
+          counter.currentServingTokenId = undefined;
+          counter.currentServingTokenNumber = undefined;
+          counter.serviceStartTime = undefined;
+        }
+        this.state.historyTokens.unshift({ ...token });
+        this.state.tokens = this.state.tokens.filter(t => t.id !== token!.id);
+      }
+    }
   }
 
   public selectOrg(orgId: string) {
@@ -977,7 +1123,6 @@ class QueueStore {
     if (counter) {
       counter.currentServingTokenId = eligibleToken.id;
       counter.currentServingTokenNumber = eligibleToken.tokenNumber;
-      counter.serviceStartTime = new Date().toISOString();
       counter.assignedStaffId = staffId;
     }
 
@@ -1042,9 +1187,6 @@ class QueueStore {
 
     token.calledAt = new Date().toISOString();
     const counter = this.state.counters.find(c => c.number === counterNumber);
-    if (counter) {
-      counter.serviceStartTime = new Date().toISOString();
-    }
     this.state.lastCalledTokenId = token.id;
 
     const annText = `Token ${token.tokenNumber}, please proceed to Counter ${counterNumber}.`;

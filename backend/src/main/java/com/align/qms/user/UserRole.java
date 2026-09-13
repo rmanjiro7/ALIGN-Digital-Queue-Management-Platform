@@ -27,5 +27,12 @@ public enum UserRole {
      * Cannot perform operational actions (call next, complete service, configure queues).
      * org_id is NULL for PLATFORM_ADMIN users (no tenant scope).
      */
-    PLATFORM_ADMIN
+    PLATFORM_ADMIN,
+
+    /**
+     * Public display read-only identity.
+     * Bound to a specific location to receive realtime updates.
+     * Cannot perform any staff operational actions.
+     */
+    DISPLAY
 }

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { queueStore, AppState } from './services/store';
+import { apiClient } from './services/apiClient';
+import { LoginScreen } from './components/auth/LoginScreen';
 
 // Navigation Components
 import { TopBar } from './components/navigation/TopBar';
@@ -37,6 +39,30 @@ export default function App() {
     const unsubscribe = queueStore.subscribe((state) => {
       setAppState({ ...state });
     });
+
+    const initAuth = async () => {
+      if (apiClient.getRefreshToken()) {
+        queueStore.setAuthStatus('AUTHENTICATING');
+        const refreshed = await apiClient.refresh();
+        if (refreshed) {
+          try {
+            const res = await apiClient.authenticatedFetch('/api/v1/auth/me');
+            if (res.ok) {
+              const user = await res.json();
+              queueStore.setAuthStatus('AUTHENTICATED', user);
+            } else {
+              queueStore.setAuthStatus('UNAUTHENTICATED');
+            }
+          } catch {
+            queueStore.setAuthStatus('UNAUTHENTICATED');
+          }
+        } else {
+          queueStore.setAuthStatus('UNAUTHENTICATED');
+        }
+      }
+    };
+    initAuth();
+
     return () => unsubscribe();
   }, []);
 
@@ -80,6 +106,9 @@ export default function App() {
 
       // Public Display Mode
       case 'SCREEN_22_PUBLIC_DISPLAY':
+        if (appState.authStatus !== 'AUTHENTICATED') {
+          return <LoginScreen />;
+        }
         return <Screen22PublicDisplay appState={appState} />;
 
       default:

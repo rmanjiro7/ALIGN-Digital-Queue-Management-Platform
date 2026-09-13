@@ -29,4 +29,6 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
     Optional<Token> findNextWaitingTokenWithLock(@Param("locationId") UUID locationId);
 
     List<Token> findByQueueIdAndStateOrderByJoinedAtAsc(UUID queueId, TokenState state);
+
+    List<Token> findByLocationIdAndStateIn(UUID locationId, Collection<TokenState> states);
 }

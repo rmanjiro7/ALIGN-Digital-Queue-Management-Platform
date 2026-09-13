@@ -13,6 +13,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { apiClient } from '../../services/apiClient';
+import { wsClient } from '../../services/websocketClient';
 
 interface Screen22PublicDisplayProps {
   appState: AppState;
@@ -26,6 +28,50 @@ export const Screen22PublicDisplay: React.FC<Screen22PublicDisplayProps> = ({ ap
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const locationId = appState.currentUser?.locationId;
+    if (!locationId) return;
+
+    wsClient.connect(
+      () => {
+        // 1. Subscribe to Location Stream
+        wsClient.subscribeToLocation(locationId, (msg) => {
+          queueStore.handleRealtimeEvent(msg, locationId);
+        });
+
+        // 2. Start Sync Cycle
+        const genId = queueStore.startSyncCycle(locationId);
+
+        // 3. Fetch Snapshot
+        apiClient.authenticatedFetch(`/api/v1/locations/${locationId}/queue-snapshot`)
+          .then(res => {
+            if (res.ok) return res.json();
+            throw new Error('Snapshot fetch failed');
+          })
+          .then(snapshot => {
+            // 4. Apply Snapshot
+            queueStore.applySnapshot(snapshot, genId, locationId);
+          })
+          .catch(err => {
+            console.error('[Snapshot] Failed:', err);
+            queueStore.setSyncStatus('ERROR');
+          });
+      },
+      () => {
+        queueStore.setSyncStatus('RECONNECTING');
+      },
+      (err) => {
+        console.error('[STOMP] Error', err);
+        queueStore.setSyncStatus('ERROR');
+      }
+    );
+
+    return () => {
+      wsClient.disconnect();
+      queueStore.setSyncStatus('DISCONNECTED');
+    };
+  }, [appState.currentUser?.locationId]);
 
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
   const currentLocation = appState.locations.find(l => l.id === appState.selectedLocationId) || appState.locations[0];
