@@ -14,12 +14,51 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { DateRangeFilter, DateRangePreset } from '../analytics/DateRangeFilter';
+import { analyticsApi, AnalyticsTrafficResponse, AnalyticsOverviewResponse } from '../../services/analyticsApi';
+import { getDateRange } from '../../utils/dateUtils';
+import { AnalyticsBarChart } from '../analytics/AnalyticsBarChart';
 
 interface Screen15PlatformDashboardProps {
   appState: AppState;
 }
 
 export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps> = ({ appState }) => {
+  const [dateRange, setDateRange] = React.useState<DateRangePreset>('LAST_7_DAYS');
+  const [selectedOrgId, setSelectedOrgId] = React.useState<string>('');
+  const [traffic, setTraffic] = React.useState<AnalyticsTrafficResponse | null>(null);
+  const [overview, setOverview] = React.useState<AnalyticsOverviewResponse | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!selectedOrgId) {
+        setTraffic(null);
+        setOverview(null);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const { start, end } = getDateRange(dateRange);
+        
+        const [trafficData, overviewData] = await Promise.all([
+          analyticsApi.getTraffic(start, end, selectedOrgId, undefined),
+          analyticsApi.getOverview(start, end, selectedOrgId, undefined)
+        ]);
+
+        setTraffic(trafficData);
+        setOverview(overviewData);
+      } catch (err) {
+        console.error("Failed to load platform analytics", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [dateRange, selectedOrgId]);
+
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       {/* Top Header with Multi-Tenant Navigation */}
@@ -37,6 +76,17 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
         </div>
 
         <div className="flex items-center gap-2">
+          <select 
+            value={selectedOrgId} 
+            onChange={(e) => setSelectedOrgId(e.target.value)}
+            className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-sm focus:outline-none focus:border-[#00ACC1]"
+          >
+            <option value="">-- Select Organization --</option>
+            {appState.tenants.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
           <button
             onClick={() => queueStore.setScreen('SCREEN_16_TENANT_MANAGEMENT')}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md shadow-slate-900/10 uppercase tracking-wider transition-colors cursor-pointer"
@@ -46,6 +96,15 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
           </button>
         </div>
       </div>
+
+      {!selectedOrgId ? (
+        <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-sm text-center">
+          <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h2 className="text-lg font-black text-slate-700 mb-2">Select an Organization</h2>
+          <p className="text-sm text-slate-500">Please select an organization from the dropdown above to view analytics.</p>
+        </div>
+      ) : (
+        <>
 
       {/* 4 Global KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -63,7 +122,7 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
             <span className="font-mono uppercase text-[10px] font-bold">Active Locations</span>
             <MapPin className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">450</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">{appState.locations.length || 0}</div>
           <div className="text-[10px] text-slate-400 font-mono mt-1 font-bold">Steady throughput</div>
         </div>
 
@@ -72,7 +131,7 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
             <span className="font-mono uppercase text-[10px] font-bold">Active Queues</span>
             <ListOrdered className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">1,200</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">{appState.counters.length * 2 || 0}</div>
           <div className="text-[10px] text-emerald-600 font-bold mt-1 font-mono">Live processing</div>
         </div>
 
@@ -93,39 +152,26 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-bold text-[#0F172A]">Platform Usage Overview</h2>
-              <p className="text-xs text-slate-500">Total tokens issued globally (Past 7 Days)</p>
+              <p className="text-xs text-slate-500">Global traffic for selected period</p>
             </div>
             <span className="text-xs font-mono font-bold text-[#0F172A] bg-[#F1F5F9] px-3 py-1.5 rounded-xl border border-slate-200">
-              184,920 Total Tokens
+              {overview?.totalTokensIssued.toLocaleString() || 0} Total Tokens
             </span>
           </div>
 
-          <div className="h-64 w-full pt-4">
-            <div className="h-full w-full flex items-end justify-between gap-3 px-2 pb-6 border-b border-slate-100">
-              {[
-                { day: 'Mon', count: 24500, height: 70 },
-                { day: 'Tue', count: 28900, height: 82 },
-                { day: 'Wed', count: 32400, height: 92 },
-                { day: 'Thu', count: 31100, height: 88 },
-                { day: 'Fri', count: 35200, height: 100 },
-                { day: 'Sat', count: 18400, height: 52 },
-                { day: 'Sun', count: 14420, height: 41 },
-              ].map((bar) => (
-                <div key={bar.day} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                  <div className="w-full max-w-[48px] flex items-end justify-center h-44">
-                    <div 
-                      className="w-full bg-[#0F172A] group-hover:bg-[#00ACC1] rounded-t-xl transition-all duration-300 relative cursor-pointer"
-                      style={{ height: `${bar.height}%` }}
-                    >
-                      <div className="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-[#0F172A] text-[#00ACC1] text-[10px] font-mono font-bold py-0.5 px-2 rounded-lg shadow-md transition-opacity pointer-events-none whitespace-nowrap">
-                        {bar.count.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono text-slate-600 mt-1 font-bold">{bar.day}</span>
-                </div>
-              ))}
-            </div>
+          <div className="h-64 w-full pt-4 relative">
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
+              </div>
+            )}
+            <AnalyticsBarChart data={
+              traffic?.hourlyBuckets.map(b => ({
+                time: `${b.hour.toString().padStart(2, '0')}:00`,
+                issued: b.tokensJoined,
+                served: b.tokensCompleted
+              })) || []
+            } />
           </div>
         </div>
 
@@ -171,6 +217,8 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

@@ -22,6 +22,11 @@ import {
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { CounterAvailability } from '../../types';
+import { DateRangeFilter, DateRangePreset } from '../analytics/DateRangeFilter';
+import { analyticsApi, AnalyticsOverviewResponse, AnalyticsTrafficResponse, ServiceAnalyticsResponse } from '../../services/analyticsApi';
+import { getDateRange, formatDuration } from '../../utils/dateUtils';
+import { AnalyticsBarChart } from '../analytics/AnalyticsBarChart';
+import { AnalyticsServiceProgress } from '../analytics/AnalyticsServiceProgress';
 
 interface Screen12OrgDashboardProps {
   appState: AppState;
@@ -31,6 +36,39 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
   const [showAlert, setShowAlert] = useState(true);
   const [selectedLocationId, setSelectedLocationId] = useState<string>(appState.selectedLocationId || 'loc-main');
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
+
+  const [dateRange, setDateRange] = useState<DateRangePreset>('TODAY');
+  const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(null);
+  const [traffic, setTraffic] = useState<AnalyticsTrafficResponse | null>(null);
+  const [services, setServices] = useState<ServiceAnalyticsResponse[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const { start, end } = getDateRange(dateRange);
+        
+        const locId = selectedLocationId === 'loc-main' ? undefined : selectedLocationId;
+
+        const [overviewData, trafficData, servicesData] = await Promise.all([
+          analyticsApi.getOverview(start, end, appState.selectedOrgId, locId),
+          analyticsApi.getTraffic(start, end, appState.selectedOrgId, locId),
+          analyticsApi.getServices(start, end, appState.selectedOrgId, locId)
+        ]);
+
+        setOverview(overviewData);
+        setTraffic(trafficData);
+        setServices(servicesData);
+      } catch (err) {
+        console.error("Failed to load analytics", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [dateRange, appState.selectedOrgId, selectedLocationId]);
 
   const branchCounters = appState.counters.filter(
     c => c.orgId === appState.selectedOrgId && (c.locationId === selectedLocationId || !c.locationId)
@@ -86,6 +124,8 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
         </div>
 
         <div className="flex items-center gap-2.5">
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          
           <button
             onClick={() => alert('Exporting PDF/CSV operations report for ' + currentOrg.name)}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-xl shadow-sm transition-colors cursor-pointer"
@@ -253,18 +293,22 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
       </div>
 
       {/* 4 Core KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+        {isLoading && (
+           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+             <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
+           </div>
+        )}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-mono uppercase text-[10px] font-bold">Total Served Today</span>
+            <span className="font-mono uppercase text-[10px] font-bold">Total Tokens Issued</span>
             <Users className="w-4 h-4 text-[#00ACC1]" />
           </div>
           <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
-            {queueStore.getTodayServedCount(currentOrg.id, selectedLocationId) + 427}
+            {overview?.totalTokensIssued || 0}
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1 font-mono">
-            <TrendingUp className="w-3 h-3" />
-            <span>+12% vs yesterday</span>
+          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-1 font-mono">
+            <span>Served: {overview?.tokensCompleted || 0}</span>
           </div>
         </div>
 
@@ -273,9 +317,11 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
             <span className="font-mono uppercase text-[10px] font-bold">Avg. Wait Time</span>
             <Clock className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">14m</div>
-          <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold mt-1 font-mono">
-            <span>+2m peak variance</span>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
+            {formatDuration(overview?.avgWaitTimeSeconds || null)}
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-1 font-mono">
+            <span>Avg Svc: {formatDuration(overview?.avgServiceTimeSeconds || null)}</span>
           </div>
         </div>
 
@@ -284,18 +330,26 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
             <span className="font-mono uppercase text-[10px] font-bold">Peak Demand Hour</span>
             <Zap className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">11:00 AM</div>
-          <div className="text-[10px] text-slate-400 font-mono mt-1 font-bold">84 tokens issued/hr</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
+            {overview?.peakHour !== null && overview?.peakHour !== undefined ? `${overview.peakHour}:00` : '--:--'}
+          </div>
+          <div className="text-[10px] text-slate-400 font-mono mt-1 font-bold">
+            {overview?.peakHourTokenCount || 0} tokens issued/hr
+          </div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-mono uppercase text-[10px] font-bold">Staff Efficiency</span>
+            <span className="font-mono uppercase text-[10px] font-bold">Completion Rate</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">92%</div>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1 font-mono">
-            <span>+4% target achieved</span>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
+            {overview?.totalTokensIssued 
+              ? Math.round((overview.tokensCompleted / overview.totalTokensIssued) * 100) 
+              : 0}%
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-1 font-mono">
+            <span>No-show: {overview?.noShowRate ? Math.round(overview.noShowRate * 100) : 0}%</span>
           </div>
         </div>
       </div>
@@ -320,36 +374,19 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
           </div>
 
           {/* SVG Analytical Area / Bar Graph */}
-          <div className="h-64 w-full pt-4">
-            <div className="h-full w-full flex items-end justify-between gap-2 px-2 pb-6 border-b border-slate-100">
-              {[
-                { time: '08:00', issued: 25, served: 20 },
-                { time: '09:00', issued: 48, served: 42 },
-                { time: '10:00', issued: 75, served: 68 },
-                { time: '11:00', issued: 95, served: 80 },
-                { time: '12:00', issued: 65, served: 60 },
-                { time: '13:00', issued: 52, served: 50 },
-                { time: '14:00', issued: 70, served: 64 },
-                { time: '15:00', issued: 58, served: 55 },
-                { time: '16:00', issued: 35, served: 33 },
-              ].map((slot) => (
-                <div key={slot.time} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                  <div className="w-full flex items-end justify-center gap-1 h-44">
-                    <div 
-                      className="w-3.5 bg-[#0F172A] rounded-t-md transition-all group-hover:bg-slate-700"
-                      style={{ height: `${(slot.issued / 100) * 100}%` }}
-                      title={`${slot.issued} tokens issued`}
-                    />
-                    <div 
-                      className="w-3.5 bg-[#00ACC1] rounded-t-md transition-all group-hover:bg-[#0097A7]"
-                      style={{ height: `${(slot.served / 100) * 100}%` }}
-                      title={`${slot.served} tokens served`}
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono text-slate-400 mt-1">{slot.time}</span>
-                </div>
-              ))}
-            </div>
+          <div className="h-64 w-full pt-4 relative">
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
+              </div>
+            )}
+            <AnalyticsBarChart data={
+              traffic?.hourlyBuckets.map(b => ({
+                time: `${b.hour.toString().padStart(2, '0')}:00`,
+                issued: b.tokensJoined,
+                served: b.tokensCompleted
+              })) || []
+            } />
           </div>
         </div>
 
@@ -359,47 +396,26 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
             <h2 className="text-sm font-bold text-[#0F172A] mb-1">Service Distribution</h2>
             <p className="text-xs text-slate-500 mb-5">Traffic allocation by service type</p>
 
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-slate-800">General Inquiry</span>
-                  <span className="text-slate-500 font-mono font-bold">45%</span>
-                </div>
-                <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#00ACC1] rounded-full" style={{ width: '45%' }} />
-                </div>
+          <div className="relative flex-grow">
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
               </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-slate-800">Account Services</span>
-                  <span className="text-slate-500 font-mono font-bold">30%</span>
-                </div>
-                <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#0F172A] rounded-full" style={{ width: '30%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-slate-800">Cashier / Tellers</span>
-                  <span className="text-slate-500 font-mono font-bold">15%</span>
-                </div>
-                <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#00ACC1]/70 rounded-full" style={{ width: '15%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-slate-800">Specialist Consultation</span>
-                  <span className="text-slate-500 font-mono font-bold">10%</span>
-                </div>
-                <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                  <div className="h-full bg-slate-400 rounded-full" style={{ width: '10%' }} />
-                </div>
-              </div>
-            </div>
+            )}
+            <AnalyticsServiceProgress data={
+              (() => {
+                if (!services || services.length === 0) return [];
+                const total = services.reduce((sum, s) => sum + s.totalTokens, 0);
+                if (total === 0) return [];
+                const colors = ['#00ACC1', '#0F172A', '#00ACC170', '#94A3B8', '#38BDF8'];
+                return services.slice(0, 5).map((s, i) => ({
+                  serviceName: s.serviceName,
+                  percentage: (s.totalTokens / total) * 100,
+                  color: colors[i % colors.length]
+                }));
+              })()
+            } />
+          </div>
           </div>
 
           <div className="pt-4 mt-6 border-t border-slate-100">
