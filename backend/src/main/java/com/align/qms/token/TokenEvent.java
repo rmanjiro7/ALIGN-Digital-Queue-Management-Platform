@@ -27,6 +27,9 @@ public class TokenEvent {
     @Column(name = "token_id", nullable = false)
     private UUID tokenId;
 
+    @Column(name = "org_id", nullable = false)
+    private UUID orgId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false, length = 50)
     private TokenEventType eventType;
@@ -79,6 +82,9 @@ public class TokenEvent {
 
     public UUID getTokenId() { return tokenId; }
     public void setTokenId(UUID tokenId) { this.tokenId = tokenId; }
+
+    public UUID getOrgId() { return orgId; }
+    public void setOrgId(UUID orgId) { this.orgId = orgId; }
 
     public TokenEventType getEventType() { return eventType; }
     public void setEventType(TokenEventType eventType) { this.eventType = eventType; }

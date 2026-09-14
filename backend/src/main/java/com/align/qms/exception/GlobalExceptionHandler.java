@@ -132,6 +132,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    // ── Illegal Arguments & State (400) ───────────────────────────────
+
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentOrState(Exception ex) {
+        log.warn("Invalid request: {}", ex.getMessage());
+        ErrorResponse body = ErrorResponse.builder()
+            .status(HttpStatus.BAD_REQUEST.value())
+            .message(ex.getMessage())
+            .code("BAD_REQUEST")
+            .build();
+        return ResponseEntity.badRequest().body(body);
+    }
+
     // ── Catch-All ──────────────────────────────────────────────────────
 
     @ExceptionHandler(Exception.class)

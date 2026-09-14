@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class TokenEventService {
@@ -34,15 +35,21 @@ public class TokenEventService {
     public void recordEvent(Token token, TokenEventType eventType, TokenState fromState, Map<String, Object> metadata) {
         TokenEvent event = new TokenEvent();
         event.setTokenId(token.getId());
+        event.setOrgId(token.getOrgId());
         event.setEventType(eventType);
         event.setFromState(fromState);
         event.setToState(token.getState());
         event.setCounterId(token.getCounterId());
         
-        // For Phase 3 Token Engine, actor is typically customer (unauthenticated or implicit).
-        // If staff actions are added (Phase 4), we can extract actor from TenantContext.
-        event.setActorId(null);
-        event.setActorName(null);
+        // Phase 6.1 Actor attribution
+        UUID actorId = null;
+        try {
+            actorId = com.align.qms.security.TenantContext.getCurrentUserId();
+        } catch (IllegalStateException e) {
+            // Unauthenticated context (e.g., customer or system)
+        }
+        event.setActorId(actorId);
+        event.setActorName(null); // Optional: Could be populated if added to context or queried, but null is safe
         
         event.setMetadata(metadata);
         

@@ -53,4 +53,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * Example: list active staff only.
      */
     List<User> findByOrgIdAndStatus(UUID orgId, UserStatus status);
+
+    /** Acquire row-level lock on User for assignment operations */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") UUID id);
 }

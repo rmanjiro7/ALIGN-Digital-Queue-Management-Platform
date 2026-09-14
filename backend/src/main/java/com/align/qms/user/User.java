@@ -128,6 +128,10 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public void setAssignedCounterNumber(Integer assignedCounterNumber) {
         this.assignedCounterNumber = assignedCounterNumber;
     }

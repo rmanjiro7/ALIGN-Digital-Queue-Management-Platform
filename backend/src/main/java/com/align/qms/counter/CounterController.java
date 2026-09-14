@@ -1,9 +1,11 @@
 package com.align.qms.counter;
 
+import com.align.qms.counter.dto.CounterAssignmentRequest;
 import com.align.qms.counter.dto.CounterResponse;
 import com.align.qms.counter.dto.CreateCounterRequest;
 import com.align.qms.counter.dto.UpdateCounterAvailabilityRequest;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -83,5 +85,24 @@ public class CounterController {
             @PathVariable UUID counterId,
             @Valid @RequestBody UpdateCounterAvailabilityRequest request) {
         return ResponseEntity.ok(counterService.updateAvailability(counterId, request));
+    }
+
+    // ── POST /api/v1/counters/{counterId}/assignment ──────────────────────────
+
+    @PostMapping("/{counterId}/assignment")
+    @PreAuthorize("hasAnyRole('STAFF', 'ORG_ADMIN')")
+    public ResponseEntity<CounterResponse> assignStaff(
+            @PathVariable UUID counterId,
+            @Valid @RequestBody CounterAssignmentRequest request) {
+        return ResponseEntity.ok(counterService.assignStaff(counterId, request));
+    }
+
+    // ── DELETE /api/v1/counters/{counterId}/assignment ────────────────────────
+
+    @DeleteMapping("/{counterId}/assignment")
+    @PreAuthorize("hasAnyRole('STAFF', 'ORG_ADMIN')")
+    public ResponseEntity<CounterResponse> unassignStaff(
+            @PathVariable UUID counterId) {
+        return ResponseEntity.ok(counterService.unassignStaff(counterId));
     }
 }
