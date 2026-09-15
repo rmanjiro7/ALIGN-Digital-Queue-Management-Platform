@@ -113,8 +113,8 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
             <span className="font-mono uppercase text-[10px] font-bold">Total Organizations</span>
             <Building2 className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">{appState.tenants.length + 119}</div>
-          <div className="text-[10px] text-emerald-600 font-bold mt-1 font-mono">+3 this month</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">{appState.tenants.length > 0 ? appState.tenants.length : 'N/A'}</div>
+          <div className="text-[10px] text-slate-400 font-bold mt-1 font-mono">Real-time count</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
@@ -122,8 +122,8 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
             <span className="font-mono uppercase text-[10px] font-bold">Active Locations</span>
             <MapPin className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">{appState.locations.length || 0}</div>
-          <div className="text-[10px] text-slate-400 font-mono mt-1 font-bold">Steady throughput</div>
+          <div className="text-2xl md:text-3xl font-black text-slate-400">N/A</div>
+          <div className="text-[10px] text-slate-400 font-mono mt-1 font-bold">Data unavailable</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
@@ -131,8 +131,8 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
             <span className="font-mono uppercase text-[10px] font-bold">Active Queues</span>
             <ListOrdered className="w-4 h-4 text-[#00ACC1]" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">{appState.counters.length * 2 || 0}</div>
-          <div className="text-[10px] text-emerald-600 font-bold mt-1 font-mono">Live processing</div>
+          <div className="text-2xl md:text-3xl font-black text-slate-400">N/A</div>
+          <div className="text-[10px] text-slate-400 font-bold mt-1 font-mono">Data unavailable</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
@@ -140,8 +140,8 @@ export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps>
             <span className="font-mono uppercase text-[10px] font-bold">System Health</span>
             <Activity className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">99.9%</div>
-          <div className="text-[10px] text-emerald-600 font-mono font-bold mt-1">ALL SYSTEMS NOMINAL</div>
+          <div className="text-2xl md:text-3xl font-black text-slate-400">N/A</div>
+          <div className="text-[10px] text-slate-400 font-mono font-bold mt-1">Data unavailable</div>
         </div>
       </div>
 

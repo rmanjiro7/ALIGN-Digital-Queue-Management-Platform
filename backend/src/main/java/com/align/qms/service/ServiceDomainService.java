@@ -7,6 +7,7 @@ import com.align.qms.location.LocationRepository;
 import com.align.qms.security.TenantContext;
 import com.align.qms.service.dto.CreateServiceRequest;
 import com.align.qms.service.dto.ServiceResponse;
+import com.align.qms.service.dto.UpdateServiceRequest;
 import com.align.qms.service.dto.UpdateServiceStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +35,14 @@ public class ServiceDomainService {
 
     private final ServiceRepository  serviceRepository;
     private final LocationRepository locationRepository;
+    private final com.align.qms.audit.AdminAuditService adminAuditService;
 
     public ServiceDomainService(ServiceRepository serviceRepository,
-                                LocationRepository locationRepository) {
+                                LocationRepository locationRepository,
+                                com.align.qms.audit.AdminAuditService adminAuditService) {
         this.serviceRepository  = serviceRepository;
         this.locationRepository = locationRepository;
+        this.adminAuditService = adminAuditService;
     }
 
     // ── List ─────────────────────────────────────────────────────────────────
@@ -95,8 +99,10 @@ public class ServiceDomainService {
         );
 
         ServiceEntity saved = serviceRepository.save(svc);
+        ServiceResponse response = ServiceResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "SERVICE", "CREATE", null, response);
         log.info("Service created: id={} locationId={} orgId={}", saved.getId(), locationId, saved.getOrgId());
-        return ServiceResponse.from(saved);
+        return response;
     }
 
     // ── Enable / disable ─────────────────────────────────────────────────────
@@ -106,11 +112,64 @@ public class ServiceDomainService {
         ServiceEntity svc = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ServiceNotFoundException(serviceId));
 
+        ServiceResponse beforeState = ServiceResponse.from(svc);
+
+        if (svc.isEnabled() == Boolean.TRUE.equals(request.getEnabled())) {
+            return beforeState;
+        }
+
         TenantContext.requireSameTenant(svc.getOrgId());
         svc.setEnabled(Boolean.TRUE.equals(request.getEnabled()));
 
         ServiceEntity saved = serviceRepository.save(svc);
+        ServiceResponse afterState = ServiceResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "SERVICE", "UPDATE_STATUS", beforeState, afterState);
         log.info("Service status updated: id={} enabled={}", saved.getId(), saved.isEnabled());
-        return ServiceResponse.from(saved);
+        return afterState;
+    }
+
+    // ── Update fields ────────────────────────────────────────────────────────
+
+    @Transactional
+    public ServiceResponse update(UUID serviceId, UpdateServiceRequest request) {
+        ServiceEntity svc = serviceRepository.findById(serviceId)
+            .orElseThrow(() -> new ServiceNotFoundException(serviceId));
+
+        ServiceResponse beforeState = ServiceResponse.from(svc);
+
+        TenantContext.requireSameTenant(svc.getOrgId());
+
+        boolean changed = false;
+
+        if (request.getName() != null && !request.getName().isBlank() && !request.getName().trim().equals(svc.getName())) {
+            svc.setName(request.getName().trim());
+            changed = true;
+        }
+        if (request.getDescription() != null && !request.getDescription().equals(svc.getDescription())) {
+            svc.setDescription(request.getDescription());
+            changed = true;
+        }
+        if (request.getIcon() != null && !request.getIcon().equals(svc.getIcon())) {
+            svc.setIcon(request.getIcon());
+            changed = true;
+        }
+        if (request.getIsFastTrack() != null && !request.getIsFastTrack().equals(svc.isFastTrack())) {
+            svc.setFastTrack(request.getIsFastTrack());
+            changed = true;
+        }
+        if (request.getPreparationGuidance() != null && !request.getPreparationGuidance().equals(svc.getPreparationGuidance())) {
+            svc.setPreparationGuidance(request.getPreparationGuidance());
+            changed = true;
+        }
+
+        if (!changed) {
+            return beforeState;
+        }
+
+        ServiceEntity saved = serviceRepository.save(svc);
+        ServiceResponse afterState = ServiceResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "SERVICE", "UPDATE", beforeState, afterState);
+        log.info("Service updated: id={}", saved.getId());
+        return afterState;
     }
 }

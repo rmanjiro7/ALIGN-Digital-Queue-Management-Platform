@@ -3,6 +3,7 @@ package com.align.qms.counter;
 import com.align.qms.counter.dto.CreateCounterRequest;
 import com.align.qms.counter.dto.CounterResponse;
 import com.align.qms.counter.dto.UpdateCounterAvailabilityRequest;
+import com.align.qms.counter.dto.UpdateCounterStatusRequest;
 import com.align.qms.exception.CounterNotFoundException;
 import com.align.qms.exception.DuplicateCounterNumberException;
 import com.align.qms.exception.LocationNotFoundException;
@@ -125,9 +126,11 @@ public class CounterService {
 
         try {
             Counter saved = counterRepository.save(counter);
+            CounterResponse response = CounterResponse.from(saved);
+            adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "COUNTER", "CREATE", null, response);
             log.info("Counter created: id={} locationId={} number={} orgId={}",
                 saved.getId(), locationId, number, saved.getOrgId());
-            return CounterResponse.from(saved);
+            return response;
         } catch (DataIntegrityViolationException ex) {
             // Race condition: two concurrent requests for the same location+number
             throw new DuplicateCounterNumberException(locationId, number);
@@ -148,7 +151,13 @@ public class CounterService {
 
         TenantContext.requireSameTenant(counter.getOrgId());
 
+        CounterResponse beforeState = CounterResponse.from(counter);
         CounterAvailability oldAvailability = counter.getAvailability();
+
+        if (oldAvailability == request.getAvailability()) {
+            return beforeState;
+        }
+
         counter.setAvailability(request.getAvailability());
         Counter saved = counterRepository.save(counter);
 
@@ -164,9 +173,43 @@ public class CounterService {
             counterAvailabilityLogRepository.save(logEntry);
         }
 
+        CounterResponse afterState = CounterResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "COUNTER", "UPDATE_AVAILABILITY", beforeState, afterState);
+
         log.info("Counter availability updated: id={} availability={}",
             saved.getId(), saved.getAvailability());
-        return CounterResponse.from(saved);
+        return afterState;
+    }
+
+    // ── Update status ────────────────────────────────────────────────────────
+
+    /**
+     * Update counter status (ACTIVE / PAUSED / CLOSED).
+     * Allowed for ORG_ADMIN within the same tenant.
+     */
+    @Transactional
+    public CounterResponse updateStatus(UUID counterId, UpdateCounterStatusRequest request) {
+        Counter counter = counterRepository.findById(counterId)
+            .orElseThrow(() -> new CounterNotFoundException(counterId));
+
+        TenantContext.requireSameTenant(counter.getOrgId());
+
+        CounterResponse beforeState = CounterResponse.from(counter);
+
+        if (counter.getStatus() == request.getStatus()) {
+            return beforeState;
+        }
+
+        counter.setStatus(request.getStatus());
+
+        // Note: Operational availability (ONLINE/OFFLINE) and historical tokens are not altered here 
+        // unless specific new business rules are provided later. Status is just the administrative state.
+
+        Counter saved = counterRepository.save(counter);
+        CounterResponse afterState = CounterResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "COUNTER", "UPDATE_STATUS", beforeState, afterState);
+        log.info("Counter status updated: id={} status={}", saved.getId(), saved.getStatus());
+        return afterState;
     }
 
     @Transactional
@@ -213,7 +256,7 @@ public class CounterService {
         Counter saved = counterRepository.save(counter);
         
         CounterResponse afterState = CounterResponse.from(saved);
-        adminAuditService.logEvent(saved.getId(), "COUNTER", "ASSIGN_STAFF", beforeState, afterState);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "COUNTER", "ASSIGN_STAFF", beforeState, afterState);
 
         return afterState;
     }
@@ -252,7 +295,7 @@ public class CounterService {
         Counter saved = counterRepository.save(counter);
         
         CounterResponse afterState = CounterResponse.from(saved);
-        adminAuditService.logEvent(saved.getId(), "COUNTER", "UNASSIGN_STAFF", beforeState, afterState);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "COUNTER", "UNASSIGN_STAFF", beforeState, afterState);
         
         return afterState;
     }

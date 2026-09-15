@@ -42,11 +42,14 @@ public class QueueService {
 
     private final QueueRepository   queueRepository;
     private final ServiceRepository serviceRepository;
+    private final com.align.qms.audit.AdminAuditService adminAuditService;
 
     public QueueService(QueueRepository queueRepository,
-                        ServiceRepository serviceRepository) {
+                        ServiceRepository serviceRepository,
+                        com.align.qms.audit.AdminAuditService adminAuditService) {
         this.queueRepository   = queueRepository;
         this.serviceRepository = serviceRepository;
+        this.adminAuditService = adminAuditService;
     }
 
     // ── List ─────────────────────────────────────────────────────────────────
@@ -133,9 +136,11 @@ public class QueueService {
 
         try {
             Queue saved = queueRepository.save(queue);
+            QueueResponse response = QueueResponse.from(saved);
+            adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "QUEUE", "CREATE", null, response);
             log.info("Queue created: id={} serviceId={} orgId={}",
                 saved.getId(), serviceId, saved.getOrgId());
-            return QueueResponse.from(saved);
+            return response;
         } catch (DataIntegrityViolationException ex) {
             // Race condition: two concurrent requests for the same service_id
             throw new DuplicateQueueException(serviceId);
@@ -155,10 +160,18 @@ public class QueueService {
 
         TenantContext.requireSameTenant(queue.getOrgId());
 
+        QueueResponse beforeState = QueueResponse.from(queue);
+
+        if (queue.getStatus() == request.getStatus()) {
+            return beforeState;
+        }
+
         queue.setStatus(request.getStatus());
         Queue saved = queueRepository.save(queue);
+        QueueResponse afterState = QueueResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "QUEUE", "UPDATE_STATUS", beforeState, afterState);
         log.info("Queue status updated: id={} status={}", saved.getId(), saved.getStatus());
-        return QueueResponse.from(saved);
+        return afterState;
     }
 
     // ── Update config ────────────────────────────────────────────────────────
@@ -174,18 +187,31 @@ public class QueueService {
 
         TenantContext.requireSameTenant(queue.getOrgId());
 
-        if (request.getMaxCapacity() != null) {
+        QueueResponse beforeState = QueueResponse.from(queue);
+
+        boolean changed = false;
+
+        if (request.getMaxCapacity() != null && !request.getMaxCapacity().equals(queue.getMaxCapacity())) {
             queue.setMaxCapacity(request.getMaxCapacity());
+            changed = true;
         }
-        if (request.getAutoPauseAtCapacity() != null) {
+        if (request.getAutoPauseAtCapacity() != null && !request.getAutoPauseAtCapacity().equals(queue.isAutoPauseAtCapacity())) {
             queue.setAutoPauseAtCapacity(request.getAutoPauseAtCapacity());
+            changed = true;
         }
-        if (request.getTokenPrefix() != null && !request.getTokenPrefix().isBlank()) {
+        if (request.getTokenPrefix() != null && !request.getTokenPrefix().isBlank() && !request.getTokenPrefix().trim().toUpperCase().equals(queue.getTokenPrefix())) {
             queue.setTokenPrefix(request.getTokenPrefix().trim().toUpperCase());
+            changed = true;
+        }
+
+        if (!changed) {
+            return beforeState;
         }
 
         Queue saved = queueRepository.save(queue);
+        QueueResponse afterState = QueueResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "QUEUE", "UPDATE_CONFIG", beforeState, afterState);
         log.info("Queue config updated: id={}", saved.getId());
-        return QueueResponse.from(saved);
+        return afterState;
     }
 }

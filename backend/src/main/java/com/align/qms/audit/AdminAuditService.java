@@ -4,6 +4,9 @@ import com.align.qms.security.TenantContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +24,8 @@ public class AdminAuditService {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void logEvent(UUID entityId, String entityType, String action, Object beforeState, Object afterState) {
-        UUID orgId = null;
-        try {
-            orgId = TenantContext.getCurrentOrgId();
-        } catch (IllegalStateException e) {
-            // Might be a cross-tenant platform admin action, orgId remains null.
-            // But wait, platform admins don't have orgId in TenantContext (throws IllegalStateException).
-            // Actually, we should check if they are PLATFORM_ADMIN or get it if present.
-        }
+    public void logEvent(UUID targetOrgId, UUID entityId, String entityType, String action, Object beforeState, Object afterState) {
+        UUID orgId = targetOrgId;
 
         UUID actorId = null;
         String actorRole = null;
@@ -58,5 +54,29 @@ public class AdminAuditService {
         );
 
         adminAuditRepository.save(event);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<com.align.qms.audit.dto.AdminAuditResponse> listByOrg(UUID requestOrgId, Pageable pageable) {
+        UUID orgId = resolveTargetOrgId(requestOrgId);
+        return adminAuditRepository.findByOrgIdOrderByCreatedAtDesc(orgId, pageable)
+                .map(com.align.qms.audit.dto.AdminAuditResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<com.align.qms.audit.dto.AdminAuditResponse> listByEntity(String entityType, UUID entityId, UUID requestOrgId, Pageable pageable) {
+        UUID orgId = resolveTargetOrgId(requestOrgId);
+        return adminAuditRepository.findByOrgIdAndEntityTypeAndEntityIdOrderByCreatedAtDesc(orgId, entityType, entityId, pageable)
+                .map(com.align.qms.audit.dto.AdminAuditResponse::from);
+    }
+
+    private UUID resolveTargetOrgId(UUID requestOrgId) {
+        if (TenantContext.isPlatformAdmin()) {
+            if (requestOrgId == null) {
+                throw new IllegalArgumentException("orgId is required for PLATFORM_ADMIN");
+            }
+            return requestOrgId;
+        }
+        return TenantContext.getCurrentOrgId();
     }
 }

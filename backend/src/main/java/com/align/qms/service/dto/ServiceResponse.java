@@ -19,6 +19,7 @@ public class ServiceResponse {
     private String  description;
     private String  icon;
     private boolean enabled;
+    @com.fasterxml.jackson.annotation.JsonProperty("isFastTrack")
     private boolean isFastTrack;
     private String  preparationGuidance;
     private Instant createdAt;

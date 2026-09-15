@@ -58,7 +58,7 @@ public class UserService {
         User saved = userRepository.save(user);
 
         UserResponse response = UserResponse.from(saved);
-        adminAuditService.logEvent(saved.getId(), "USER", "CREATE", null, response);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "USER", "CREATE", null, response);
         return response;
     }
 
@@ -99,7 +99,7 @@ public class UserService {
         User saved = userRepository.save(user);
         UserResponse afterState = UserResponse.from(saved);
 
-        adminAuditService.logEvent(saved.getId(), "USER", "UPDATE", beforeState, afterState);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "USER", "UPDATE", beforeState, afterState);
         return afterState;
     }
 
@@ -113,7 +113,7 @@ public class UserService {
         User saved = userRepository.save(user);
         UserResponse afterState = UserResponse.from(saved);
 
-        adminAuditService.logEvent(saved.getId(), "USER", "UPDATE_STATUS", beforeState, afterState);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "USER", "UPDATE_STATUS", beforeState, afterState);
         return afterState;
     }
 

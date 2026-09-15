@@ -747,6 +747,27 @@ export class QueueStore {
     this.saveState();
   }
 
+  // --- API DATA SETTERS ---
+  public setTenants(tenants: Tenant[]) {
+    this.state.tenants = tenants;
+    this.saveState();
+  }
+
+  public setLocations(locations: LocationBranch[]) {
+    this.state.locations = locations;
+    this.saveState();
+  }
+
+  public setServices(services: ServiceItem[]) {
+    this.state.services = services;
+    this.saveState();
+  }
+
+  public setQueues(queues: QueueItem[]) {
+    this.state.queues = queues;
+    this.saveState();
+  }
+
   // --- REALTIME SYNCHRONIZATION (GATE 2D) ---
   public setSyncStatus(status: AppState['syncStatus']) {
     this.state.syncStatus = status;

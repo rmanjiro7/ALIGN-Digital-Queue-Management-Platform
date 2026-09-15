@@ -13,6 +13,7 @@ import {
   Clock,
   Check
 } from 'lucide-react';
+import { adminApi } from '../../services/adminApi';
 import { queueStore, AppState } from '../../services/store';
 
 interface Screen13LocationManagementProps {
@@ -26,31 +27,115 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
   const [newLocAddress, setNewLocAddress] = useState('');
   const [newLocCity, setNewLocCity] = useState('');
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editLocId, setEditLocId] = useState('');
+  const [editLocName, setEditLocName] = useState('');
+  const [editLocSubtitle, setEditLocSubtitle] = useState('');
+  const [editLocAddress, setEditLocAddress] = useState('');
+  const [editLocCity, setEditLocCity] = useState('');
+
+
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
   const locations = appState.locations.filter(l => l.orgId === currentOrg.id);
 
-  const handleAddLocation = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetchLocations();
+  }, []);
+
+  const fetchLocations = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await adminApi.getLocations();
+      queueStore.setLocations(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load locations');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (locId: string, currentStatus: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const newStatus = currentStatus === 'ACTIVE' || currentStatus === 'Active' ? 'INACTIVE' : 'ACTIVE';
+      await adminApi.updateLocationStatus(locId, newStatus);
+      await fetchLocations();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update location status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLocName) return;
 
-    queueStore.addLocation({
-      orgId: currentOrg.id,
-      name: newLocName,
-      subtitle: newLocSubtitle || 'Branch Location',
-      address: newLocAddress || '100 Metro Blvd',
-      city: newLocCity || 'Metro City',
-      status: 'Active',
-      activeServicesCount: 2,
-      staffAssignedCount: 4,
-      operatingHours: '09:00 AM - 05:00 PM',
-    });
-
-    setNewLocName('');
-    setNewLocSubtitle('');
-    setNewLocAddress('');
-    setNewLocCity('');
-    setShowAddModal(false);
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.createLocation({
+        orgId: currentOrg.id,
+        name: newLocName,
+        subtitle: newLocSubtitle || 'Branch Location',
+        address: newLocAddress || '100 Metro Blvd',
+        city: newLocCity || 'Metro City',
+        operatingHours: '09:00 AM - 05:00 PM',
+        isHq: false
+      } as any);
+      
+      await fetchLocations();
+      setNewLocName('');
+      setNewLocSubtitle('');
+      setNewLocAddress('');
+      setNewLocCity('');
+      setShowAddModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create location');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleEditClick = (loc: any) => {
+    setEditLocId(loc.id);
+    setEditLocName(loc.name);
+    setEditLocSubtitle(loc.subtitle || '');
+    setEditLocAddress(loc.address || '');
+    setEditLocCity(loc.city || '');
+    setShowEditModal(true);
+  };
+
+  const handleUpdateLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editLocName || !editLocId) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.updateLocation(editLocId, {
+        name: editLocName,
+        subtitle: editLocSubtitle,
+        address: editLocAddress,
+        city: editLocCity,
+        operatingHours: '09:00 AM - 05:00 PM',
+        isHq: false
+      } as any);
+      
+      await fetchLocations();
+      setShowEditModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update location');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
@@ -79,9 +164,10 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
       </div>
 
       {/* Locations List */}
+      {error && <div className="text-red-500 font-bold p-3 bg-red-50 border border-red-200 rounded-lg">{error}</div>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {locations.map((loc) => {
-          const isActive = loc.status === 'Active';
+          const isActive = loc.status === 'ACTIVE' || loc.status === 'Active';
           return (
             <div
               key={loc.id}
@@ -134,13 +220,22 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
 
               {/* Action Buttons */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => alert('Editing location details for ' + loc.name)}
-                  className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-[#F1F5F9] rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <Edit className="w-3.5 h-3.5" />
-                  <span>Edit</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditClick(loc)}
+                    className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-[#F1F5F9] rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    disabled={isLoading}
+                    onClick={() => handleToggleStatus(loc.id, loc.status)}
+                    className={`px-3 py-1.5 text-xs font-bold ${isActive ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'} rounded-xl transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50`}
+                  >
+                    {isActive ? 'Deactivate' : 'Activate'}
+                  </button>
+                </div>
 
                 <button
                   onClick={() => {
@@ -222,9 +317,81 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer"
+                  disabled={isLoading}
+                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  Create Location
+                  {isLoading ? 'Creating...' : 'Create Location'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Location Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl">
+            <h2 className="text-lg font-black text-[#0F172A] mb-1">Edit Location</h2>
+            <p className="text-xs text-slate-500 mb-4">Update location details.</p>
+
+            <form onSubmit={handleUpdateLocation} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Location Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editLocName}
+                  onChange={(e) => setEditLocName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Subtitle / Descriptor</label>
+                <input 
+                  type="text" 
+                  value={editLocSubtitle}
+                  onChange={(e) => setEditLocSubtitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Address</label>
+                  <input 
+                    type="text" 
+                    value={editLocAddress}
+                    onChange={(e) => setEditLocAddress(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">City</label>
+                  <input 
+                    type="text" 
+                    value={editLocCity}
+                    onChange={(e) => setEditLocCity(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-300 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

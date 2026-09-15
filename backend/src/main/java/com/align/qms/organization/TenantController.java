@@ -3,6 +3,7 @@ package com.align.qms.organization;
 import com.align.qms.organization.dto.CreateOrganizationRequest;
 import com.align.qms.organization.dto.OrganizationResponse;
 import com.align.qms.organization.dto.UpdateOrganizationRequest;
+import com.align.qms.organization.dto.UpdateOrganizationStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -95,5 +97,19 @@ public class TenantController {
             @PathVariable UUID orgId,
             @Valid @RequestBody UpdateOrganizationRequest request) {
         return ResponseEntity.ok(organizationService.update(orgId, request));
+    }
+
+    // ── PATCH /api/v1/tenants/{orgId}/status ─────────────────────────────────
+
+    /**
+     * Update an organization's status (ACTIVE / SUSPENDED).
+     * Only PLATFORM_ADMIN may update tenant status.
+     */
+    @PatchMapping("/{orgId}/status")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<OrganizationResponse> updateStatus(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody UpdateOrganizationStatusRequest request) {
+        return ResponseEntity.ok(organizationService.updateStatus(orgId, request));
     }
 }

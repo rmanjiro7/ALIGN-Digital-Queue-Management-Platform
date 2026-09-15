@@ -15,6 +15,7 @@ import {
   Info,
   CheckCircle2
 } from 'lucide-react';
+import { adminApi } from '../../services/adminApi';
 import { queueStore, AppState } from '../../services/store';
 
 interface Screen14ServiceQueueConfigProps {
@@ -36,10 +37,82 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   const [maxWait, setMaxWait] = useState(orgRules.maxWaitThresholdMins);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
+  const [editServiceId, setEditServiceId] = useState('');
+  const [editServiceName, setEditServiceName] = useState('');
+  const [editServiceDesc, setEditServiceDesc] = useState('');
+  const [editServiceIcon, setEditServiceIcon] = useState('FileText');
+  const [editServiceFastTrack, setEditServiceFastTrack] = useState(false);
+  const [editServicePrep, setEditServicePrep] = useState('');
+
+
+  React.useEffect(() => {
+    fetchServices();
+  }, [currentLocation.id]);
+
+  const fetchServices = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await adminApi.getServices(currentLocation.id);
+      queueStore.setServices(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load services');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const services = appState.services.filter(s => s.orgId === currentOrg.id);
 
-  const handleToggleService = (serviceId: string) => {
-    queueStore.toggleServiceStatus(serviceId);
+  const handleToggleService = async (serviceId: string, currentEnabled: boolean) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.updateServiceStatus(serviceId, !currentEnabled);
+      await fetchServices();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update service status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditServiceClick = (srv: any) => {
+    setEditServiceId(srv.id);
+    setEditServiceName(srv.name);
+    setEditServiceDesc(srv.description || '');
+    setEditServiceIcon(srv.icon || 'FileText');
+    setEditServiceFastTrack(srv.isFastTrack || false);
+    setEditServicePrep(srv.preparationGuidance || '');
+    setShowEditServiceModal(true);
+  };
+
+  const handleUpdateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editServiceName || !editServiceId) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.updateService(editServiceId, {
+        name: editServiceName,
+        description: editServiceDesc,
+        icon: editServiceIcon,
+        isFastTrack: editServiceFastTrack,
+        preparationGuidance: editServicePrep
+      } as any);
+      
+      await fetchServices();
+      setShowEditServiceModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update service');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleToggleQueue = (queueId: string) => {
@@ -47,13 +120,8 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   };
 
   const handleSaveRules = () => {
-    queueStore.updateGlobalRules(currentOrg.id, {
-      autoPauseAtCapacity: autoPause,
-      capacityThresholdPercent: threshold,
-      maxWaitThresholdMins: maxWait,
-    });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2000);
+    // DEFERRED from Phase 6.3: Organization-level queue configurations are read-only for now.
+    alert('Global Operational Rules persistence is deferred and currently read-only.');
   };
 
   return (
@@ -85,6 +153,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Services and Associated Queues */}
         <div className="lg:col-span-2 space-y-6">
+          {error && <div className="text-red-500 font-bold p-3 bg-red-50 border border-red-200 rounded-lg">{error}</div>}
           {services.map((srv) => {
             const queuesForSrv = appState.queues.filter(q => q.serviceId === srv.id);
             return (
@@ -106,17 +175,27 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
                     <p className="text-xs text-slate-500 mt-1">{srv.description}</p>
                   </div>
 
-                  <button
-                    onClick={() => handleToggleService(srv.id)}
-                    className="text-slate-700 hover:text-slate-900 transition-colors p-1 cursor-pointer"
-                    title="Toggle Service Enabled State"
-                  >
-                    {srv.enabled ? (
-                      <ToggleRight className="w-8 h-8 text-[#00ACC1]" />
-                    ) : (
-                      <ToggleLeft className="w-8 h-8 text-slate-300" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditServiceClick(srv)}
+                      className="text-slate-700 hover:text-[#00ACC1] transition-colors p-1 cursor-pointer disabled:opacity-50"
+                      title="Edit Service"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      disabled={isLoading}
+                      onClick={() => handleToggleService(srv.id, srv.enabled)}
+                      className="text-slate-700 hover:text-slate-900 transition-colors p-1 cursor-pointer disabled:opacity-50"
+                      title="Toggle Service Enabled State"
+                    >
+                      {srv.enabled ? (
+                        <ToggleRight className="w-8 h-8 text-[#00ACC1]" />
+                      ) : (
+                        <ToggleLeft className="w-8 h-8 text-slate-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Associated Operational Queues Table */}
@@ -257,16 +336,9 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
               <button
                 id="save-rules-btn"
                 onClick={handleSaveRules}
-                className="w-full py-3 px-4 bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3 px-4 bg-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-not-allowed opacity-75"
               >
-                {savedSuccess ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Rules Updated!</span>
-                  </>
-                ) : (
-                  <span>Save Operational Rules</span>
-                )}
+                <span>Read Only (Deferred)</span>
               </button>
             </div>
           </div>
@@ -293,6 +365,80 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
           </div>
         </div>
       </div>
+
+      {/* Edit Service Modal */}
+      {showEditServiceModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl">
+            <h2 className="text-lg font-black text-[#0F172A] mb-1">Edit Service</h2>
+            <p className="text-xs text-slate-500 mb-4">Update service configuration.</p>
+
+            <form onSubmit={handleUpdateService} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Service Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editServiceName}
+                  onChange={(e) => setEditServiceName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Description</label>
+                <input 
+                  type="text" 
+                  value={editServiceDesc}
+                  onChange={(e) => setEditServiceDesc(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox"
+                  id="fastTrack"
+                  checked={editServiceFastTrack}
+                  onChange={(e) => setEditServiceFastTrack(e.target.checked)}
+                  className="w-4 h-4 text-[#00ACC1] rounded cursor-pointer"
+                />
+                <label htmlFor="fastTrack" className="text-xs font-bold text-slate-700 cursor-pointer">
+                  Is Fast Track?
+                </label>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Preparation Guidance</label>
+                <textarea 
+                  value={editServicePrep}
+                  onChange={(e) => setEditServicePrep(e.target.value)}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                  placeholder="e.g. Please have your ID ready"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditServiceModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-300 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

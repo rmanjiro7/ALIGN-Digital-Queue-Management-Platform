@@ -5,6 +5,7 @@ import com.align.qms.exception.OrganizationNotFoundException;
 import com.align.qms.location.dto.CreateLocationRequest;
 import com.align.qms.location.dto.LocationResponse;
 import com.align.qms.location.dto.UpdateLocationRequest;
+import com.align.qms.location.dto.UpdateLocationStatusRequest;
 import com.align.qms.organization.OrganizationRepository;
 import com.align.qms.security.TenantContext;
 import org.slf4j.Logger;
@@ -35,11 +36,14 @@ public class LocationService {
 
     private final LocationRepository     locationRepository;
     private final OrganizationRepository organizationRepository;
+    private final com.align.qms.audit.AdminAuditService adminAuditService;
 
     public LocationService(LocationRepository locationRepository,
-                           OrganizationRepository organizationRepository) {
+                           OrganizationRepository organizationRepository,
+                           com.align.qms.audit.AdminAuditService adminAuditService) {
         this.locationRepository     = locationRepository;
         this.organizationRepository = organizationRepository;
+        this.adminAuditService = adminAuditService;
     }
 
     // ── List ─────────────────────────────────────────────────────────────────
@@ -86,8 +90,10 @@ public class LocationService {
         );
 
         Location saved = locationRepository.save(location);
+        LocationResponse response = LocationResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "LOCATION", "CREATE", null, response);
         log.info("Location created: id={} orgId={}", saved.getId(), saved.getOrgId());
-        return LocationResponse.from(saved);
+        return response;
     }
 
     // ── Update ───────────────────────────────────────────────────────────────
@@ -100,28 +106,69 @@ public class LocationService {
         // Enforce tenant ownership before mutation
         TenantContext.requireSameTenant(location.getOrgId());
 
-        if (request.getName() != null && !request.getName().isBlank()) {
+        LocationResponse beforeState = LocationResponse.from(location);
+
+        boolean changed = false;
+
+        if (request.getName() != null && !request.getName().isBlank() && !request.getName().trim().equals(location.getName())) {
             location.setName(request.getName().trim());
+            changed = true;
         }
-        if (request.getSubtitle() != null) {
+        if (request.getSubtitle() != null && !request.getSubtitle().equals(location.getSubtitle())) {
             location.setSubtitle(request.getSubtitle());
+            changed = true;
         }
-        if (request.getAddress() != null) {
+        if (request.getAddress() != null && !request.getAddress().equals(location.getAddress())) {
             location.setAddress(request.getAddress());
+            changed = true;
         }
-        if (request.getCity() != null) {
+        if (request.getCity() != null && !request.getCity().equals(location.getCity())) {
             location.setCity(request.getCity());
+            changed = true;
         }
-        if (request.getOperatingHours() != null) {
+        if (request.getOperatingHours() != null && !request.getOperatingHours().equals(location.getOperatingHours())) {
             location.setOperatingHours(request.getOperatingHours());
+            changed = true;
         }
-        if (request.getIsHq() != null) {
+        if (request.getIsHq() != null && !request.getIsHq().equals(location.isHq())) {
             location.setHq(request.getIsHq());
+            changed = true;
+        }
+
+        if (!changed) {
+            return beforeState;
         }
 
         Location saved = locationRepository.save(location);
+        LocationResponse afterState = LocationResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "LOCATION", "UPDATE", beforeState, afterState);
         log.info("Location updated: id={}", saved.getId());
-        return LocationResponse.from(saved);
+        return afterState;
+    }
+
+    // ── Update Status ────────────────────────────────────────────────────────
+
+    @Transactional
+    public LocationResponse updateStatus(UUID locationId, UpdateLocationStatusRequest request) {
+        Location location = locationRepository.findById(locationId)
+            .orElseThrow(() -> new LocationNotFoundException(locationId));
+
+        // Enforce tenant ownership before mutation
+        TenantContext.requireSameTenant(location.getOrgId());
+
+        LocationResponse beforeState = LocationResponse.from(location);
+
+        if (location.getStatus() == request.getStatus()) {
+            return beforeState;
+        }
+
+        location.setStatus(request.getStatus());
+
+        Location saved = locationRepository.save(location);
+        LocationResponse afterState = LocationResponse.from(saved);
+        adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "LOCATION", "UPDATE_STATUS", beforeState, afterState);
+        log.info("Location status updated: id={} status={}", saved.getId(), saved.getStatus());
+        return afterState;
     }
 
     // ── Internal helpers ─────────────────────────────────────────────────────

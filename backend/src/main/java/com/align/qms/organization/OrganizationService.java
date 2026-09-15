@@ -5,6 +5,7 @@ import com.align.qms.exception.OrganizationNotFoundException;
 import com.align.qms.organization.dto.CreateOrganizationRequest;
 import com.align.qms.organization.dto.OrganizationResponse;
 import com.align.qms.organization.dto.UpdateOrganizationRequest;
+import com.align.qms.organization.dto.UpdateOrganizationStatusRequest;
 import com.align.qms.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +34,11 @@ public class OrganizationService {
     private static final Logger log = LoggerFactory.getLogger(OrganizationService.class);
 
     private final OrganizationRepository organizationRepository;
+    private final com.align.qms.audit.AdminAuditService adminAuditService;
 
-    public OrganizationService(OrganizationRepository organizationRepository) {
+    public OrganizationService(OrganizationRepository organizationRepository, com.align.qms.audit.AdminAuditService adminAuditService) {
         this.organizationRepository = organizationRepository;
+        this.adminAuditService = adminAuditService;
     }
 
     // ── PLATFORM_ADMIN: list all ─────────────────────────────────────────────
@@ -66,8 +69,10 @@ public class OrganizationService {
         );
 
         Organization saved = organizationRepository.save(org);
+        OrganizationResponse response = OrganizationResponse.from(saved);
+        adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "CREATE", null, response);
         log.info("Organization created: id={} code={}", saved.getId(), saved.getCode());
-        return OrganizationResponse.from(saved);
+        return response;
     }
 
     // ── Get by id — platform admin (any) or org member (own) ─────────────────
@@ -90,18 +95,53 @@ public class OrganizationService {
         Organization org = organizationRepository.findById(orgId)
             .orElseThrow(() -> new OrganizationNotFoundException(orgId));
 
-        if (request.getName() != null && !request.getName().isBlank()) {
+        OrganizationResponse beforeState = OrganizationResponse.from(org);
+
+        boolean changed = false;
+
+        if (request.getName() != null && !request.getName().isBlank() && !request.getName().trim().equals(org.getName())) {
             org.setName(request.getName().trim());
+            changed = true;
         }
-        if (request.getSector() != null) {
+        if (request.getSector() != null && !request.getSector().equals(org.getSector())) {
             org.setSector(request.getSector());
+            changed = true;
         }
-        if (request.getContactEmail() != null) {
+        if (request.getContactEmail() != null && !request.getContactEmail().equals(org.getContactEmail())) {
             org.setContactEmail(request.getContactEmail());
+            changed = true;
+        }
+
+        if (!changed) {
+            return beforeState;
         }
 
         Organization saved = organizationRepository.save(org);
+        OrganizationResponse afterState = OrganizationResponse.from(saved);
+        adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE", beforeState, afterState);
+        
         log.info("Organization updated: id={}", saved.getId());
-        return OrganizationResponse.from(saved);
+        return afterState;
+    }
+
+    @Transactional
+    public OrganizationResponse updateStatus(UUID orgId, UpdateOrganizationStatusRequest request) {
+        Organization org = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new OrganizationNotFoundException(orgId));
+
+        OrganizationResponse beforeState = OrganizationResponse.from(org);
+
+        if (org.getStatus() == request.getStatus()) {
+            return beforeState;
+        }
+
+        org.setStatus(request.getStatus());
+
+        Organization saved = organizationRepository.save(org);
+        OrganizationResponse afterState = OrganizationResponse.from(saved);
+        adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE_STATUS", beforeState, afterState);
+        
+        log.info("Organization status updated: id={} status={}", saved.getId(), saved.getStatus());
+        return afterState;
     }
 }

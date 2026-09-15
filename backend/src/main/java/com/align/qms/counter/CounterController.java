@@ -4,6 +4,7 @@ import com.align.qms.counter.dto.CounterAssignmentRequest;
 import com.align.qms.counter.dto.CounterResponse;
 import com.align.qms.counter.dto.CreateCounterRequest;
 import com.align.qms.counter.dto.UpdateCounterAvailabilityRequest;
+import com.align.qms.counter.dto.UpdateCounterStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,6 +58,18 @@ public class CounterController {
     public ResponseEntity<List<CounterResponse>> listByLocation(
             @RequestParam UUID locationId) {
         return ResponseEntity.ok(counterService.listByLocation(locationId));
+    }
+
+    // ── GET /api/v1/counters/{counterId} ──────────────────────────────────────
+
+    /**
+     * Get a single counter by ID.
+     */
+    @GetMapping("/{counterId}")
+    @PreAuthorize("hasAnyRole('STAFF', 'ORG_ADMIN')")
+    public ResponseEntity<CounterResponse> getById(
+            @PathVariable UUID counterId) {
+        return ResponseEntity.ok(counterService.getById(counterId));
     }
 
     // ── POST /api/v1/counters ─────────────────────────────────────────────────
@@ -104,5 +118,15 @@ public class CounterController {
     public ResponseEntity<CounterResponse> unassignStaff(
             @PathVariable UUID counterId) {
         return ResponseEntity.ok(counterService.unassignStaff(counterId));
+    }
+
+    // ── PATCH /api/v1/counters/{counterId}/status ────────────────────────────
+
+    @PatchMapping("/{counterId}/status")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public ResponseEntity<CounterResponse> updateStatus(
+            @PathVariable UUID counterId,
+            @Valid @RequestBody UpdateCounterStatusRequest request) {
+        return ResponseEntity.ok(counterService.updateStatus(counterId, request));
     }
 }

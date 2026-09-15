@@ -3,6 +3,7 @@ package com.align.qms.location;
 import com.align.qms.location.dto.CreateLocationRequest;
 import com.align.qms.location.dto.LocationResponse;
 import com.align.qms.location.dto.UpdateLocationRequest;
+import com.align.qms.location.dto.UpdateLocationStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -97,5 +99,15 @@ public class LocationController {
             @PathVariable UUID locationId,
             @Valid @RequestBody UpdateLocationRequest request) {
         return ResponseEntity.ok(locationService.update(locationId, request));
+    }
+
+    // ── PATCH /api/v1/locations/{locationId}/status ──────────────────────────
+
+    @PatchMapping("/{locationId}/status")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public ResponseEntity<LocationResponse> updateStatus(
+            @PathVariable UUID locationId,
+            @Valid @RequestBody UpdateLocationStatusRequest request) {
+        return ResponseEntity.ok(locationService.updateStatus(locationId, request));
     }
 }

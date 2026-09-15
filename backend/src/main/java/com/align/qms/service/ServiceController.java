@@ -2,6 +2,7 @@ package com.align.qms.service;
 
 import com.align.qms.service.dto.CreateServiceRequest;
 import com.align.qms.service.dto.ServiceResponse;
+import com.align.qms.service.dto.UpdateServiceRequest;
 import com.align.qms.service.dto.UpdateServiceStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -93,5 +94,15 @@ public class ServiceController {
             @PathVariable UUID serviceId,
             @Valid @RequestBody UpdateServiceStatusRequest request) {
         return ResponseEntity.ok(serviceDomainService.updateStatus(serviceId, request));
+    }
+
+    // ── PUT /api/v1/services/{serviceId} ─────────────────────────────────────
+
+    @PutMapping("/{serviceId}")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public ResponseEntity<ServiceResponse> update(
+            @PathVariable UUID serviceId,
+            @Valid @RequestBody UpdateServiceRequest request) {
+        return ResponseEntity.ok(serviceDomainService.update(serviceId, request));
     }
 }

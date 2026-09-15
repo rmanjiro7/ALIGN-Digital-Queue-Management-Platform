@@ -15,6 +15,7 @@ import {
   Layers,
   ArrowUpRight
 } from 'lucide-react';
+import { adminApi } from '../../services/adminApi';
 import { queueStore, AppState } from '../../services/store';
 
 interface Screen16TenantManagementProps {
@@ -32,25 +33,65 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
   const filteredTenants = appState.tenants.filter(t => 
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.sector.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.code.toLowerCase().includes(searchQuery.toLowerCase())
+    (t.code && t.code.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleOnboardTenant = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetchTenants();
+  }, []);
+
+  const fetchTenants = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const tenants = await adminApi.getTenants();
+      queueStore.setTenants(tenants);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load tenants');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (orgId: string, currentStatus: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+      await adminApi.updateTenantStatus(orgId, newStatus);
+      await fetchTenants();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update tenant status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOnboardTenant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName) return;
 
-    queueStore.onboardTenant({
-      name: orgName,
-      sector: orgSector,
-      status: 'ACTIVE',
-      locationCount: orgLocCount,
-      activeQueueCount: orgLocCount * 4,
-      contactEmail: orgEmail || 'admin@' + orgName.toLowerCase().replace(/\s+/g, '') + '.com',
-    });
-
-    setOrgName('');
-    setOrgEmail('');
-    setShowOnboardModal(false);
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.createTenant({
+        name: orgName,
+        sector: orgSector,
+        status: 'ACTIVE',
+        contactEmail: orgEmail || 'admin@' + orgName.toLowerCase().replace(/\s+/g, '') + '.com',
+      });
+      await fetchTenants();
+      setOrgName('');
+      setOrgEmail('');
+      setShowOnboardModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create tenant');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,17 +124,17 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
           <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">Total Tenants</div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">{appState.tenants.length + 137}</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">{appState.tenants.length}</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
           <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">Active Queues</div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">1,048</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">N/A</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
           <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">Total Locations</div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">356</div>
+          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">N/A</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
@@ -106,6 +147,7 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
       </div>
 
       {/* Filter and Search Bar */}
+      {error && <div className="text-red-500 font-bold p-3 bg-red-50 border border-red-200 rounded-lg">{error}</div>}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
@@ -176,7 +218,14 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
                         {tenant.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right flex gap-2 justify-end">
+                      <button
+                        disabled={isLoading}
+                        onClick={() => handleToggleStatus(tenant.id, tenant.status)}
+                        className={`px-3.5 py-1.5 rounded-xl border ${isActive ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'} font-bold text-[11px] uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50`}
+                      >
+                        {isActive ? 'Suspend' : 'Activate'}
+                      </button>
                       <button
                         onClick={() => {
                           queueStore.selectOrg(tenant.id);
@@ -197,7 +246,7 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
 
         {/* Pagination Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-          <span>Showing 1 to {filteredTenants.length} of 142 tenants</span>
+          <span>Showing 1 to {filteredTenants.length} of {appState.tenants.length} tenants</span>
           <div className="flex items-center gap-1.5">
             <button className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-50 cursor-pointer">
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -266,9 +315,10 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer"
+                  disabled={isLoading}
+                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  Provision Tenant
+                  {isLoading ? 'Provisioning...' : 'Provision Tenant'}
                 </button>
               </div>
             </form>
