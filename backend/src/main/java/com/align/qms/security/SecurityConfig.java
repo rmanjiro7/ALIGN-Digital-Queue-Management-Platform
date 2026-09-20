@@ -137,7 +137,7 @@ public class SecurityConfig {
                 // Public discovery endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/services").permitAll()
                 // Phase 3 Token Engine endpoints (public for customers via UUID knowledge)
-                .requestMatchers(HttpMethod.POST, "/api/v1/tokens/join").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/tokens").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tokens/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tokens/{id}/position").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/tokens/{id}/cancel").permitAll()

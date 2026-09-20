@@ -16,6 +16,7 @@ import {
   BellRing
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { wsClient } from '../../services/websocketClient';
 import { QueueToken } from '../../types';
 
 interface Screen05ActiveStatusProps {
@@ -45,6 +46,34 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
       return () => clearInterval(interval);
     }
   }, [token?.state]);
+
+  // RT3: Customer Realtime Integration
+  useEffect(() => {
+    if (!token?.id || !token?.realtimeToken) {
+      return;
+    }
+
+    wsClient.connect(
+      () => {
+        wsClient.subscribeToToken(token.id, (msg) => {
+          // Pass the event to the queueStore to process it
+          // The event payload will contain the token data
+          queueStore.handleRealtimeEvent(msg, token.locationId);
+        });
+      },
+      () => {
+        console.log('[Screen05] Customer STOMP disconnected');
+      },
+      (err) => {
+        console.error('[Screen05] Customer STOMP error');
+      },
+      token.realtimeToken
+    );
+
+    return () => {
+      wsClient.disconnect();
+    };
+  }, [token?.id, token?.realtimeToken, token?.locationId]);
 
   const formatAwayTime = (secs: number) => {
     const m = Math.floor(secs / 60);

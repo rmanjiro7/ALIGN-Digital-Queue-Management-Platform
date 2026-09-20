@@ -21,6 +21,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { apiClient } from '../../services/apiClient';
+import { wsClient } from '../../services/websocketClient';
 import { CounterAvailability } from '../../types';
 
 interface Screen09OperationsProps {
@@ -28,7 +30,7 @@ interface Screen09OperationsProps {
 }
 
 export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState }) => {
-  const [selectedCounterNumber, setSelectedCounterNumber] = useState<number>(3);
+  const [selectedCounterNumber, setSelectedCounterNumber] = useState<number>(1);
   const [secondsServing, setSecondsServing] = useState(0);
   const [isCallingNext, setIsCallingNext] = useState(false);
 
@@ -45,6 +47,52 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
          t.locationId === appState.selectedLocationId && 
          (t.state === 'WAITING' || t.state === 'AWAY')
   );
+
+  useEffect(() => {
+    const orgId = appState.selectedOrgId;
+    const locationId = appState.selectedLocationId;
+    
+    if (!orgId || !locationId || appState.authStatus !== 'AUTHENTICATED') return;
+
+    wsClient.connect(
+      () => {
+        // 1. Subscribe to Staff Stream
+        wsClient.subscribeToStaffLocation(orgId, locationId, (msg) => {
+          queueStore.handleRealtimeEvent(msg, locationId);
+        });
+
+        // 2. Start Sync Cycle
+        const genId = queueStore.startSyncCycle(locationId);
+
+        // 3. Fetch Snapshot
+        apiClient.authenticatedFetch(`/api/v1/locations/${locationId}/queue-snapshot`)
+          .then(res => {
+            if (res.ok) return res.json();
+            throw new Error('Snapshot fetch failed');
+          })
+          .then(snapshot => {
+            // 4. Apply Snapshot
+            queueStore.applySnapshot(snapshot, genId, locationId);
+          })
+          .catch(err => {
+            console.error('[Snapshot] Failed:', err);
+            queueStore.setSyncStatus('ERROR');
+          });
+      },
+      () => {
+        queueStore.setSyncStatus('RECONNECTING');
+      },
+      (err) => {
+        console.error('[STOMP] Error', err);
+        queueStore.setSyncStatus('ERROR');
+      }
+    );
+
+    return () => {
+      wsClient.disconnect();
+      queueStore.setSyncStatus('DISCONNECTED');
+    };
+  }, [appState.selectedOrgId, appState.selectedLocationId, appState.authStatus]);
 
   // Timer for current active customer service duration
   useEffect(() => {
@@ -65,14 +113,26 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleCallNext = () => {
+  const handleCallNext = async () => {
     if (!callNextEligibility.allowed || waitingTokens.length === 0) return;
     setIsCallingNext(true);
-    queueStore.callNext(selectedCounterNumber, appState.currentStaffUser?.id || 'staff-admin');
-    setSecondsServing(0);
-    setTimeout(() => {
-      setIsCallingNext(false);
-    }, 400);
+    
+    try {
+      const res = await apiClient.authenticatedFetch(`/api/v1/staff/counters/${currentCounter.id}/call-next`, {
+        method: 'POST'
+      });
+      
+      if (res.ok) {
+        queueStore.speakAnnouncementText('Calling next customer.');
+        setSecondsServing(0);
+      } else {
+        console.error('[Call Next] API failed', await res.text());
+      }
+    } catch (e) {
+      console.error('[Call Next] Network error', e);
+    } finally {
+      setTimeout(() => setIsCallingNext(false), 400);
+    }
   };
 
   const handleRecall = () => {

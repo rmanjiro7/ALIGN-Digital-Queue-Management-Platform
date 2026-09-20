@@ -43,7 +43,7 @@ export interface AppState {
   historyTokens: QueueToken[];
 
   // Authentication State
-  authStatus: 'UNAUTHENTICATED' | 'AUTHENTICATING' | 'AUTHENTICATED' | 'ERROR';
+  authStatus: 'UNAUTHENTICATED' | 'AUTHENTICATING' | 'AUTH_RESTORING' | 'AUTH_READY' | 'AUTHENTICATED' | 'ERROR';
   currentUser: any | null;
 
   // Realtime Sync Status
@@ -52,7 +52,7 @@ export interface AppState {
 
 const INITIAL_TENANTS: Tenant[] = [
   {
-    id: 'org-abc',
+    id: 'e2e00000-0000-0000-0000-000000000001',
     code: 'T-8492',
     name: 'ABC Services',
     sector: 'Enterprise Retail',
@@ -110,8 +110,8 @@ const INITIAL_TENANTS: Tenant[] = [
 
 const INITIAL_LOCATIONS: LocationBranch[] = [
   {
-    id: 'loc-main',
-    orgId: 'org-abc',
+    id: 'e2e00000-0000-0000-0000-000000000002',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
     name: 'Main Branch',
     subtitle: 'Downtown HQ',
     address: '123 Business Parkway, Suite 100',
@@ -124,7 +124,7 @@ const INITIAL_LOCATIONS: LocationBranch[] = [
   },
   {
     id: 'loc-north',
-    orgId: 'org-abc',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
     name: 'North Branch',
     subtitle: 'Commerce Hub',
     address: '8850 North Commerce Dr',
@@ -164,9 +164,9 @@ const INITIAL_LOCATIONS: LocationBranch[] = [
 
 const INITIAL_SERVICES: ServiceItem[] = [
   {
-    id: 'srv-general',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    id: 'e2e00000-0000-0000-0000-000000000003',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'General Inquiry',
     description: 'Default service for walk-ins requiring basic information or directional assistance.',
     icon: 'forum',
@@ -177,13 +177,13 @@ const INITIAL_SERVICES: ServiceItem[] = [
     estWaitMins: 18,
     estWaitRange: '15-20 min',
     confidence: 'High',
-    associatedQueues: ['q-triage', 'q-info'],
+    associatedQueues: ['e2e00000-0000-0000-0000-000000000004', 'q-info'],
     preparationGuidance: 'Please have your photo ID ready for verification.',
   },
   {
     id: 'srv-account',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Account Services',
     description: 'Open new accounts, update information, and manage existing profiles.',
     icon: 'account_balance',
@@ -194,13 +194,13 @@ const INITIAL_SERVICES: ServiceItem[] = [
     estWaitMins: 25,
     estWaitRange: '20-30 min',
     confidence: 'High',
-    associatedQueues: ['q-triage'],
+    associatedQueues: ['e2e00000-0000-0000-0000-000000000004'],
     preparationGuidance: 'Bring government ID, proof of address, and initial deposit if applicable.',
   },
   {
     id: 'srv-loan',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Loan Applications',
     description: 'Speak with a specialist about personal, auto, or home loans. Comprehensive consultation included.',
     icon: 'description',
@@ -216,8 +216,8 @@ const INITIAL_SERVICES: ServiceItem[] = [
   },
   {
     id: 'srv-cashier',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Cashier',
     description: 'Deposits, withdrawals, money orders, and general teller transactions.',
     icon: 'payments',
@@ -228,13 +228,13 @@ const INITIAL_SERVICES: ServiceItem[] = [
     estWaitMins: 45,
     estWaitRange: '40-50 min',
     confidence: 'Medium',
-    associatedQueues: ['q-triage'],
+    associatedQueues: ['e2e00000-0000-0000-0000-000000000004'],
     preparationGuidance: 'Endorse all checks prior to approaching the teller window.',
   },
   {
     id: 'srv-express',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Express Drop-off',
     description: 'Quick document drop-off or simple pickups taking less than 2 minutes.',
     icon: 'bolt',
@@ -250,8 +250,8 @@ const INITIAL_SERVICES: ServiceItem[] = [
   },
   {
     id: 'srv-specialist',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Specialist Consult',
     description: 'Requires pre-booking or referral. Higher duration expected per token.',
     icon: 'assignment_ind',
@@ -269,10 +269,10 @@ const INITIAL_SERVICES: ServiceItem[] = [
 
 const INITIAL_QUEUES: QueueItem[] = [
   {
-    id: 'q-triage',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
+    id: 'e2e00000-0000-0000-0000-000000000004',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
     name: 'Walk-In Triage',
     tokenPrefix: 'A',
     startRange: 1,
@@ -285,9 +285,9 @@ const INITIAL_QUEUES: QueueItem[] = [
   },
   {
     id: 'q-info',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
     name: 'Information Desk',
     tokenPrefix: 'I',
     startRange: 1,
@@ -300,8 +300,8 @@ const INITIAL_QUEUES: QueueItem[] = [
   },
   {
     id: 'q-specialist',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     serviceId: 'srv-loan',
     name: 'Consultation Desk',
     tokenPrefix: 'C',
@@ -317,9 +317,9 @@ const INITIAL_QUEUES: QueueItem[] = [
 
 const INITIAL_COUNTERS: CounterItem[] = [
   {
-    id: 'counter-1',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    id: 'e2e00000-0000-0000-0000-000000000011',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     number: 1,
     name: 'Counter 1',
     status: 'Active',
@@ -328,9 +328,9 @@ const INITIAL_COUNTERS: CounterItem[] = [
     supportedServiceNames: ['General Inquiry', 'Account Services'],
   },
   {
-    id: 'counter-2',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    id: 'e2e00000-0000-0000-0000-000000000012',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     number: 2,
     name: 'Counter 2',
     status: 'Active',
@@ -339,9 +339,9 @@ const INITIAL_COUNTERS: CounterItem[] = [
     supportedServiceNames: ['Account Services', 'Loan Applications'],
   },
   {
-    id: 'counter-3',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    id: 'e2e00000-0000-0000-0000-000000000013',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     number: 3,
     name: 'Counter 3',
     status: 'Active',
@@ -351,9 +351,9 @@ const INITIAL_COUNTERS: CounterItem[] = [
     supportedServiceNames: ['General Inquiry', 'Fast-Track Triage'],
   },
   {
-    id: 'counter-4',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    id: 'e2e00000-0000-0000-0000-000000000014',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     number: 4,
     name: 'Counter 4',
     status: 'Active',
@@ -366,8 +366,8 @@ const INITIAL_COUNTERS: CounterItem[] = [
 const INITIAL_STAFF: StaffUser[] = [
   {
     id: 'staff-admin',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Alex Mercer',
     email: 'admin@organization.com',
     role: 'STAFF',
@@ -375,8 +375,8 @@ const INITIAL_STAFF: StaffUser[] = [
   },
   {
     id: 'staff-org-lead',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Rachel Zane',
     email: 'rachel@abcservices.com',
     role: 'ORG_ADMIN',
@@ -384,8 +384,8 @@ const INITIAL_STAFF: StaffUser[] = [
   },
   {
     id: 'staff-super',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'System Platform Admin',
     email: 'super@alignplatform.io',
     role: 'PLATFORM_ADMIN',
@@ -396,10 +396,10 @@ const INITIAL_STAFF: StaffUser[] = [
 const INITIAL_TOKENS: QueueToken[] = [
   {
     id: 'tok-042',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
-    queueId: 'q-triage',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'A-042',
     state: 'WAITING',
     customerName: 'Current Customer',
@@ -412,10 +412,10 @@ const INITIAL_TOKENS: QueueToken[] = [
   },
   {
     id: 'tok-105',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     serviceId: 'srv-account',
-    queueId: 'q-triage',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'B-105',
     state: 'WAITING',
     joinedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
@@ -426,10 +426,10 @@ const INITIAL_TOKENS: QueueToken[] = [
   },
   {
     id: 'tok-043',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
-    queueId: 'q-triage',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'A-043',
     state: 'WAITING',
     joinedAt: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
@@ -440,8 +440,8 @@ const INITIAL_TOKENS: QueueToken[] = [
   },
   {
     id: 'tok-012',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     serviceId: 'srv-loan',
     queueId: 'q-specialist',
     tokenNumber: 'C-012',
@@ -454,10 +454,10 @@ const INITIAL_TOKENS: QueueToken[] = [
   },
   {
     id: 'tok-044',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
-    queueId: 'q-triage',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'A-044',
     state: 'WAITING',
     joinedAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
@@ -468,10 +468,10 @@ const INITIAL_TOKENS: QueueToken[] = [
   },
   {
     id: 'tok-045',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
-    queueId: 'q-triage',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'A-045',
     state: 'WAITING',
     joinedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
@@ -485,10 +485,10 @@ const INITIAL_TOKENS: QueueToken[] = [
 const INITIAL_HISTORY: QueueToken[] = [
   {
     id: 'hist-1',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     serviceId: 'srv-account',
-    queueId: 'q-triage',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'A-042',
     state: 'COMPLETED',
     counterNumber: 3,
@@ -501,9 +501,9 @@ const INITIAL_HISTORY: QueueToken[] = [
   },
   {
     id: 'hist-2',
-    orgId: 'org-abc',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
     locationId: 'loc-north',
-    serviceId: 'srv-general',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
     queueId: 'q-info',
     tokenNumber: 'B-105',
     state: 'CANCELLED',
@@ -517,9 +517,9 @@ const INITIAL_HISTORY: QueueToken[] = [
   {
     id: 'hist-3',
     orgId: 'org-tech',
-    locationId: 'loc-main',
-    serviceId: 'srv-general',
-    queueId: 'q-triage',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
+    serviceId: 'e2e00000-0000-0000-0000-000000000003',
+    queueId: 'e2e00000-0000-0000-0000-000000000004',
     tokenNumber: 'C-098',
     state: 'NO_SHOW',
     joinedAt: '2023-10-15T09:45:00.000Z',
@@ -534,8 +534,8 @@ const INITIAL_HISTORY: QueueToken[] = [
 const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
   {
     id: 'ann-1',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     tokenNumber: 'A-041',
     counterNumber: 3,
     text: 'Token A-041, please proceed to Counter 3.',
@@ -546,8 +546,8 @@ const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
   },
   {
     id: 'ann-2',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     tokenNumber: 'B-012',
     counterNumber: 1,
     text: 'Token B-012, please proceed to Counter 1.',
@@ -558,8 +558,8 @@ const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
   },
   {
     id: 'ann-3',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     tokenNumber: 'INFO',
     counterNumber: 2,
     text: 'Attention all waiting customers, Counter 2 is temporarily closed.',
@@ -571,8 +571,8 @@ const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
   },
   {
     id: 'ann-4',
-    orgId: 'org-abc',
-    locationId: 'loc-main',
+    orgId: 'e2e00000-0000-0000-0000-000000000001',
+    locationId: 'e2e00000-0000-0000-0000-000000000002',
     tokenNumber: 'A-040',
     counterNumber: 3,
     text: 'Token A-040, please proceed to Counter 3.',
@@ -610,9 +610,9 @@ const INITIAL_ALERTS: SystemAlert[] = [
 const INITIAL_STATE: AppState = {
   currentRole: 'CUSTOMER',
   currentScreen: 'SCREEN_01_SPLASH',
-  selectedOrgId: 'org-abc',
-  selectedLocationId: 'loc-main',
-  selectedServiceId: 'srv-general',
+  selectedOrgId: 'e2e00000-0000-0000-0000-000000000001',
+  selectedLocationId: 'e2e00000-0000-0000-0000-000000000002',
+  selectedServiceId: 'e2e00000-0000-0000-0000-000000000003',
   activeCustomerTokenId: 'tok-042',
   lastCalledTokenId: null,
   currentStaffUser: INITIAL_STAFF[0],
@@ -625,7 +625,7 @@ const INITIAL_STATE: AppState = {
   staffUsers: INITIAL_STAFF,
   announcements: INITIAL_ANNOUNCEMENTS,
   globalRules: {
-    'org-abc': {
+    'e2e00000-0000-0000-0000-000000000001': {
       autoPauseAtCapacity: true,
       capacityThresholdPercent: 90,
       maxWaitThresholdMins: 45,
@@ -635,7 +635,7 @@ const INITIAL_STATE: AppState = {
   auditLogs: [
     {
       id: 'log-1',
-      orgId: 'org-abc',
+      orgId: 'e2e00000-0000-0000-0000-000000000001',
       actor: 'Alex Mercer',
       action: 'CALL_NEXT',
       aggregateId: 'tok-041',
@@ -842,8 +842,8 @@ export class QueueStore {
         id: event.tokenId,
         orgId: event.orgId || this.state.selectedOrgId,
         locationId: event.locationId,
-        queueId: event.queueId || 'q-triage',
-        serviceId: 'srv-general',
+        queueId: event.queueId || 'e2e00000-0000-0000-0000-000000000004',
+        serviceId: 'e2e00000-0000-0000-0000-000000000003',
         tokenNumber: event.tokenNumber,
         state: 'WAITING',
         customerName: 'Customer',
@@ -1010,7 +1010,7 @@ export class QueueStore {
       orgId,
       locationId,
       serviceId,
-      queueId: queue?.id || 'q-triage',
+      queueId: queue?.id || 'e2e00000-0000-0000-0000-000000000004',
       tokenNumber,
       state: 'WAITING',
       customerName: customerName || 'Walk-in Guest',
@@ -1045,6 +1045,14 @@ export class QueueStore {
 
     this.saveState();
     return newToken;
+  }
+
+  public addJoinedCustomerToken(token: QueueToken) {
+    // Preserve existing logic
+    this.state.tokens = this.state.tokens.filter(t => t.id !== token.id);
+    this.state.tokens.push(token);
+    this.state.activeCustomerTokenId = token.id;
+    this.saveState();
   }
 
   public setActiveCustomerToken(tokenId: string | null) {

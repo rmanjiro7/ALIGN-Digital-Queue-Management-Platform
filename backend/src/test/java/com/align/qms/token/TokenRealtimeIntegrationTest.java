@@ -155,12 +155,25 @@ public class TokenRealtimeIntegrationTest extends PostgresIntegrationTest {
         ArgumentCaptor<String> destinationCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<TokenRealtimePayload> payloadCaptor = ArgumentCaptor.forClass(TokenRealtimePayload.class);
         
-        Mockito.verify(messagingTemplate, Mockito.timeout(1000)).convertAndSend(destinationCaptor.capture(), payloadCaptor.capture());
+        Mockito.verify(messagingTemplate, Mockito.timeout(1000).times(4))
+                .convertAndSend(destinationCaptor.capture(), payloadCaptor.capture());
         
-        String destination = destinationCaptor.getValue();
-        TokenRealtimePayload payload = payloadCaptor.getValue();
+        List<String> destinations = destinationCaptor.getAllValues();
+        List<TokenRealtimePayload> payloads = payloadCaptor.getAllValues();
         
-        assertThat(destination).isEqualTo("/topic/location." + locationId);
+        assertThat(destinations).containsExactlyInAnyOrder(
+            "/topic/location." + locationId,
+            String.format("/topic/tenant/%s/location/%s/public", orgId, locationId),
+            String.format("/topic/tenant/%s/location/%s/staff", orgId, locationId),
+            String.format("/topic/token/%s", called.getId())
+        );
+        
+        // All payloads should be identical
+        TokenRealtimePayload payload = payloads.get(0);
+        for (TokenRealtimePayload p : payloads) {
+            assertThat(p).isEqualTo(payload);
+        }
+        
         assertThat(payload.getEventType()).isEqualTo(TokenEventType.TOKEN_CALLED);
         assertThat(payload.getLocationId()).isEqualTo(locationId);
         assertThat(payload.getTokenId()).isEqualTo(called.getId());

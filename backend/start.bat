@@ -1,0 +1,4 @@
+@echo off
+set DB_PASSWORD=development_password
+set JWT_SECRET=super_secret_development_key_that_is_at_least_64_characters_long_for_hs512
+call mvnw.cmd spring-boot:run

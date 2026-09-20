@@ -22,8 +22,8 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
 
   const organizations = [
     {
-      id: 'org-abc',
-      locationId: 'loc-main',
+      id: 'e2e00000-0000-0000-0000-000000000001',
+      locationId: 'e2e00000-0000-0000-0000-000000000002',
       name: 'ABC Bank - Main Branch',
       sector: 'Financial Services',
       address: '123 Financial District, Suite 100',
@@ -216,7 +216,7 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
               <button
                 onClick={() => {
                   setShowScannerModal(false);
-                  handleSelectOrg('org-abc', 'loc-main');
+                  handleSelectOrg('e2e00000-0000-0000-0000-000000000001', 'e2e00000-0000-0000-0000-000000000002');
                 }}
                 className="flex-1 py-3 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold cursor-pointer uppercase tracking-wider"
               >

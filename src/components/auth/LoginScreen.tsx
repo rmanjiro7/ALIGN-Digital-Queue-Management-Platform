@@ -22,6 +22,20 @@ export const LoginScreen: React.FC = () => {
       // Update store with authentication success
       queueStore.setAuthStatus('AUTHENTICATED', response.user);
       
+      // Route based on role
+      const role = response.user.role;
+      queueStore.setRole(role as any);
+      
+      if (role === 'DISPLAY') {
+        queueStore.setScreen('SCREEN_22_PUBLIC_DISPLAY');
+      } else if (role === 'STAFF') {
+        queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS');
+      } else if (role === 'ORG_ADMIN') {
+        queueStore.setScreen('SCREEN_12_ORG_DASHBOARD');
+      } else if (role === 'PLATFORM_ADMIN') {
+        queueStore.setScreen('SCREEN_15_PLATFORM_DASHBOARD');
+      }
+      
     } catch (err: any) {
       setStatus('error');
       setErrorMessage(err.message || 'Invalid credentials or account disabled');

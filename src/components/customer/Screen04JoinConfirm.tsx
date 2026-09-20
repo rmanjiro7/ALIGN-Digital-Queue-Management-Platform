@@ -13,6 +13,7 @@ import {
   Phone
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { apiClient } from '../../services/apiClient';
 
 interface Screen04JoinConfirmProps {
   appState: AppState;
@@ -27,13 +28,48 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
   const currentLocation = appState.locations.find(l => l.id === appState.selectedLocationId) || appState.locations[0];
 
-  const handleConfirmJoin = () => {
+  const handleConfirmJoin = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      const token = queueStore.joinQueue(selectedService.id, customerName, customerPhone);
-      setIsSubmitting(false);
+    try {
+      const res = await apiClient.joinQueue(
+        currentOrg.id,
+        currentLocation.id,
+        selectedService.id,
+        customerName || undefined,
+        customerPhone || undefined
+      );
+      if (res && res.id) {
+        // We add the backend token to the local store so UI can render it
+        const storeToken: any = {
+          id: res.id,
+          orgId: currentOrg.id,
+          locationId: currentLocation.id,
+          serviceId: selectedService.id,
+          queueId: res.queueId || 'q-triage',
+          tokenNumber: res.tokenNumber,
+          state: res.status || res.state || 'WAITING',
+          customerName: customerName || 'Walk-in Guest',
+          customerPhone: customerPhone || '',
+          joinedAt: res.joinedAt || new Date().toISOString(),
+          peopleAhead: res.peopleAhead || 0,
+          estWaitMins: res.estWaitMins || 10,
+          estRange: res.estRange || '10-15 min',
+          confidence: 'High',
+          realtimeToken: res.realtimeToken
+        };
+        queueStore.addJoinedCustomerToken(storeToken);
+        queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
+      } else {
+        // Fallback
+        queueStore.joinQueue(selectedService.id, customerName, customerPhone);
+        queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
+      }
+    } catch (e) {
+      console.error(e);
+      queueStore.joinQueue(selectedService.id, customerName, customerPhone);
       queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
-    }, 400);
+    }
+    setIsSubmitting(false);
   };
 
   return (

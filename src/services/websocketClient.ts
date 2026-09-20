@@ -8,13 +8,15 @@ export class WebsocketClient {
   public connect(
     onConnect: () => void,
     onDisconnect: () => void,
-    onStompError: (frame: any) => void
+    onStompError: (frame: any) => void,
+    customToken?: string
   ) {
     // We no longer abort here if no token, because beforeConnect handles it for every attempt.
 
     // Determine correct WebSocket URL based on current protocol
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws-align`;
+    const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = typeof window !== 'undefined' ? window.location.host : 'localhost';
+    const wsUrl = `${wsProtocol}//${wsHost}/ws-align`;
 
     this.client = new Client({
       brokerURL: wsUrl,
@@ -24,13 +26,17 @@ export class WebsocketClient {
     });
 
     this.client.beforeConnect = async () => {
-      let token = apiClient.getAccessToken();
+      let token = customToken !== undefined ? customToken : apiClient.getAccessToken();
       
-      if (!token) {
+      if (!token && customToken === undefined) {
         console.log('[STOMP] No access token found, attempting refresh before connect...');
-        const refreshed = await apiClient.refresh();
-        if (refreshed) {
-          token = apiClient.getAccessToken();
+        try {
+          const refreshed = await apiClient.refresh();
+          if (refreshed) {
+            token = apiClient.getAccessToken();
+          }
+        } catch (err) {
+          console.error('[STOMP] Failed to refresh token before connect:', err);
         }
       }
 
@@ -74,6 +80,84 @@ export class WebsocketClient {
     this.unsubscribe();
 
     const destination = `/topic/location.${locationId}`;
+    console.log(`[STOMP] Subscribing to ${destination}`);
+
+    const subscription = this.client.subscribe(destination, (message) => {
+      if (message.body) {
+        try {
+          const parsed = JSON.parse(message.body);
+          onMessage(parsed);
+        } catch (e) {
+          console.error('[STOMP] Failed to parse message body', e);
+        }
+      }
+    });
+
+    this.currentSubscriptionId = subscription.id;
+  }
+
+  public subscribeToToken(tokenId: string, onMessage: (msg: any) => void) {
+    if (!this.client || !this.client.connected) {
+      console.error('[STOMP] Cannot subscribe - client not connected');
+      return;
+    }
+
+    // Prevent duplicate subscriptions
+    this.unsubscribe();
+
+    const destination = `/topic/token/${tokenId}`;
+    console.log(`[STOMP] Subscribing to ${destination}`);
+
+    const subscription = this.client.subscribe(destination, (message) => {
+      if (message.body) {
+        try {
+          const parsed = JSON.parse(message.body);
+          onMessage(parsed);
+        } catch (e) {
+          console.error('[STOMP] Failed to parse message body', e);
+        }
+      }
+    });
+
+    this.currentSubscriptionId = subscription.id;
+  }
+
+  public subscribeToStaffLocation(orgId: string, locationId: string, onMessage: (msg: any) => void) {
+    if (!this.client || !this.client.connected) {
+      console.error('[STOMP] Cannot subscribe - client not connected');
+      return;
+    }
+
+    // Prevent duplicate subscriptions
+    this.unsubscribe();
+
+    const destination = `/topic/tenant/${orgId}/location/${locationId}/staff`;
+    console.log(`[STOMP] Subscribing to ${destination}`);
+
+    const subscription = this.client.subscribe(destination, (message) => {
+      if (message.body) {
+        try {
+          const parsed = JSON.parse(message.body);
+          onMessage(parsed);
+        } catch (e) {
+          console.error('[STOMP] Failed to parse message body', e);
+        }
+      }
+    });
+
+    this.currentSubscriptionId = subscription.id;
+  }
+
+  public subscribeToPublicLocation(orgId: string, locationId: string, onMessage: (msg: any) => void) {
+    if (!this.client || !this.client.connected) {
+      console.error('[STOMP] Cannot subscribe - client not connected');
+      return;
+    }
+
+    // Prevent duplicate subscriptions
+    this.unsubscribe();
+
+    const destination = `/topic/tenant/${orgId}/location/${locationId}/public`;
     console.log(`[STOMP] Subscribing to ${destination}`);
 
     const subscription = this.client.subscribe(destination, (message) => {

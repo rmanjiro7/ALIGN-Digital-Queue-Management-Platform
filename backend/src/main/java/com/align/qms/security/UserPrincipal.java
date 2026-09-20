@@ -50,6 +50,16 @@ public class UserPrincipal implements UserDetails {
         this.enabled      = user.isEnabled();
     }
 
+    public UserPrincipal(UUID id, UUID orgId, UUID locationId, String email, String passwordHash, UserRole role, boolean enabled) {
+        this.id           = id;
+        this.orgId        = orgId;
+        this.locationId   = locationId;
+        this.email        = email;
+        this.passwordHash = passwordHash;
+        this.role         = role;
+        this.enabled      = enabled;
+    }
+
     // ── Identity accessors (used by services / authorization checks) ────────
 
     /** Database UUID of this user. Never trust userId from client input. */

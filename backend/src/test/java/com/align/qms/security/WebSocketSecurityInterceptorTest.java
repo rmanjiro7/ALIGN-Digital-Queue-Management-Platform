@@ -165,4 +165,57 @@ class WebSocketSecurityInterceptorTest {
         Message<?> msg = createMessage(StompCommand.SUBSCRIBE, "/topic/invalid", auth, null);
         assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(msg, null));
     }
+
+    @Test
+    void customerSubscribe_OwnToken_Succeeds() {
+        UUID tokenId = UUID.randomUUID();
+        UserPrincipal principal = mock(UserPrincipal.class);
+        when(principal.getRole()).thenReturn(UserRole.CUSTOMER_TOKEN);
+        when(principal.getId()).thenReturn(tokenId);
+        
+        Authentication auth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null, List.of());
+
+        Message<?> msg = createMessage(StompCommand.SUBSCRIBE, "/topic/token/" + tokenId, auth, null);
+        interceptor.preSend(msg, null); // should not throw
+    }
+
+    @Test
+    void customerSubscribe_OtherToken_Fails() {
+        UUID tokenId = UUID.randomUUID();
+        UUID otherTokenId = UUID.randomUUID();
+        UserPrincipal principal = mock(UserPrincipal.class);
+        when(principal.getRole()).thenReturn(UserRole.CUSTOMER_TOKEN);
+        when(principal.getId()).thenReturn(tokenId);
+        
+        Authentication auth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null, List.of());
+
+        Message<?> msg = createMessage(StompCommand.SUBSCRIBE, "/topic/token/" + otherTokenId, auth, null);
+        assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(msg, null));
+    }
+
+    @Test
+    void customerSubscribe_LocationTopic_Fails() {
+        UUID tokenId = UUID.randomUUID();
+        UserPrincipal principal = mock(UserPrincipal.class);
+        when(principal.getRole()).thenReturn(UserRole.CUSTOMER_TOKEN);
+        when(principal.getId()).thenReturn(tokenId);
+        
+        Authentication auth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null, List.of());
+
+        Message<?> msg = createMessage(StompCommand.SUBSCRIBE, "/topic/location." + UUID.randomUUID(), auth, null);
+        assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(msg, null));
+    }
+
+    @Test
+    void staffSubscribe_TokenTopic_Fails() {
+        UUID locId = UUID.randomUUID();
+        UserPrincipal principal = mock(UserPrincipal.class);
+        when(principal.getRole()).thenReturn(UserRole.STAFF);
+        when(principal.getLocationId()).thenReturn(locId);
+        
+        Authentication auth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null, List.of());
+
+        Message<?> msg = createMessage(StompCommand.SUBSCRIBE, "/topic/token/" + UUID.randomUUID(), auth, null);
+        assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(msg, null));
+    }
 }

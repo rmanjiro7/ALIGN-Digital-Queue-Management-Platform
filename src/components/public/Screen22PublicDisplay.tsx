@@ -36,7 +36,7 @@ export const Screen22PublicDisplay: React.FC<Screen22PublicDisplayProps> = ({ ap
     wsClient.connect(
       () => {
         // 1. Subscribe to Location Stream
-        wsClient.subscribeToLocation(locationId, (msg) => {
+        wsClient.subscribeToPublicLocation(appState.selectedOrgId, locationId, (msg) => {
           queueStore.handleRealtimeEvent(msg, locationId);
         });
 

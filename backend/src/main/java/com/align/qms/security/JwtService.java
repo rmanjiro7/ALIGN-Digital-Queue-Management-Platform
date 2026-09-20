@@ -106,6 +106,29 @@ public class JwtService {
     }
 
     /**
+     * Generate a short-lived signed HS512 JWT access token for a customer token.
+     * This credential is ONLY for subscribing to realtime token updates via WebSockets.
+     * It cannot be used for normal REST API authentication.
+     */
+    public String generateCustomerRealtimeToken(com.align.qms.token.Token token) {
+        Instant now = Instant.now();
+        // Short-lived expiration: e.g., 4 hours (14400000 ms) should cover most queue waits safely.
+        Instant expiry = now.plusMillis(14400000);
+
+        return Jwts.builder()
+            .subject(token.getId().toString())
+            .claim(CLAIM_ORG_ID, token.getOrgId().toString())
+            .claim(CLAIM_LOCATION_ID, token.getLocationId().toString())
+            .claim(CLAIM_ROLE, "CUSTOMER_TOKEN") // pseudo-role, will fail DB lookups
+            .claim("purpose", "CUSTOMER_REALTIME")
+            .claim("tokenId", token.getId().toString())
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(expiry))
+            .signWith(signingKey)
+            .compact();
+    }
+
+    /**
      * Returns the access token lifetime in seconds (for {@code expiresIn} response field).
      */
     public long getAccessTokenExpirationSeconds() {

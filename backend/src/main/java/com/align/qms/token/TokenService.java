@@ -33,22 +33,28 @@ public class TokenService {
     private final TokenRepository tokenRepository;
     private final TokenEventService tokenEventService;
     private final QueueRepository queueRepository;
+    private final com.align.qms.security.JwtService jwtService;
     
     @Autowired
     @Lazy
     private TokenService self;
 
-    public TokenService(TokenRepository tokenRepository, TokenEventService tokenEventService, QueueRepository queueRepository) {
+    public TokenService(TokenRepository tokenRepository, 
+                        TokenEventService tokenEventService, 
+                        QueueRepository queueRepository,
+                        com.align.qms.security.JwtService jwtService) {
         this.tokenRepository = tokenRepository;
         this.tokenEventService = tokenEventService;
         this.queueRepository = queueRepository;
+        this.jwtService = jwtService;
     }
 
     public TokenResponse joinQueue(TokenJoinRequest request) {
         if (request.getIdempotencyKey() != null) {
             Optional<Token> existingToken = tokenRepository.findByIdempotencyKey(request.getIdempotencyKey());
             if (existingToken.isPresent()) {
-                return TokenResponse.from(existingToken.get());
+                Token t = existingToken.get();
+                return TokenResponse.from(t, jwtService.generateCustomerRealtimeToken(t));
             }
         }
 
@@ -57,7 +63,7 @@ public class TokenService {
         } catch (DataIntegrityViolationException ex) {
             if (request.getIdempotencyKey() != null) {
                 return tokenRepository.findByIdempotencyKey(request.getIdempotencyKey())
-                        .map(TokenResponse::from)
+                        .map(t -> TokenResponse.from(t, jwtService.generateCustomerRealtimeToken(t)))
                         .orElseThrow(() -> ex);
             }
             throw ex;
@@ -104,7 +110,7 @@ public class TokenService {
         
         tokenEventService.recordEvent(token, TokenEventType.TOKEN_CREATED, null, null);
 
-        return TokenResponse.from(token);
+        return TokenResponse.from(token, jwtService.generateCustomerRealtimeToken(token));
     }
 
     private void validateTenantAccess(Token token) {

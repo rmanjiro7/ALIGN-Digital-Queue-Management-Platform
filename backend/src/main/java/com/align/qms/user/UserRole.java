@@ -34,5 +34,12 @@ public enum UserRole {
      * Bound to a specific location to receive realtime updates.
      * Cannot perform any staff operational actions.
      */
-    DISPLAY
+    DISPLAY,
+
+    /**
+     * Pseudo-role for customer token realtime WebSocket credentials.
+     * Used only in short-lived JWTs to authorize subscription to a single token topic.
+     * Cannot be used for normal REST API access or staff operations.
+     */
+    CUSTOMER_TOKEN
 }

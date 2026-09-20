@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { queueStore } from '../../services/store';
 import { UserRole } from '../../types';
+import { apiClient } from '../../services/apiClient';
 
 export const Screen08Login: React.FC = () => {
   const [email, setEmail] = useState('admin@organization.com');
@@ -22,14 +23,19 @@ export const Screen08Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e?: React.FormEvent) => {
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await apiClient.login(email, password);
+      queueStore.setAuthStatus('AUTHENTICATED', response.user);
       queueStore.setRole('STAFF');
       queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS');
-    }, 400);
+    } catch (err: any) {
+      alert(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleQuickDemoLogin = (role: UserRole) => {

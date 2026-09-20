@@ -140,5 +140,27 @@ export const apiClient = {
     }
 
     return response;
+  },
+
+  joinQueue: async (orgId: string, locationId: string, serviceId: string, customerName?: string, customerPhone?: string): Promise<any> => {
+    const res = await fetch(`/api/v1/tokens`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        orgId,
+        locationId,
+        serviceId,
+        customerName,
+        customerPhone
+      })
+    });
+    
+    if (!res.ok) {
+      throw new Error('Failed to join queue');
+    }
+    
+    return res.json();
   }
 };

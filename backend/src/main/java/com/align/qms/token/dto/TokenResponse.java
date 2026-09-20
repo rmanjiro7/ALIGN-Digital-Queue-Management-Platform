@@ -20,8 +20,13 @@ public class TokenResponse {
     private Instant calledAt;
     private Instant stepAwayExpiresAt;
     private String idempotencyKey;
+    private String realtimeToken;
 
     public static TokenResponse from(Token token) {
+        return from(token, null);
+    }
+
+    public static TokenResponse from(Token token, String realtimeToken) {
         if (token == null) return null;
         
         TokenResponse response = new TokenResponse();
@@ -38,6 +43,7 @@ public class TokenResponse {
         response.setCalledAt(token.getCalledAt());
         response.setStepAwayExpiresAt(token.getStepAwayExpiresAt());
         response.setIdempotencyKey(token.getIdempotencyKey());
+        response.setRealtimeToken(realtimeToken);
         
         return response;
     }
@@ -82,4 +88,7 @@ public class TokenResponse {
 
     public String getIdempotencyKey() { return idempotencyKey; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+
+    public String getRealtimeToken() { return realtimeToken; }
+    public void setRealtimeToken(String realtimeToken) { this.realtimeToken = realtimeToken; }
 }

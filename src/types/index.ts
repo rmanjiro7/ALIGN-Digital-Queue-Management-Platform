@@ -118,6 +118,7 @@ export interface QueueToken {
   delayExplanation?: string;
   isPriority?: boolean;
   idempotencyKey?: string;
+  realtimeToken?: string;
 }
 
 export type CounterAvailability = 'ONLINE' | 'ON_BREAK' | 'AWAY' | 'OFFLINE';

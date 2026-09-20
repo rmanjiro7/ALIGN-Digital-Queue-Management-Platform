@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: align_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-align_qms}
+      POSTGRES_USER: ${DB_USERNAME:-align_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-development_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-align_user} -d ${DB_NAME:-align_qms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

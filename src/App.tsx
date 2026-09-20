@@ -42,13 +42,14 @@ export default function App() {
 
     const initAuth = async () => {
       if (apiClient.getRefreshToken()) {
-        queueStore.setAuthStatus('AUTHENTICATING');
+        queueStore.setAuthStatus('AUTH_RESTORING');
         const refreshed = await apiClient.refresh();
         if (refreshed) {
           try {
             const res = await apiClient.authenticatedFetch('/api/v1/auth/me');
             if (res.ok) {
               const user = await res.json();
+              queueStore.setAuthStatus('AUTH_READY');
               queueStore.setAuthStatus('AUTHENTICATED', user);
             } else {
               queueStore.setAuthStatus('UNAUTHENTICATED');
@@ -59,6 +60,8 @@ export default function App() {
         } else {
           queueStore.setAuthStatus('UNAUTHENTICATED');
         }
+      } else {
+        queueStore.setAuthStatus('UNAUTHENTICATED');
       }
     };
     initAuth();
