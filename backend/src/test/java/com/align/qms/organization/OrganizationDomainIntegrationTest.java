@@ -11,6 +11,7 @@ import com.align.qms.location.dto.CreateLocationRequest;
 import com.align.qms.location.dto.LocationResponse;
 import com.align.qms.organization.dto.CreateOrganizationRequest;
 import com.align.qms.organization.dto.OrganizationResponse;
+import com.align.qms.organization.dto.UpdateOrganizationRulesRequest;
 import com.align.qms.queue.QueueRepository;
 import com.align.qms.queue.QueueStatus;
 import com.align.qms.queue.dto.CreateQueueRequest;
@@ -1080,5 +1081,221 @@ class OrganizationDomainIntegrationTest extends PostgresIntegrationTest {
             QueueResponse.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         return resp.getBody();
+    }
+
+    // ── Phase 6.6 Global Operational Rules Tests ──────────────────────────────
+
+    @Test
+    @DisplayName("1, 5. Valid configuration update (ORG_ADMIN same-tenant)")
+    void updateRules_valid_orgAdmin() {
+        String token = loginToken(ORG_ADMIN_EMAIL, ORG_ADMIN_PASS);
+        
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 85);
+        req.setMaxWaitThresholdMins(30);
+        
+        ResponseEntity<OrganizationResponse> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            OrganizationResponse.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.getBody().getCapacityThresholdPercent()).isEqualTo((short) 85);
+        assertThat(resp.getBody().getMaxWaitThresholdMins()).isEqualTo(30);
+    }
+
+    @Test
+    @DisplayName("2. Invalid capacity threshold >100")
+    void updateRules_invalidCapacity_tooHigh() {
+        String token = loginToken(ORG_ADMIN_EMAIL, ORG_ADMIN_PASS);
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 101);
+        req.setMaxWaitThresholdMins(30);
+        
+        ResponseEntity<String> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            String.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    @DisplayName("3. Invalid capacity threshold <1")
+    void updateRules_invalidCapacity_tooLow() {
+        String token = loginToken(ORG_ADMIN_EMAIL, ORG_ADMIN_PASS);
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 0);
+        req.setMaxWaitThresholdMins(30);
+        
+        ResponseEntity<String> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            String.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    @DisplayName("4. Invalid max wait <0")
+    void updateRules_invalidMaxWait_negative() {
+        String token = loginToken(ORG_ADMIN_EMAIL, ORG_ADMIN_PASS);
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 90);
+        req.setMaxWaitThresholdMins(-5);
+        
+        ResponseEntity<String> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            String.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    @DisplayName("6. ORG_ADMIN cross-tenant update rejected")
+    void updateRules_crossTenant_orgAdmin_rejected() {
+        String token = loginToken(ORG_B_ADMIN_EMAIL, ORG_B_ADMIN_PASS);
+        
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 90);
+        req.setMaxWaitThresholdMins(30);
+        
+        ResponseEntity<String> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"), // Org B attempting Org A
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            String.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("7. PLATFORM_ADMIN update succeeds")
+    void updateRules_platformAdmin_success() {
+        String token = loginToken(PLATFORM_EMAIL, PLATFORM_PASS);
+        
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 75);
+        req.setMaxWaitThresholdMins(20);
+        
+        ResponseEntity<OrganizationResponse> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgBId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            OrganizationResponse.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.getBody().getCapacityThresholdPercent()).isEqualTo((short) 75);
+        assertThat(resp.getBody().getMaxWaitThresholdMins()).isEqualTo(20);
+    }
+
+    @Test
+    @DisplayName("8. STAFF rejected")
+    void updateRules_staff_rejected() {
+        String token = loginToken(STAFF_EMAIL, STAFF_PASS);
+        
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 90);
+        req.setMaxWaitThresholdMins(30);
+        
+        ResponseEntity<String> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            String.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("9, 10. DISPLAY and CUSTOMER token rejected (No token/invalid roles handled by security config)")
+    void updateRules_unauthorized_rejected() {
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 90);
+        req.setMaxWaitThresholdMins(30);
+        
+        ResponseEntity<String> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, null), // no auth
+            String.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("11. Audit event creation")
+    void updateRules_createsAuditEvent() {
+        String token = loginToken(ORG_ADMIN_EMAIL, ORG_ADMIN_PASS);
+        
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 80);
+        req.setMaxWaitThresholdMins(40);
+        
+        ResponseEntity<OrganizationResponse> resp = restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            OrganizationResponse.class);
+            
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        
+        // Verify audit event
+        Long count = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM admin_audit_events WHERE action = 'UPDATE_GLOBAL_RULES' AND entity_id = ?",
+            Long.class,
+            orgAId
+        );
+        assertThat(count).isGreaterThan(0L);
+        
+        String action = jdbcTemplate.queryForObject(
+            "SELECT action FROM admin_audit_events WHERE action = 'UPDATE_GLOBAL_RULES' AND entity_id = ? ORDER BY created_at DESC LIMIT 1",
+            String.class,
+            orgAId
+        );
+        assertThat(action).isEqualTo("UPDATE_GLOBAL_RULES");
+    }
+
+    @Test
+    @DisplayName("12. No-op update behavior")
+    void updateRules_noopUpdate_doesNotCreateDuplicateAudit() {
+        String token = loginToken(ORG_ADMIN_EMAIL, ORG_ADMIN_PASS);
+        
+        // First update
+        UpdateOrganizationRulesRequest req = new UpdateOrganizationRulesRequest();
+        req.setCapacityThresholdPercent((short) 95);
+        req.setMaxWaitThresholdMins(60);
+        
+        restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            OrganizationResponse.class);
+            
+        Long countBefore = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM admin_audit_events WHERE action = 'UPDATE_GLOBAL_RULES' AND entity_id = ?",
+            Long.class,
+            orgAId
+        );
+        
+        // Second identical update
+        restTemplate.exchange(
+            url("/api/v1/tenants/" + orgAId + "/rules"),
+            HttpMethod.PATCH,
+            new HttpEntity<>(req, bearerJson(token)),
+            OrganizationResponse.class);
+            
+        Long countAfter = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM admin_audit_events WHERE action = 'UPDATE_GLOBAL_RULES' AND entity_id = ?",
+            Long.class,
+            orgAId
+        );
+        
+        assertThat(countAfter).isEqualTo(countBefore);
     }
 }

@@ -23,6 +23,8 @@ public class OrganizationResponse {
     private Instant            joinedDate;
     private Instant            createdAt;
     private Instant            updatedAt;
+    private Short              capacityThresholdPercent;
+    private Integer            maxWaitThresholdMins;
 
     // ── Factory ──────────────────────────────────────────────────────────────
 
@@ -37,6 +39,8 @@ public class OrganizationResponse {
         r.joinedDate   = org.getJoinedDate();
         r.createdAt    = org.getCreatedAt();
         r.updatedAt    = org.getUpdatedAt();
+        r.capacityThresholdPercent = org.getCapacityThresholdPercent();
+        r.maxWaitThresholdMins = org.getMaxWaitThresholdMins();
         return r;
     }
 
@@ -51,4 +55,6 @@ public class OrganizationResponse {
     public Instant            getJoinedDate()   { return joinedDate; }
     public Instant            getCreatedAt()    { return createdAt; }
     public Instant            getUpdatedAt()    { return updatedAt; }
+    public Short              getCapacityThresholdPercent() { return capacityThresholdPercent; }
+    public Integer            getMaxWaitThresholdMins()     { return maxWaitThresholdMins; }
 }

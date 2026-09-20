@@ -28,6 +28,25 @@ export const adminApi = {
     if (!res.ok) throw new Error('Failed to update tenant status');
     return res.json();
   },
+  updateOrganizationRules: async (orgId: string, rules: { capacityThresholdPercent: number; maxWaitThresholdMins: number }): Promise<Tenant> => {
+    const url = `${API_BASE}/tenants/${orgId}/rules`;
+    console.log(`[adminApi] PATCH ${url}`, rules);
+    const res = await apiClient.authenticatedFetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rules),
+    });
+    console.log(`[adminApi] Response: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      if (res.status === 400 || res.status === 422) {
+        throw new Error('Validation failed for organization rules');
+      } else if (res.status === 403) {
+        throw new Error('Unauthorized to update organization rules');
+      }
+      throw new Error('Failed to update organization rules');
+    }
+    return res.json();
+  },
 
   // ── Locations ────────────────────────────────────────────────────────────
   getLocations: async (): Promise<LocationBranch[]> => {

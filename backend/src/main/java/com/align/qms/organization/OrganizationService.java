@@ -5,6 +5,7 @@ import com.align.qms.exception.OrganizationNotFoundException;
 import com.align.qms.organization.dto.CreateOrganizationRequest;
 import com.align.qms.organization.dto.OrganizationResponse;
 import com.align.qms.organization.dto.UpdateOrganizationRequest;
+import com.align.qms.organization.dto.UpdateOrganizationRulesRequest;
 import com.align.qms.organization.dto.UpdateOrganizationStatusRequest;
 import com.align.qms.security.TenantContext;
 import org.slf4j.Logger;
@@ -142,6 +143,42 @@ public class OrganizationService {
         adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE_STATUS", beforeState, afterState);
         
         log.info("Organization status updated: id={} status={}", saved.getId(), saved.getStatus());
+        return afterState;
+    }
+
+    // ── Update Global Rules (PLATFORM_ADMIN or ORG_ADMIN) ────────────────────
+
+    @Transactional
+    public OrganizationResponse updateRules(UUID orgId, UpdateOrganizationRulesRequest request) {
+        Organization org = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new OrganizationNotFoundException(orgId));
+
+        // Enforce tenant scoping: ORG_ADMIN can only update their own tenant
+        TenantContext.requireSameTenant(org.getId());
+
+        OrganizationResponse beforeState = OrganizationResponse.from(org);
+
+        boolean changed = false;
+
+        if (request.getCapacityThresholdPercent() != null && !request.getCapacityThresholdPercent().equals(org.getCapacityThresholdPercent())) {
+            org.setCapacityThresholdPercent(request.getCapacityThresholdPercent());
+            changed = true;
+        }
+        
+        if (request.getMaxWaitThresholdMins() != null && !request.getMaxWaitThresholdMins().equals(org.getMaxWaitThresholdMins())) {
+            org.setMaxWaitThresholdMins(request.getMaxWaitThresholdMins());
+            changed = true;
+        }
+
+        if (!changed) {
+            return beforeState;
+        }
+
+        Organization saved = organizationRepository.save(org);
+        OrganizationResponse afterState = OrganizationResponse.from(saved);
+        adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE_GLOBAL_RULES", beforeState, afterState);
+        
+        log.info("Organization global rules updated: id={}", saved.getId());
         return afterState;
     }
 }

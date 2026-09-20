@@ -63,6 +63,12 @@ public class Organization {
     @Column(name = "joined_date")
     private Instant joinedDate = Instant.now();
 
+    @Column(name = "capacity_threshold_percent", nullable = false)
+    private Short capacityThresholdPercent = 100;
+
+    @Column(name = "max_wait_threshold_mins", nullable = false)
+    private Integer maxWaitThresholdMins = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -102,6 +108,8 @@ public class Organization {
     public Instant            getJoinedDate()   { return joinedDate; }
     public Instant            getCreatedAt()    { return createdAt; }
     public Instant            getUpdatedAt()    { return updatedAt; }
+    public Short              getCapacityThresholdPercent() { return capacityThresholdPercent; }
+    public Integer            getMaxWaitThresholdMins()     { return maxWaitThresholdMins; }
 
     // ── Setters (restricted to legitimate application mutations) ─────────────
 
@@ -109,4 +117,6 @@ public class Organization {
     public void setSector(String sector)                 { this.sector = sector; }
     public void setStatus(OrganizationStatus status)     { this.status = status; }
     public void setContactEmail(String contactEmail)     { this.contactEmail = contactEmail; }
+    public void setCapacityThresholdPercent(Short capacityThresholdPercent) { this.capacityThresholdPercent = capacityThresholdPercent; }
+    public void setMaxWaitThresholdMins(Integer maxWaitThresholdMins)       { this.maxWaitThresholdMins = maxWaitThresholdMins; }
 }

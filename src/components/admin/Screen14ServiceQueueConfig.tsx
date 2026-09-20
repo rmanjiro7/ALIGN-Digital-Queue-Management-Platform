@@ -48,6 +48,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   const [editServiceFastTrack, setEditServiceFastTrack] = useState(false);
   const [editServicePrep, setEditServicePrep] = useState('');
 
+
   const [showCreateServiceModal, setShowCreateServiceModal] = useState(false);
   const [createServiceName, setCreateServiceName] = useState('');
   const [createServiceDesc, setCreateServiceDesc] = useState('');
@@ -230,9 +231,33 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     }
   };
 
-  const handleSaveRules = () => {
-    // DEFERRED from Phase 6.3: Organization-level queue configurations are read-only for now.
-    alert('Global Operational Rules persistence is deferred and currently read-only.');
+  const handleSaveRules = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSavedSuccess(false);
+      
+      console.log(`[Screen14] Saving rules for org: ${currentOrg.id}`, { threshold, maxWait });
+      const updatedOrg = await adminApi.updateOrganizationRules(currentOrg.id, {
+        capacityThresholdPercent: threshold,
+        maxWaitThresholdMins: maxWait
+      });
+      console.log(`[Screen14] Save success:`, updatedOrg);
+      
+      // Update global rules state optimism
+      queueStore.updateGlobalRules(currentOrg.id, {
+        autoPauseAtCapacity: autoPause,
+        capacityThresholdPercent: updatedOrg.capacityThresholdPercent,
+        maxWaitThresholdMins: updatedOrg.maxWaitThresholdMins
+      });
+      
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save global rules');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -459,9 +484,23 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
               <button
                 id="save-rules-btn"
                 onClick={handleSaveRules}
-                className="w-full py-3 px-4 bg-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-not-allowed opacity-75"
+                disabled={isLoading}
+                className={`w-full py-3 px-4 text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 ${
+                  savedSuccess
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    : isLoading
+                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                    : 'bg-[#00ACC1] text-white hover:bg-[#0097A7] shadow-md shadow-[#00ACC1]/25 cursor-pointer'
+                }`}
               >
-                <span>Read Only (Deferred)</span>
+                {savedSuccess ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Saved</span>
+                  </>
+                ) : (
+                  <span>{isLoading ? 'SAVING...' : 'SAVE CONFIGURATION'}</span>
+                )}
               </button>
             </div>
           </div>

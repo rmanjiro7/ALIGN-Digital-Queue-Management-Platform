@@ -43,6 +43,8 @@ export interface Tenant {
   activeQueueCount: number;
   contactEmail: string;
   joinedDate: string;
+  capacityThresholdPercent?: number;
+  maxWaitThresholdMins?: number;
 }
 
 export interface LocationBranch {

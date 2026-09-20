@@ -3,6 +3,7 @@ package com.align.qms.organization;
 import com.align.qms.organization.dto.CreateOrganizationRequest;
 import com.align.qms.organization.dto.OrganizationResponse;
 import com.align.qms.organization.dto.UpdateOrganizationRequest;
+import com.align.qms.organization.dto.UpdateOrganizationRulesRequest;
 import com.align.qms.organization.dto.UpdateOrganizationStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -111,5 +112,19 @@ public class TenantController {
             @PathVariable UUID orgId,
             @Valid @RequestBody UpdateOrganizationStatusRequest request) {
         return ResponseEntity.ok(organizationService.updateStatus(orgId, request));
+    }
+
+    // ── PATCH /api/v1/tenants/{orgId}/rules ──────────────────────────────────
+
+    /**
+     * Update an organization's global operational rules.
+     * Authorized for PLATFORM_ADMIN (any tenant) and ORG_ADMIN (own tenant).
+     */
+    @PatchMapping("/{orgId}/rules")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<OrganizationResponse> updateRules(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody UpdateOrganizationRulesRequest request) {
+        return ResponseEntity.ok(organizationService.updateRules(orgId, request));
     }
 }
