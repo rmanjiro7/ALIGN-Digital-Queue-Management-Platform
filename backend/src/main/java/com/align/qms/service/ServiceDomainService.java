@@ -47,11 +47,19 @@ public class ServiceDomainService {
 
     // ── List ─────────────────────────────────────────────────────────────────
 
-    /** List services by location. Public-facing (for customer discovery); no auth enforced here. */
+    /** List services by location. Admin-facing; tenant isolation enforced here. */
     @Transactional(readOnly = true)
     public List<ServiceResponse> listByLocation(UUID locationId) {
+        if (com.align.qms.security.TenantContext.isPlatformAdmin()) {
+            return serviceRepository.findByLocationId(locationId)
+                .stream()
+                .map(ServiceResponse::from)
+                .collect(Collectors.toList());
+        }
+        UUID currentOrgId = com.align.qms.security.TenantContext.getCurrentOrgId();
         return serviceRepository.findByLocationId(locationId)
             .stream()
+            .filter(s -> s.getOrgId().equals(currentOrgId))
             .map(ServiceResponse::from)
             .collect(Collectors.toList());
     }

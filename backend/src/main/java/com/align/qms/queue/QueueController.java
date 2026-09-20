@@ -24,9 +24,9 @@ import java.util.UUID;
  * <p>Authorization:
  * <ul>
  *   <li>GET (single): ORG_ADMIN (own org) or PLATFORM_ADMIN.</li>
- *   <li>POST (create): ORG_ADMIN only.</li>
- *   <li>PUT status: ORG_ADMIN or STAFF (own queue, same org).</li>
- *   <li>PUT config: ORG_ADMIN only.</li>
+ *   <li>POST (create): ORG_ADMIN or PLATFORM_ADMIN.</li>
+ *   <li>PUT status: ORG_ADMIN, PLATFORM_ADMIN, or STAFF.</li>
+ *   <li>PUT config: ORG_ADMIN or PLATFORM_ADMIN.</li>
  * </ul>
  *
  * <p>Tenant isolation enforced in QueueService via TenantContext.
@@ -56,15 +56,28 @@ public class QueueController {
         return ResponseEntity.ok(queueService.getById(queueId));
     }
 
+    // ── GET /api/v1/queues?locationId={locationId} ─────────────────────────────
+
+    /**
+     * Get all queues for a location.
+     * ORG_ADMIN (own org), PLATFORM_ADMIN, or STAFF.
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN', 'STAFF')")
+    public ResponseEntity<java.util.List<QueueResponse>> listByLocation(
+            @org.springframework.web.bind.annotation.RequestParam UUID locationId) {
+        return ResponseEntity.ok(queueService.listByLocation(locationId));
+    }
+
     // ── POST /api/v1/queues ───────────────────────────────────────────────────
 
     /**
      * Create a queue for a service.
-     * ORG_ADMIN only — one queue per service enforced in service layer.
+     * ORG_ADMIN or PLATFORM_ADMIN — one queue per service enforced in service layer.
      * Returns 201 Created.
      */
     @PostMapping
-    @PreAuthorize("hasRole('ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN')")
     public ResponseEntity<QueueResponse> create(
             @Valid @RequestBody CreateQueueRequest request) {
         QueueResponse response = queueService.create(request);
@@ -75,10 +88,10 @@ public class QueueController {
 
     /**
      * Update queue status (ACTIVE / PAUSED / CLOSED).
-     * ORG_ADMIN or STAFF (same org).
+     * ORG_ADMIN, PLATFORM_ADMIN, or STAFF (same org).
      */
     @PutMapping("/{queueId}/status")
-    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN', 'STAFF')")
     public ResponseEntity<QueueResponse> updateStatus(
             @PathVariable UUID queueId,
             @Valid @RequestBody UpdateQueueStatusRequest request) {
@@ -89,10 +102,10 @@ public class QueueController {
 
     /**
      * Update queue configuration (maxCapacity, autoPauseAtCapacity, tokenPrefix).
-     * ORG_ADMIN only.
+     * ORG_ADMIN or PLATFORM_ADMIN.
      */
     @PutMapping("/{queueId}/config")
-    @PreAuthorize("hasRole('ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN')")
     public ResponseEntity<QueueResponse> updateConfig(
             @PathVariable UUID queueId,
             @Valid @RequestBody UpdateQueueConfigRequest request) {

@@ -73,7 +73,7 @@ public class LocationSnapshotService {
         List<CounterSnapshotDto> counterDtos = counters.stream().map(this::mapCounter).toList();
 
         // 2. Fetch queues and services
-        List<Queue> queues = queueRepository.findByLocationId(locationId);
+        List<Queue> queues = queueRepository.findByLocationIdOrderByNameAsc(locationId);
         Set<UUID> serviceIds = queues.stream().map(Queue::getServiceId).collect(Collectors.toSet());
         List<ServiceEntity> services = serviceRepository.findAllById(serviceIds);
         List<ServiceSnapshotDto> serviceDtos = services.stream().map(this::mapService).toList();

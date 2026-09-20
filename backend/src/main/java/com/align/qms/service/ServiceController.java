@@ -46,12 +46,23 @@ public class ServiceController {
     // ── GET /api/v1/services?locationId={locationId} ─────────────────────────
 
     /**
-     * List enabled services at a location (customer discovery endpoint).
-     * Public — no authentication required. Returns only enabled services.
+     * List services at a location.
+     * Public — no authentication required if includeDisabled=false.
+     * If includeDisabled=true, ORG_ADMIN or PLATFORM_ADMIN is required.
      */
     @GetMapping
     public ResponseEntity<List<ServiceResponse>> listByLocation(
-            @RequestParam UUID locationId) {
+            @RequestParam UUID locationId,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDisabled) {
+        
+        if (includeDisabled) {
+            com.align.qms.user.UserRole role = com.align.qms.security.TenantContext.getCurrentRole();
+            if (role != com.align.qms.user.UserRole.ORG_ADMIN && role != com.align.qms.user.UserRole.PLATFORM_ADMIN) {
+                throw new org.springframework.security.access.AccessDeniedException("Only ORG_ADMIN or PLATFORM_ADMIN can view disabled services");
+            }
+            return ResponseEntity.ok(serviceDomainService.listByLocation(locationId));
+        }
+
         return ResponseEntity.ok(serviceDomainService.listEnabledByLocation(locationId));
     }
 

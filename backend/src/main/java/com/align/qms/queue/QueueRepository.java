@@ -30,8 +30,8 @@ public interface QueueRepository extends JpaRepository<Queue, UUID> {
     @Query("SELECT q FROM Queue q WHERE q.id = :id")
     Optional<Queue> findByIdForUpdate(@Param("id") UUID id);
 
-    /** All queues at a specific location. */
-    List<Queue> findByLocationId(UUID locationId);
+    /** All queues at a specific location, ordered deterministically by name. */
+    List<Queue> findByLocationIdOrderByNameAsc(UUID locationId);
 
     /** All queues for an organization. */
     List<Queue> findByOrgId(UUID orgId);

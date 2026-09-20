@@ -22,7 +22,8 @@
 
 DELETE FROM users WHERE id IN (
     'e2e00000-0000-0000-0000-000000000006', -- STAFF
-    'e2e00000-0000-0000-0000-000000000007'  -- DISPLAY
+    'e2e00000-0000-0000-0000-000000000007', -- DISPLAY
+    'e2e00000-0000-0000-0000-000000000008'  -- ADMIN
 );
 
 DELETE FROM organizations WHERE id = 'e2e00000-0000-0000-0000-000000000001';
@@ -92,6 +93,19 @@ VALUES (
 -- -----------------------------------------------------------------------------
 -- Password for all E2E users is: e2e-password
 -- Hash generated via bcrypt (strength 12)
+
+-- ORG_ADMIN User
+INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000008',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000002',
+    'e2e.admin@align.local',
+    '$2a$12$nTNHFRy3bYimBZaBG2V72./Bhe3AUNd5t5I0zedWae96Yt7zFVyFa',
+    'E2E Admin',
+    'ORG_ADMIN',
+    'ACTIVE'
+);
 
 -- STAFF User
 INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)

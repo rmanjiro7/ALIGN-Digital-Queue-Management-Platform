@@ -64,14 +64,14 @@ public class QueueService {
 
         // PLATFORM_ADMIN can list any location's queues (orgId may be null)
         if (TenantContext.isPlatformAdmin()) {
-            return queueRepository.findByLocationId(locationId)
+            return queueRepository.findByLocationIdOrderByNameAsc(locationId)
                 .stream()
                 .map(QueueResponse::from)
                 .collect(Collectors.toList());
         }
 
         // Non-platform-admin: return only queues owned by caller's org
-        return queueRepository.findByLocationId(locationId)
+        return queueRepository.findByLocationIdOrderByNameAsc(locationId)
             .stream()
             .filter(q -> q.getOrgId().equals(currentOrgId))
             .map(QueueResponse::from)

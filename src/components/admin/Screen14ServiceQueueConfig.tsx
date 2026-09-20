@@ -48,19 +48,44 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   const [editServiceFastTrack, setEditServiceFastTrack] = useState(false);
   const [editServicePrep, setEditServicePrep] = useState('');
 
+  const [showCreateServiceModal, setShowCreateServiceModal] = useState(false);
+  const [createServiceName, setCreateServiceName] = useState('');
+  const [createServiceDesc, setCreateServiceDesc] = useState('');
+  const [createServiceIcon, setCreateServiceIcon] = useState('FileText');
+  const [createServiceFastTrack, setCreateServiceFastTrack] = useState(false);
+  const [createServicePrep, setCreateServicePrep] = useState('');
+
+  const [showCreateQueueModal, setShowCreateQueueModal] = useState(false);
+  const [createQueueServiceId, setCreateQueueServiceId] = useState('');
+  const [createQueueName, setCreateQueueName] = useState('');
+  const [createQueuePrefix, setCreateQueuePrefix] = useState('');
+  const [createQueueMaxCapacity, setCreateQueueMaxCapacity] = useState<number | ''>(50);
+  const [createQueueAutoPause, setCreateQueueAutoPause] = useState(false);
+
+  const [showEditQueueModal, setShowEditQueueModal] = useState(false);
+  const [editQueueId, setEditQueueId] = useState('');
+  const [editQueueName, setEditQueueName] = useState('');
+  const [editQueuePrefix, setEditQueuePrefix] = useState('');
+  const [editQueueMaxCapacity, setEditQueueMaxCapacity] = useState<number | ''>(50);
+  const [editQueueAutoPause, setEditQueueAutoPause] = useState(false);
+
 
   React.useEffect(() => {
-    fetchServices();
+    fetchData();
   }, [currentLocation.id]);
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await adminApi.getServices(currentLocation.id);
-      queueStore.setServices(data);
+      const [servicesData, queuesData] = await Promise.all([
+        adminApi.getServices(currentLocation.id),
+        adminApi.getQueuesByLocation(currentLocation.id)
+      ]);
+      queueStore.setServices(servicesData);
+      queueStore.setQueues(queuesData);
     } catch (err: any) {
-      setError(err.message || 'Failed to load services');
+      setError(err.message || 'Failed to load data');
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +98,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
       setIsLoading(true);
       setError(null);
       await adminApi.updateServiceStatus(serviceId, !currentEnabled);
-      await fetchServices();
+      await fetchData();
     } catch (err: any) {
       setError(err.message || 'Failed to update service status');
     } finally {
@@ -106,7 +131,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
         preparationGuidance: editServicePrep
       } as any);
       
-      await fetchServices();
+      await fetchData();
       setShowEditServiceModal(false);
     } catch (err: any) {
       setError(err.message || 'Failed to update service');
@@ -115,8 +140,94 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     }
   };
 
-  const handleToggleQueue = (queueId: string) => {
-    queueStore.toggleQueueStatus(queueId);
+  const handleToggleQueue = async (q: any) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const newStatus = (q.status === 'Active' || q.status === 'ACTIVE') ? 'PAUSED' : 'ACTIVE';
+      await adminApi.updateQueueStatus(q.id, newStatus);
+      await fetchData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update queue status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createServiceName) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.createService({
+        orgId: currentOrg.id,
+        locationId: currentLocation.id,
+        name: createServiceName,
+        description: createServiceDesc,
+        icon: createServiceIcon,
+        isFastTrack: createServiceFastTrack,
+        preparationGuidance: createServicePrep
+      } as any);
+      await fetchData();
+      setShowCreateServiceModal(false);
+      setCreateServiceName('');
+      setCreateServiceDesc('');
+      setCreateServicePrep('');
+      setCreateServiceFastTrack(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create service');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateQueue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createQueueName || !createQueuePrefix) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.createQueue({
+        orgId: currentOrg.id,
+        locationId: currentLocation.id,
+        serviceId: createQueueServiceId,
+        name: createQueueName,
+        tokenPrefix: createQueuePrefix.toUpperCase(),
+        maxCapacity: createQueueMaxCapacity === '' ? 50 : createQueueMaxCapacity,
+        autoPauseAtCapacity: createQueueAutoPause
+      } as any);
+      await fetchData();
+      setShowCreateQueueModal(false);
+      setCreateQueueName('');
+      setCreateQueuePrefix('');
+      setCreateQueueMaxCapacity('');
+      setCreateQueueAutoPause(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create queue');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateQueue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editQueueId) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.updateQueueConfig(editQueueId, {
+        tokenPrefix: editQueuePrefix.toUpperCase(),
+        maxCapacity: editQueueMaxCapacity === '' ? 50 : editQueueMaxCapacity,
+        autoPauseAtCapacity: editQueueAutoPause
+      });
+      await fetchData();
+      setShowEditQueueModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update queue');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveRules = () => {
@@ -141,7 +252,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
         </div>
 
         <button
-          onClick={() => alert('New Service Creation Wizard initiated.')}
+          onClick={() => setShowCreateServiceModal(true)}
           className="flex items-center gap-1.5 px-4 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold rounded-xl shadow-md shadow-[#00ACC1]/25 uppercase tracking-wider transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
@@ -220,7 +331,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
                               <div>
                                 <div className="text-xs font-bold text-slate-900">{q.name}</div>
                                 <div className="text-[10px] text-slate-400 font-mono">
-                                  Range {q.startRange}-{q.endRange} • Avg Wait {q.avgWaitMins}m
+                                  Range {q.startRange}-{q.endRange} â€¢ Avg Wait {q.avgWaitMins}m
                                 </div>
                               </div>
                             </div>
@@ -239,14 +350,21 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
 
                               <div className="flex items-center gap-1">
                                 <button
-                                  onClick={() => handleToggleQueue(q.id)}
+                                  onClick={() => handleToggleQueue(q)}
                                   className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
                                   title={isQActive ? 'Pause Queue' : 'Resume Queue'}
                                 >
                                   {isQActive ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600" />}
                                 </button>
                                 <button
-                                  onClick={() => alert('Editing parameters for queue: ' + q.name)}
+                                  onClick={() => {
+  setEditQueueId(q.id);
+  setEditQueueName(q.name);
+  setEditQueuePrefix(q.tokenPrefix || '');
+  setEditQueueMaxCapacity(q.maxCapacity || 50);
+  setEditQueueAutoPause(q.autoPauseAtCapacity || false);
+  setShowEditQueueModal(true);
+}}
                                   className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
                                   title="Edit Queue Parameters"
                                 >
@@ -265,7 +383,12 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
                   )}
 
                   <button
-                    onClick={() => alert('Add queue mapping modal for service: ' + srv.name)}
+                    onClick={() => {
+  setCreateQueueServiceId(srv.id);
+  setCreateQueueName(srv.name + ' Queue');
+  setCreateQueuePrefix(srv.name.substring(0, 1).toUpperCase());
+  setShowCreateQueueModal(true);
+}}
                     className="mt-2 text-xs font-bold text-[#00ACC1] hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -439,6 +562,169 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
           </div>
         </div>
       )}
+
+      {/* CREATE SERVICE MODAL */}
+      {showCreateServiceModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-900">Create New Service</h2>
+              <button onClick={() => setShowCreateServiceModal(false)} className="text-slate-400 hover:text-slate-600">Ã—</button>
+            </div>
+            <form onSubmit={handleCreateService} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Service Name</label>
+                <input
+                  type="text"
+                  required
+                  value={createServiceName}
+                  onChange={e => setCreateServiceName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <textarea
+                  value={createServiceDesc}
+                  onChange={e => setCreateServiceDesc(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="fastTrackCreate"
+                  checked={createServiceFastTrack}
+                  onChange={e => setCreateServiceFastTrack(e.target.checked)}
+                  className="rounded text-[#00ACC1]"
+                />
+                <label htmlFor="fastTrackCreate" className="text-sm text-slate-700">Enable Fast Track</label>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowCreateServiceModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
+                  Create Service
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE QUEUE MODAL */}
+      {showCreateQueueModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-900">Map Queue to Service</h2>
+              <button onClick={() => setShowCreateQueueModal(false)} className="text-slate-400 hover:text-slate-600">Ã—</button>
+            </div>
+            <form onSubmit={handleCreateQueue} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Queue Name</label>
+                <input
+                  type="text"
+                  required
+                  value={createQueueName}
+                  onChange={e => setCreateQueueName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Token Prefix</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={4}
+                  value={createQueuePrefix}
+                  onChange={e => setCreateQueuePrefix(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1] uppercase"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Max Capacity</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={createQueueMaxCapacity}
+                  onChange={e => setCreateQueueMaxCapacity(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="autoPauseCreate"
+                  checked={createQueueAutoPause}
+                  onChange={e => setCreateQueueAutoPause(e.target.checked)}
+                  className="rounded text-[#00ACC1]"
+                />
+                <label htmlFor="autoPauseCreate" className="text-sm text-slate-700">Auto Pause at Capacity</label>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowCreateQueueModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
+                  Create Queue
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT QUEUE MODAL */}
+      {showEditQueueModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-900">Edit Queue: {editQueueName}</h2>
+              <button onClick={() => setShowEditQueueModal(false)} className="text-slate-400 hover:text-slate-600">Ã—</button>
+            </div>
+            <form onSubmit={handleUpdateQueue} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Token Prefix</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={4}
+                  value={editQueuePrefix}
+                  onChange={e => setEditQueuePrefix(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1] uppercase"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Max Capacity</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={editQueueMaxCapacity}
+                  onChange={e => setEditQueueMaxCapacity(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="autoPauseEdit"
+                  checked={editQueueAutoPause}
+                  onChange={e => setEditQueueAutoPause(e.target.checked)}
+                  className="rounded text-[#00ACC1]"
+                />
+                <label htmlFor="autoPauseEdit" className="text-sm text-slate-700">Auto Pause at Capacity</label>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowEditQueueModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

@@ -65,7 +65,7 @@ export const adminApi = {
 
   // ── Services ─────────────────────────────────────────────────────────────
   getServices: async (locationId: string): Promise<ServiceItem[]> => {
-    const res = await apiClient.authenticatedFetch(`${API_BASE}/services?locationId=${locationId}`);
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/services?locationId=${locationId}&includeDisabled=true`);
     if (!res.ok) throw new Error('Failed to fetch services');
     return res.json();
   },
@@ -99,14 +99,7 @@ export const adminApi = {
 
   // ── Queues ───────────────────────────────────────────────────────────────
   getQueuesByLocation: async (locationId: string): Promise<QueueItem[]> => {
-    // Assuming backend endpoint exists for getting queues by location or just queues.
-    // I saw /api/v1/queues doesn't seem to have a base list without location if the design strictly follows.
-    // The previous implementation used getQueues or something. Let me fetch from location if backend supports it.
-    // The instructions mentioned checking if backend contracts exist. For Gate 3: GET /api/v1/locations/{locationId}/queues maybe? Wait, QueueController only had GET /api/v1/queues/{queueId}.
-    // Actually, QueueService has `listByLocation(UUID locationId)` but is it exposed via API?
-    // Let me check LocationSnapshotController or QueueController.
-    // Just in case, I'll put a generic fetch here, but might need to adjust.
-    const res = await apiClient.authenticatedFetch(`${API_BASE}/locations/${locationId}/queues`);
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/queues?locationId=${locationId}`);
     if (!res.ok) throw new Error('Failed to fetch queues');
     return res.json();
   },
