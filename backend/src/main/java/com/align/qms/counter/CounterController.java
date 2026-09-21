@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.align.qms.service.dto.ServiceResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -128,5 +129,36 @@ public class CounterController {
             @PathVariable UUID counterId,
             @Valid @RequestBody UpdateCounterStatusRequest request) {
         return ResponseEntity.ok(counterService.updateStatus(counterId, request));
+    }
+
+    // ── GET /api/v1/counters/{counterId}/services ────────────────────────────
+
+    @GetMapping("/{counterId}/services")
+    @PreAuthorize("hasAnyRole('STAFF', 'ORG_ADMIN', 'PLATFORM_ADMIN')")
+    public ResponseEntity<List<ServiceResponse>> listAssignedServices(
+            @PathVariable UUID counterId) {
+        return ResponseEntity.ok(counterService.listAssignedServices(counterId));
+    }
+
+    // ── POST /api/v1/counters/{counterId}/services/{serviceId} ───────────────
+
+    @PostMapping("/{counterId}/services/{serviceId}")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN')")
+    public ResponseEntity<Void> addServiceAssignment(
+            @PathVariable UUID counterId,
+            @PathVariable UUID serviceId) {
+        counterService.addServiceAssignment(counterId, serviceId);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    // ── DELETE /api/v1/counters/{counterId}/services/{serviceId} ─────────────
+
+    @DeleteMapping("/{counterId}/services/{serviceId}")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN')")
+    public ResponseEntity<Void> removeServiceAssignment(
+            @PathVariable UUID counterId,
+            @PathVariable UUID serviceId) {
+        counterService.removeServiceAssignment(counterId, serviceId);
+        return ResponseEntity.noContent().build();
     }
 }

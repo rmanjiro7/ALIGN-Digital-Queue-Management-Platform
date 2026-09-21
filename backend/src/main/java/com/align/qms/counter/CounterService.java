@@ -22,6 +22,10 @@ import com.align.qms.audit.AdminAuditService;
 import com.align.qms.counter.log.CounterAvailabilityLog;
 import com.align.qms.counter.log.CounterAvailabilityLogRepository;
 import com.align.qms.counter.dto.CounterAssignmentRequest;
+import com.align.qms.service.ServiceRepository;
+import com.align.qms.service.dto.ServiceResponse;
+import com.align.qms.exception.DuplicateCounterServiceAssignmentException;
+import com.align.qms.exception.CrossLocationAssignmentException;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,17 +54,76 @@ public class CounterService {
     private final UserRepository userRepository;
     private final CounterAvailabilityLogRepository counterAvailabilityLogRepository;
     private final AdminAuditService adminAuditService;
+    private final CounterServiceAssignmentRepository counterServiceAssignmentRepository;
+    private final ServiceRepository serviceRepository;
 
     public CounterService(CounterRepository counterRepository,
                           LocationRepository locationRepository,
                           UserRepository userRepository,
                           CounterAvailabilityLogRepository counterAvailabilityLogRepository,
-                          AdminAuditService adminAuditService) {
+                          AdminAuditService adminAuditService,
+                          CounterServiceAssignmentRepository counterServiceAssignmentRepository,
+                          ServiceRepository serviceRepository) {
         this.counterRepository  = counterRepository;
         this.locationRepository = locationRepository;
         this.userRepository = userRepository;
         this.counterAvailabilityLogRepository = counterAvailabilityLogRepository;
         this.adminAuditService = adminAuditService;
+        this.counterServiceAssignmentRepository = counterServiceAssignmentRepository;
+        this.serviceRepository = serviceRepository;
+    }
+
+    // ── Assignments ─────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<ServiceResponse> listAssignedServices(UUID counterId) {
+        Counter counter = counterRepository.findById(counterId)
+            .orElseThrow(() -> new CounterNotFoundException(counterId));
+
+        TenantContext.requireSameTenant(counter.getOrgId());
+
+        List<CounterServiceAssignment> assignments = counterServiceAssignmentRepository.findByCounterId(counterId);
+        List<UUID> serviceIds = assignments.stream().map(CounterServiceAssignment::getServiceId).collect(Collectors.toList());
+
+        return serviceRepository.findAllById(serviceIds).stream()
+                .map(ServiceResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void addServiceAssignment(UUID counterId, UUID serviceId) {
+        Counter counter = counterRepository.findById(counterId)
+            .orElseThrow(() -> new CounterNotFoundException(counterId));
+        TenantContext.requireSameTenant(counter.getOrgId());
+
+        com.align.qms.service.ServiceEntity service = serviceRepository.findById(serviceId)
+            .orElseThrow(() -> new IllegalArgumentException("Service not found"));
+        TenantContext.requireSameTenant(service.getOrgId());
+
+        if (!counter.getLocationId().equals(service.getLocationId())) {
+            throw new CrossLocationAssignmentException(counterId, serviceId);
+        }
+
+        if (counterServiceAssignmentRepository.existsByCounterIdAndServiceId(counterId, serviceId)) {
+            throw new DuplicateCounterServiceAssignmentException(counterId, serviceId);
+        }
+
+        CounterServiceAssignment assignment = new CounterServiceAssignment(counterId, serviceId);
+        counterServiceAssignmentRepository.save(assignment);
+
+        adminAuditService.logEvent(counter.getOrgId(), counterId, "COUNTER", "CREATE_COUNTER_SERVICE_ASSIGNMENT", null, serviceId);
+    }
+
+    @Transactional
+    public void removeServiceAssignment(UUID counterId, UUID serviceId) {
+        Counter counter = counterRepository.findById(counterId)
+            .orElseThrow(() -> new CounterNotFoundException(counterId));
+        TenantContext.requireSameTenant(counter.getOrgId());
+
+        if (counterServiceAssignmentRepository.existsByCounterIdAndServiceId(counterId, serviceId)) {
+            counterServiceAssignmentRepository.deleteByCounterIdAndServiceId(counterId, serviceId);
+            adminAuditService.logEvent(counter.getOrgId(), counterId, "COUNTER", "REMOVE_COUNTER_SERVICE_ASSIGNMENT", serviceId, null);
+        }
     }
 
     // ── List ─────────────────────────────────────────────────────────────────
