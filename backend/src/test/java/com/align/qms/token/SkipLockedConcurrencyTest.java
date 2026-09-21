@@ -42,6 +42,7 @@ class SkipLockedConcurrencyTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM counter_service_assignments");
         tokenRepository.deleteAll();
         counterRepository.deleteAll();
         queueRepository.deleteAll();

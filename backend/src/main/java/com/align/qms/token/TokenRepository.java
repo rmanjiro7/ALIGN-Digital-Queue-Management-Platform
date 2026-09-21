@@ -28,6 +28,9 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
     @Query(value = "SELECT * FROM tokens WHERE location_id = :locationId AND state = 'WAITING' ORDER BY joined_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED", nativeQuery = true)
     Optional<Token> findNextWaitingTokenWithLock(@Param("locationId") UUID locationId);
 
+    @Query(value = "SELECT t.* FROM tokens t JOIN counter_service_assignments csa ON t.service_id = csa.service_id WHERE t.location_id = :locationId AND t.state = 'WAITING' AND csa.counter_id = :counterId ORDER BY t.joined_at ASC LIMIT 1 FOR UPDATE OF t SKIP LOCKED", nativeQuery = true)
+    Optional<Token> findNextAssignedWaitingTokenWithLock(@Param("locationId") UUID locationId, @Param("counterId") UUID counterId);
+
     List<Token> findByQueueIdAndStateOrderByJoinedAtAsc(UUID queueId, TokenState state);
 
     List<Token> findByLocationIdAndStateIn(UUID locationId, Collection<TokenState> states);

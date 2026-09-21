@@ -51,7 +51,7 @@ public class StaffOperationsService {
         }
 
         // 3. Select next WAITING token FOR UPDATE SKIP LOCKED
-        Token token = tokenRepository.findNextWaitingTokenWithLock(counter.getLocationId())
+        Token token = tokenRepository.findNextAssignedWaitingTokenWithLock(counter.getLocationId(), counterId)
                 .orElseThrow(NoWaitingTokensException::new);
 
         // 4. Mutate token

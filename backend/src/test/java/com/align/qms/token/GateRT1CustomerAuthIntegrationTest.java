@@ -62,6 +62,7 @@ public class GateRT1CustomerAuthIntegrationTest extends PostgresIntegrationTest 
 
     @BeforeEach
     public void setup() {
+        jdbcTemplate.update("DELETE FROM counter_service_assignments");
         tokenRepository.deleteAll();
         queueRepository.deleteAll();
         serviceRepository.deleteAll();

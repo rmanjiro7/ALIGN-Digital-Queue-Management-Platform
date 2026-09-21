@@ -73,7 +73,9 @@ class ConcurrentCallNextTest extends PostgresIntegrationTest {
         for (int i = 1; i <= 10; i++) {
             Counter counter = new Counter(orgId, locationId, i, "Counter " + i);
             counter.setAvailability(CounterAvailability.ONLINE);
-            counters.add(counterRepository.save(counter));
+            counter = counterRepository.save(counter);
+            counters.add(counter);
+            jdbcTemplate.update("INSERT INTO counter_service_assignments (id, counter_id, service_id, created_at) VALUES (?, ?, ?, now())", UUID.randomUUID(), counter.getId(), serviceId);
         }
     }
 

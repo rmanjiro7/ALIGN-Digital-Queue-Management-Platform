@@ -134,6 +134,7 @@ public class TokenRealtimeIntegrationTest extends PostgresIntegrationTest {
         jdbcTemplate.update("INSERT INTO locations (id, org_id, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", locationId, orgId, "Test Loc");
         jdbcTemplate.update("INSERT INTO services (id, location_id, org_id, name, is_fast_track, created_at, updated_at) VALUES (?, ?, ?, ?, ?, now(), now())", serviceId, locationId, orgId, "Test Service", false);
         jdbcTemplate.update("INSERT INTO counters (id, org_id, location_id, name, number, status, availability, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now())", counterId, orgId, locationId, "Counter 1", 1, "ACTIVE", "ONLINE");
+        jdbcTemplate.update("INSERT INTO counter_service_assignments (id, counter_id, service_id, created_at) VALUES (?, ?, ?, now())", UUID.randomUUID(), counterId, serviceId);
 
         Queue queue = new Queue(orgId, locationId, serviceId, "Test Queue", "B", 10);
         queue = queueRepository.save(queue);
@@ -258,6 +259,7 @@ public class TokenRealtimeIntegrationTest extends PostgresIntegrationTest {
         // Create a second counter for concurrency
         UUID counterId2 = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO counters (id, org_id, location_id, name, number, status, availability, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now())", counterId2, orgId, locationId, "Counter 2", 2, "ACTIVE", "ONLINE");
+        jdbcTemplate.update("INSERT INTO counter_service_assignments (id, counter_id, service_id, created_at) VALUES (?, ?, ?, now())", UUID.randomUUID(), counterId2, serviceId);
 
         // Create 2 tokens
         TokenJoinRequest joinReq1 = new TokenJoinRequest();
