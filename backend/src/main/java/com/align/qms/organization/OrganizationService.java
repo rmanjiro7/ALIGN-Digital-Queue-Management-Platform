@@ -10,6 +10,7 @@ import com.align.qms.organization.dto.UpdateOrganizationStatusRequest;
 import com.align.qms.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,10 +37,12 @@ public class OrganizationService {
 
     private final OrganizationRepository organizationRepository;
     private final com.align.qms.audit.AdminAuditService adminAuditService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public OrganizationService(OrganizationRepository organizationRepository, com.align.qms.audit.AdminAuditService adminAuditService) {
+    public OrganizationService(OrganizationRepository organizationRepository, com.align.qms.audit.AdminAuditService adminAuditService, ApplicationEventPublisher applicationEventPublisher) {
         this.organizationRepository = organizationRepository;
         this.adminAuditService = adminAuditService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     // ── PLATFORM_ADMIN: list all ─────────────────────────────────────────────
@@ -120,7 +123,7 @@ public class OrganizationService {
         Organization saved = organizationRepository.save(org);
         OrganizationResponse afterState = OrganizationResponse.from(saved);
         adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE", beforeState, afterState);
-        
+
         log.info("Organization updated: id={}", saved.getId());
         return afterState;
     }
@@ -141,7 +144,7 @@ public class OrganizationService {
         Organization saved = organizationRepository.save(org);
         OrganizationResponse afterState = OrganizationResponse.from(saved);
         adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE_STATUS", beforeState, afterState);
-        
+
         log.info("Organization status updated: id={} status={}", saved.getId(), saved.getStatus());
         return afterState;
     }
@@ -164,7 +167,7 @@ public class OrganizationService {
             org.setCapacityThresholdPercent(request.getCapacityThresholdPercent());
             changed = true;
         }
-        
+
         if (request.getMaxWaitThresholdMins() != null && !request.getMaxWaitThresholdMins().equals(org.getMaxWaitThresholdMins())) {
             org.setMaxWaitThresholdMins(request.getMaxWaitThresholdMins());
             changed = true;
@@ -177,7 +180,9 @@ public class OrganizationService {
         Organization saved = organizationRepository.save(org);
         OrganizationResponse afterState = OrganizationResponse.from(saved);
         adminAuditService.logEvent(saved.getId(), saved.getId(), "ORGANIZATION", "UPDATE_GLOBAL_RULES", beforeState, afterState);
-        
+
+        applicationEventPublisher.publishEvent(new com.align.qms.organization.event.OrganizationRulesUpdatedEvent(this, saved.getId()));
+
         log.info("Organization global rules updated: id={}", saved.getId());
         return afterState;
     }

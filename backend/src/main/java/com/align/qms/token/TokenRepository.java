@@ -20,8 +20,8 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
 
     @Query("SELECT count(t) FROM Token t WHERE t.queueId = :queueId AND t.state IN :states AND t.joinedAt < :joinedAt")
     long countTokensAhead(
-            @Param("queueId") UUID queueId, 
-            @Param("states") Collection<TokenState> states, 
+            @Param("queueId") UUID queueId,
+            @Param("states") Collection<TokenState> states,
             @Param("joinedAt") Instant joinedAt
     );
 
@@ -34,4 +34,7 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
     List<Token> findByQueueIdAndStateOrderByJoinedAtAsc(UUID queueId, TokenState state);
 
     List<Token> findByLocationIdAndStateIn(UUID locationId, Collection<TokenState> states);
+
+    @Query("SELECT MIN(t.joinedAt) FROM Token t WHERE t.queueId = :queueId AND t.state = :state")
+    Optional<Instant> findOldestTokenJoinedAtByQueueIdAndState(@Param("queueId") UUID queueId, @Param("state") TokenState state);
 }

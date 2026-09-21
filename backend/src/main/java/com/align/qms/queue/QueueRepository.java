@@ -2,6 +2,7 @@ package com.align.qms.queue;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
@@ -50,4 +51,12 @@ public interface QueueRepository extends JpaRepository<Queue, UUID> {
      */
     @Query(value = "UPDATE queues SET next_token_number = next_token_number + 1 WHERE id = :queueId RETURNING next_token_number - 1", nativeQuery = true)
     Long allocateNextTokenNumber(@Param("queueId") UUID queueId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Queue q SET q.capacityWarningActive = :newState WHERE q.id = :queueId AND q.capacityWarningActive = :expectedOldState")
+    int setCapacityWarningActive(@Param("queueId") UUID queueId, @Param("newState") boolean newState, @Param("expectedOldState") boolean expectedOldState);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Queue q SET q.waitWarningActive = :newState WHERE q.id = :queueId AND q.waitWarningActive = :expectedOldState")
+    int setWaitWarningActive(@Param("queueId") UUID queueId, @Param("newState") boolean newState, @Param("expectedOldState") boolean expectedOldState);
 }

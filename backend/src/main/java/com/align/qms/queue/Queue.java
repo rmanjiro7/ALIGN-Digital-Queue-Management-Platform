@@ -81,6 +81,12 @@ public class Queue {
     @Column(name = "next_token_number", nullable = false)
     private long nextTokenNumber = 1L;
 
+    @Column(name = "capacity_warning_active", nullable = false)
+    private boolean capacityWarningActive = false;
+
+    @Column(name = "wait_warning_active", nullable = false)
+    private boolean waitWarningActive = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -109,6 +115,8 @@ public class Queue {
         this.status             = QueueStatus.ACTIVE;
         this.autoPauseAtCapacity = false;
         this.nextTokenNumber    = 1L;
+        this.capacityWarningActive = false;
+        this.waitWarningActive  = false;
         this.createdAt          = Instant.now();
         this.updatedAt          = Instant.now();
     }
@@ -125,6 +133,8 @@ public class Queue {
     public int         getMaxCapacity()         { return maxCapacity; }
     public boolean     isAutoPauseAtCapacity()  { return autoPauseAtCapacity; }
     public long        getNextTokenNumber()     { return nextTokenNumber; }
+    public boolean     isCapacityWarningActive(){ return capacityWarningActive; }
+    public boolean     isWaitWarningActive()    { return waitWarningActive; }
     public Instant     getCreatedAt()           { return createdAt; }
     public Instant     getUpdatedAt()           { return updatedAt; }
 
@@ -136,4 +146,6 @@ public class Queue {
     public void setMaxCapacity(int maxCapacity)                   { this.maxCapacity = maxCapacity; }
     public void setAutoPauseAtCapacity(boolean autoPause)         { this.autoPauseAtCapacity = autoPause; }
     public void setNextTokenNumber(long nextTokenNumber)          { this.nextTokenNumber = nextTokenNumber; }
+    public void setCapacityWarningActive(boolean capacityWarningActive) { this.capacityWarningActive = capacityWarningActive; }
+    public void setWaitWarningActive(boolean waitWarningActive)   { this.waitWarningActive = waitWarningActive; }
 }
