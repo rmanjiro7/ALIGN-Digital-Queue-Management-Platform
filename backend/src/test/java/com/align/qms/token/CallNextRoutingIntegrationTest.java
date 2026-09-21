@@ -101,7 +101,7 @@ class CallNextRoutingIntegrationTest extends PostgresIntegrationTest {
     @DisplayName("Routing: Counter with 0 assignments throws NoWaitingTokensException")
     void zeroAssignments() {
         createToken(serviceAId, queueA, "A1", Instant.now().minus(10, ChronoUnit.MINUTES));
-        
+
         // Counter 1 has no assignments
         assertThatThrownBy(() -> staffOperationsService.callNext(counter1.getId()))
                 .isInstanceOf(NoWaitingTokensException.class);
@@ -186,7 +186,7 @@ class CallNextRoutingIntegrationTest extends PostgresIntegrationTest {
 
         UUID loc2Id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO locations (id, org_id, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", loc2Id, orgId, "Loc 2");
-        
+
         Token tokenLoc2 = createToken(serviceAId, queueA, "A1", Instant.now().minus(10, ChronoUnit.MINUTES));
         // Manually override the token's location to Loc 2
         jdbcTemplate.update("UPDATE tokens SET location_id = ? WHERE id = ?", loc2Id, tokenLoc2.getId());
