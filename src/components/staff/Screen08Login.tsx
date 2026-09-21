@@ -29,8 +29,15 @@ export const Screen08Login: React.FC = () => {
     try {
       const response = await apiClient.login(email, password);
       queueStore.setAuthStatus('AUTHENTICATED', response.user);
-      queueStore.setRole('STAFF');
-      queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS');
+      queueStore.setRole(response.user.role as UserRole);
+
+      if (response.user.role === 'ORG_ADMIN') {
+        queueStore.setScreen('SCREEN_12_ORG_DASHBOARD');
+      } else if (response.user.role === 'PLATFORM_ADMIN') {
+        queueStore.setScreen('SCREEN_15_PLATFORM_DASHBOARD');
+      } else {
+        queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS');
+      }
     } catch (err: any) {
       alert(err.message || 'Login failed');
     } finally {
