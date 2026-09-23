@@ -95,6 +95,13 @@ export interface QueueItem {
   autoPauseAtCapacity?: boolean;
 }
 
+export interface QueueWarningState {
+  queueId: string;
+  serviceId: string;
+  capacityWarningActive: boolean;
+  waitWarningActive: boolean;
+}
+
 export interface QueueToken {
   id: string;
   orgId: string;

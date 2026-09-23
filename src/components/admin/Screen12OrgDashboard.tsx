@@ -33,7 +33,6 @@ interface Screen12OrgDashboardProps {
 }
 
 export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appState }) => {
-  const [showAlert, setShowAlert] = useState(true);
   const [selectedLocationId, setSelectedLocationId] = useState<string>(appState.selectedLocationId || 'loc-main');
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
 
@@ -144,24 +143,33 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
         </div>
       </div>
 
-      {/* High Wait Alert Banner */}
-      {showAlert && (
-        <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-start justify-between gap-3 text-xs text-amber-900">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">Operational Alert: High Wait Times Detected in Downtown HQ. </span>
-              Cashier and Teller service wait time is averaging 45+ minutes. Consider allocating secondary teller desks.
+      {/* Active Alerts Banner */}
+      {appState.queueWarnings && appState.queueWarnings.filter(w => w.capacityWarningActive || w.waitWarningActive).map(warning => {
+        const queueName = appState.queues.find(q => q.id === warning.queueId)?.name || 'Unknown Queue';
+        // Check if this warning belongs to the currently selected location, or if we want to show all warnings across org
+        // (Queue warnings from API are fetched per location based on application flow, but for Screen12 we might have them all or just for the current location).
+        // Let's filter by current selected location if we can.
+        const queue = appState.queues.find(q => q.id === warning.queueId);
+        if (queue && queue.locationId !== selectedLocationId && selectedLocationId !== 'loc-main') return null;
+
+        return (
+          <div key={`alert-${warning.queueId}`} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-900">Operational Alert: {queueName} </span>
+                <span className="text-amber-800">
+                  {warning.capacityWarningActive && warning.waitWarningActive
+                    ? 'is currently experiencing both high capacity and excessive wait times.'
+                    : warning.capacityWarningActive
+                    ? 'has reached its configured capacity threshold limit.'
+                    : 'is currently experiencing excessive wait times beyond the configured threshold limit.'}
+                </span>
+              </div>
             </div>
           </div>
-          <button 
-            onClick={() => setShowAlert(false)}
-            className="text-amber-700 hover:text-amber-900 p-1 rounded-lg hover:bg-amber-100/60 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+        );
+      })}
 
       {/* Branch-Level Counter Monitoring Table (Requirement 3) */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">

@@ -142,6 +142,34 @@ export const apiClient = {
     return response;
   },
 
+  callNextToken: async (orgId: string, locationId: string, queueId: string, counterId: string): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`/api/v1/queues/${queueId}/call-next`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ counterId })
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to call next token');
+    }
+
+    return res.json();
+  },
+
+  getQueueWarnings: async (locationId: string): Promise<any[]> => {
+    const res = await apiClient.authenticatedFetch(`/api/v1/locations/${locationId}/queue-warnings`, {
+      method: 'GET'
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to fetch queue warnings');
+    }
+
+    return res.json();
+  },
+
   joinQueue: async (orgId: string, locationId: string, serviceId: string, customerName?: string, customerPhone?: string): Promise<any> => {
     const res = await fetch(`/api/v1/tokens`, {
       method: 'POST',

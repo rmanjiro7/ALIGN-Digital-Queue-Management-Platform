@@ -8,11 +8,12 @@ import {
   Users, 
   Radio, 
   Sparkles, 
-  AlertCircle, 
-  ArrowRight, 
-  Zap, 
-  Coffee, 
-  Check, 
+  AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  Zap,
+  Coffee,
+  Check,
   UserCheck,
   Power,
   Pause,
@@ -213,6 +214,28 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
           </span>
         </div>
       </div>
+
+      {/* Dynamic Queue Warning Banners */}
+      {appState.queueWarnings && appState.queueWarnings.filter(w => w.capacityWarningActive || w.waitWarningActive).map(warning => {
+        const queueName = appState.queues.find(q => q.id === warning.queueId)?.name || 'Unknown Queue';
+        return (
+          <div key={`warning-${warning.queueId}`} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start justify-between shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-900">Operational Alert: {queueName} </span>
+                <span className="text-amber-800">
+                  {warning.capacityWarningActive && warning.waitWarningActive
+                    ? 'is currently experiencing both high capacity and excessive wait times.'
+                    : warning.capacityWarningActive
+                    ? 'has reached its configured capacity threshold limit.'
+                    : 'is currently experiencing excessive wait times beyond the configured threshold limit.'}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
 
       {/* Primary Operations Hub Banner */}
       <div className="bg-white p-6 md:p-7 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">

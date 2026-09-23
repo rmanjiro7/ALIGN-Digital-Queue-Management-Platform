@@ -14,7 +14,8 @@ import {
   AuditLogEntry,
   TokenState,
   ScreenId,
-  UserRole
+  UserRole,
+  QueueWarningState
 } from '../types';
 
 const STORAGE_KEY = 'align_qms_state_v1';
@@ -41,6 +42,7 @@ export interface AppState {
   alerts: SystemAlert[];
   auditLogs: AuditLogEntry[];
   historyTokens: QueueToken[];
+  queueWarnings: QueueWarningState[];
 
   // Authentication State
   authStatus: 'UNAUTHENTICATED' | 'AUTHENTICATING' | 'AUTH_RESTORING' | 'AUTH_READY' | 'AUTHENTICATED' | 'ERROR';
@@ -646,6 +648,7 @@ const INITIAL_STATE: AppState = {
     }
   ],
   historyTokens: INITIAL_HISTORY,
+  queueWarnings: [],
   authStatus: 'UNAUTHENTICATED',
   currentUser: null,
   syncStatus: 'DISCONNECTED',
@@ -782,7 +785,7 @@ export class QueueStore {
     return this.syncGenerationId;
   }
 
-  public applySnapshot(snapshot: any, generationId: number, expectedLocationId: string) {
+  public async applySnapshot(snapshot: any, generationId: number, expectedLocationId: string) {
     if (this.syncGenerationId !== generationId) {
       return; // Discard stale response
     }
@@ -803,6 +806,16 @@ export class QueueStore {
       });
     }
 
+    try {
+      if (this.state.currentRole === 'STAFF' || this.state.currentRole === 'ORG_ADMIN' || this.state.currentRole === 'PLATFORM_ADMIN') {
+        const { apiClient } = await import('./apiClient');
+        const warnings = await apiClient.getQueueWarnings(expectedLocationId);
+        this.state.queueWarnings = warnings;
+      }
+    } catch (e) {
+      console.error('Failed to fetch queue warnings during snapshot sync', e);
+    }
+
     // Replay buffer
     const buffer = [...this.eventBuffer];
     this.eventBuffer = [];
@@ -813,8 +826,29 @@ export class QueueStore {
   }
 
   public handleRealtimeEvent(event: any, expectedLocationId: string) {
-    // Structural Validation
-    if (!event || !event.eventId || !event.eventType || !event.tokenId) return;
+    if (!event) return;
+
+    // Warning events are identified by warningType and do not have eventId/eventType
+    if (event.warningType === 'QUEUE_CAPACITY_WARNING' || event.warningType === 'QUEUE_WAIT_WARNING') {
+      // Validate warning payload
+      if (!event.queueId || (event.transition !== 'TRIGGERED' && event.transition !== 'CLEARED')) {
+        return; // Invalid warning payload
+      }
+
+      if (event.locationId !== expectedLocationId) return;
+
+      // Warning events don't have eventId for deduplication, process directly
+      if (this.state.syncStatus === 'SNAPSHOT_SYNC') {
+        this.eventBuffer.push(event);
+      } else if (this.state.syncStatus === 'LIVE') {
+        this.processLiveEvent(event);
+        this.saveState();
+      }
+      return;
+    }
+
+    // Token Structural Validation (for all non-warning events)
+    if (!event.eventId || !event.eventType || !event.tokenId) return;
     if (event.locationId !== expectedLocationId) return;
 
     // Duplicate Check
@@ -835,6 +869,27 @@ export class QueueStore {
   }
 
   private processLiveEvent(event: any) {
+    if (event.warningType === 'QUEUE_CAPACITY_WARNING' || event.warningType === 'QUEUE_WAIT_WARNING') {
+      let warningState = this.state.queueWarnings.find(w => w.queueId === event.queueId);
+      if (!warningState) {
+        const queue = this.state.queues.find(q => q.id === event.queueId);
+        warningState = {
+          queueId: event.queueId,
+          serviceId: queue ? queue.serviceId : 'unknown',
+          capacityWarningActive: false,
+          waitWarningActive: false
+        };
+        this.state.queueWarnings.push(warningState);
+      }
+
+      if (event.warningType === 'QUEUE_CAPACITY_WARNING') {
+        warningState.capacityWarningActive = event.transition === 'TRIGGERED';
+      } else if (event.warningType === 'QUEUE_WAIT_WARNING') {
+        warningState.waitWarningActive = event.transition === 'TRIGGERED';
+      }
+      return;
+    }
+
     let token = this.state.tokens.find(t => t.id === event.tokenId);
 
     if (!token && event.tokenNumber) {

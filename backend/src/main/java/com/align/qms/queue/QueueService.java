@@ -5,6 +5,7 @@ import com.align.qms.exception.QueueNotFoundException;
 import com.align.qms.exception.ServiceNotFoundException;
 import com.align.qms.queue.dto.CreateQueueRequest;
 import com.align.qms.queue.dto.QueueResponse;
+import com.align.qms.queue.dto.QueueWarningDto;
 import com.align.qms.queue.dto.UpdateQueueConfigRequest;
 import com.align.qms.queue.dto.UpdateQueueStatusRequest;
 import com.align.qms.security.TenantContext;
@@ -75,6 +76,38 @@ public class QueueService {
             .stream()
             .filter(q -> q.getOrgId().equals(currentOrgId))
             .map(QueueResponse::from)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieve queue warnings for a specific location.
+     * Preserves tenant isolation logic.
+     */
+    @Transactional(readOnly = true)
+    public List<QueueWarningDto> getQueueWarningsByLocation(UUID locationId) {
+        UUID currentOrgId = TenantContext.getCurrentOrgId();
+
+        if (TenantContext.isPlatformAdmin()) {
+            return queueRepository.findByLocationIdOrderByNameAsc(locationId)
+                .stream()
+                .map(q -> new QueueWarningDto(
+                    q.getId(),
+                    q.getServiceId(),
+                    q.isCapacityWarningActive(),
+                    q.isWaitWarningActive()
+                ))
+                .collect(Collectors.toList());
+        }
+
+        return queueRepository.findByLocationIdOrderByNameAsc(locationId)
+            .stream()
+            .filter(q -> q.getOrgId().equals(currentOrgId))
+            .map(q -> new QueueWarningDto(
+                q.getId(),
+                q.getServiceId(),
+                q.isCapacityWarningActive(),
+                q.isWaitWarningActive()
+            ))
             .collect(Collectors.toList());
     }
 
