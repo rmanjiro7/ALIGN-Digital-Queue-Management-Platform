@@ -182,7 +182,7 @@ public class QueueWarningService {
             return;
         }
 
-        Instant oldestJoinedAt = tokenRepository.findOldestTokenJoinedAtByQueueIdAndState(queue.getId(), TokenState.WAITING).orElse(null);
+        Instant oldestJoinedAt = tokenRepository.findOldestTokenPriorityTimestampByQueueIdAndState(queue.getId(), TokenState.WAITING).orElse(null);
         if (oldestJoinedAt == null) {
             clearWaitWarning(queue);
             return;

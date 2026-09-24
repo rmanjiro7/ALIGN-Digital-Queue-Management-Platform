@@ -148,8 +148,8 @@ public class QueueWarningIntegrationTest extends com.align.qms.PostgresIntegrati
         assertThat(newTriggerCount).isEqualTo(1); // Still 1
 
         // Cancel 2 tokens -> 40% (Clear warning)
-        Token t1 = tokenRepository.findByQueueIdAndStateOrderByJoinedAtAsc(queueId, TokenState.WAITING).get(0);
-        Token t2 = tokenRepository.findByQueueIdAndStateOrderByJoinedAtAsc(queueId, TokenState.WAITING).get(1);
+        Token t1 = tokenRepository.findByQueueIdAndStateOrderByPriorityTimestampAscJoinedAtAsc(queueId, TokenState.WAITING).get(0);
+        Token t2 = tokenRepository.findByQueueIdAndStateOrderByPriorityTimestampAscJoinedAtAsc(queueId, TokenState.WAITING).get(1);
         tokenService.cancelToken(t1.getId());
         tokenService.cancelToken(t2.getId());
 

@@ -71,28 +71,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void processToken(String token, HttpServletRequest request) {
         try {
-            // Extract userId without throwing on expiry — we want to load UserDetails first
-            String userId = jwtService.extractUserIdUnchecked(token);
-            if (userId == null) {
-                log.debug("JWT filter: could not extract userId from token");
+            // Extract claims without throwing on expiry — we want to load UserDetails first
+            io.jsonwebtoken.Claims claims = jwtService.extractClaimsUnchecked(token);
+            if (claims == null || claims.getSubject() == null) {
+                log.debug("JWT filter: could not extract claims or subject from token");
                 return;
             }
 
-            // Load the user by UUID — verifies account still exists and is ACTIVE.
-            // JWT subject is userId (UUID string), not email.
-            UserDetails userDetails = userDetailsService.loadUserById(
-                java.util.UUID.fromString(userId)
-            );
+            String subject = claims.getSubject();
+            String roleStr = claims.get("role", String.class);
+            UserDetails userDetails;
+
+            if ("CUSTOMER_TOKEN".equals(roleStr)) {
+                String path = request.getRequestURI();
+                if (path == null || !path.matches("^/api/v1/tokens/[a-f0-9\\-]+/transfer-recovery$")) {
+                    log.debug("JWT filter: CUSTOMER_TOKEN not allowed for REST path: {}", path);
+                    return;
+                }
+
+                java.util.UUID tokenId = java.util.UUID.fromString(subject);
+                java.util.UUID orgId = java.util.UUID.fromString(claims.get("orgId", String.class));
+                String locStr = claims.get("locationId", String.class);
+                java.util.UUID locationId = locStr != null ? java.util.UUID.fromString(locStr) : null;
+                userDetails = new CustomerTokenPrincipal(tokenId, orgId, locationId);
+            } else {
+                // Load the user by UUID — verifies account still exists and is ACTIVE.
+                // JWT subject is userId (UUID string), not email.
+                userDetails = userDetailsService.loadUserById(java.util.UUID.fromString(subject));
+            }
 
             // Full token validation: signature + expiry
             if (!jwtService.isTokenValid(token)) {
-                log.debug("JWT filter: token invalid or expired for userId={}", userId);
+                log.debug("JWT filter: token invalid or expired for subject={}", subject);
                 return;
             }
 
             // Account must be enabled (status = ACTIVE)
             if (!userDetails.isEnabled()) {
-                log.debug("JWT filter: account disabled for userId={}", userId);
+                log.debug("JWT filter: account disabled for subject={}", subject);
                 return;
             }
 

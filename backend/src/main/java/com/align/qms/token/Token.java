@@ -78,6 +78,12 @@ public class Token {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "transferred_to_token_id")
+    private UUID transferredToTokenId;
+
+    @Column(name = "priority_timestamp")
+    private Instant priorityTimestamp;
+
     public Token() {
     }
 
@@ -100,6 +106,9 @@ public class Token {
         this.updatedAt = this.createdAt;
         if (this.joinedAt == null) {
             this.joinedAt = this.createdAt;
+        }
+        if (this.priorityTimestamp == null) {
+            this.priorityTimestamp = this.joinedAt;
         }
     }
 
@@ -146,7 +155,6 @@ public class Token {
     public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }
 
     public Instant getJoinedAt() { return joinedAt; }
-    public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
 
     public Instant getCalledAt() { return calledAt; }
     public void setCalledAt(Instant calledAt) { this.calledAt = calledAt; }
@@ -164,4 +172,10 @@ public class Token {
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public UUID getTransferredToTokenId() { return transferredToTokenId; }
+    public void setTransferredToTokenId(UUID transferredToTokenId) { this.transferredToTokenId = transferredToTokenId; }
+
+    public Instant getPriorityTimestamp() { return priorityTimestamp; }
+    public void setPriorityTimestamp(Instant priorityTimestamp) { this.priorityTimestamp = priorityTimestamp; }
 }

@@ -25,13 +25,19 @@ public class StaffOperationsService {
     private final TokenRepository tokenRepository;
     private final CounterRepository counterRepository;
     private final TokenEventService tokenEventService;
+    private final com.align.qms.queue.QueueRepository queueRepository;
+    private final com.align.qms.audit.AdminAuditService adminAuditService;
 
     public StaffOperationsService(TokenRepository tokenRepository,
                                   CounterRepository counterRepository,
-                                  TokenEventService tokenEventService) {
+                                  TokenEventService tokenEventService,
+                                  com.align.qms.queue.QueueRepository queueRepository,
+                                  com.align.qms.audit.AdminAuditService adminAuditService) {
         this.tokenRepository = tokenRepository;
         this.counterRepository = counterRepository;
         this.tokenEventService = tokenEventService;
+        this.queueRepository = queueRepository;
+        this.adminAuditService = adminAuditService;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -161,10 +167,97 @@ public class StaffOperationsService {
         return token;
     }
 
+    @Transactional
+    public com.align.qms.token.dto.TokenResponse transferToken(UUID tokenId, com.align.qms.token.dto.TokenTransferRequest request) {
+        if (request.getIdempotencyKey() != null) {
+            java.util.Optional<Token> existingToken = tokenRepository.findByIdempotencyKey(request.getIdempotencyKey());
+            if (existingToken.isPresent()) {
+                Token t = existingToken.get();
+                // Validate it represents the same transfer operation
+                if (t.getTransferredToTokenId() == null && t.getServiceId().equals(request.getTargetServiceId())) {
+                    return com.align.qms.token.dto.TokenResponse.from(t); // Already transferred
+                }
+            }
+        }
+
+        com.align.qms.queue.Queue targetQueue = queueRepository.findByServiceIdForUpdate(request.getTargetServiceId())
+                .orElseThrow(() -> new IllegalArgumentException("Target service has no queue"));
+
+        if (targetQueue.getStatus() != com.align.qms.queue.QueueStatus.ACTIVE) {
+            throw new IllegalStateException("Target queue is not ACTIVE");
+        }
+
+        Token oldToken = tokenRepository.findByIdForUpdate(tokenId)
+                .orElseThrow(() -> new TokenNotFoundException(tokenId));
+
+        validateTokenTenant(oldToken);
+
+        if (oldToken.getQueueId().equals(targetQueue.getId())) {
+            throw new IllegalArgumentException("Cannot transfer to the same queue");
+        }
+        if (!oldToken.getOrgId().equals(targetQueue.getOrgId()) || !oldToken.getLocationId().equals(targetQueue.getLocationId())) {
+            throw new IllegalArgumentException("Cross-tenant or cross-location transfer not allowed");
+        }
+        if (oldToken.getState() != TokenState.WAITING && oldToken.getState() != TokenState.CALLED && oldToken.getState() != TokenState.IN_SERVICE) {
+            throw new com.align.qms.exception.InvalidTokenStateException("Token must be WAITING, CALLED, or IN_SERVICE to transfer");
+        }
+
+        // Active count check
+        long activeCount = tokenRepository.countByQueueIdAndStateIn(
+                targetQueue.getId(),
+                java.util.EnumSet.of(TokenState.WAITING, TokenState.AWAY, TokenState.CALLED, TokenState.IN_SERVICE)
+        );
+        if (targetQueue.getMaxCapacity() > 0 && activeCount >= targetQueue.getMaxCapacity()) {
+            throw new com.align.qms.exception.QueueFullException(targetQueue.getId(), targetQueue.getName(), activeCount, targetQueue.getMaxCapacity());
+        }
+
+        TokenState previousState = oldToken.getState();
+
+        Token newToken = new Token(
+                targetQueue.getOrgId(),
+                targetQueue.getLocationId(),
+                targetQueue.getServiceId(),
+                targetQueue.getId(),
+                targetQueue.getTokenPrefix() + "-" + String.format("%03d", targetQueue.getNextTokenNumber()),
+                oldToken.getCustomerName(),
+                oldToken.getCustomerPhone(),
+                request.getIdempotencyKey()
+        );
+        targetQueue.setNextTokenNumber(targetQueue.getNextTokenNumber() + 1);
+        queueRepository.save(targetQueue);
+
+        newToken.setPriorityTimestamp(oldToken.getPriorityTimestamp() != null ? oldToken.getPriorityTimestamp() : oldToken.getJoinedAt());
+        tokenRepository.save(newToken);
+
+        oldToken.transitionTo(TokenState.TRANSFERRED);
+        oldToken.setTransferredToTokenId(newToken.getId());
+
+        if (previousState == TokenState.CALLED || previousState == TokenState.IN_SERVICE) {
+            if (oldToken.getCounterId() != null) {
+                Counter counter = counterRepository.findByIdForUpdate(oldToken.getCounterId()).orElse(null);
+                if (counter != null && oldToken.getId().equals(counter.getCurrentServingTokenId())) {
+                    counter.setCurrentServingTokenId(null);
+                    counter.setServiceStartTime(null);
+                    counterRepository.save(counter);
+                }
+            }
+        }
+        tokenRepository.save(oldToken);
+
+        adminAuditService.logEvent(oldToken.getOrgId(), oldToken.getId(), "TOKEN", "TRANSFER", oldToken, oldToken); // simplistic for now
+
+        // Wait, "If the existing dispatcher cannot safely target the customer token topic with the credential, STOP and report the architecture issue instead of weakening security."
+        // We will NOT emit the JWT in the payload. We will just emit the standard token events.
+        tokenEventService.recordEvent(oldToken, TokenEventType.TOKEN_TRANSFERRED, previousState, null);
+        tokenEventService.recordEvent(newToken, TokenEventType.TOKEN_CREATED, null, null);
+
+        return com.align.qms.token.dto.TokenResponse.from(newToken);
+    }
+
     @Transactional(readOnly = true)
     public List<Token> getWaitingTokens(UUID queueId) {
         // Validation could be added to check queue ownership
-        return tokenRepository.findByQueueIdAndStateOrderByJoinedAtAsc(queueId, TokenState.WAITING);
+        return tokenRepository.findByQueueIdAndStateOrderByPriorityTimestampAscJoinedAtAsc(queueId, TokenState.WAITING);
     }
 
     private void validateCounterAndTenant(Counter counter) {

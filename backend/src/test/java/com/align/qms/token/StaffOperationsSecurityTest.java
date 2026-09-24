@@ -58,7 +58,7 @@ class StaffOperationsSecurityTest extends PostgresIntegrationTest {
         counterA = counterRepository.save(counterA);
 
         tokenA = new Token(orgIdA, locationIdA, serviceIdA, queueA.getId(), "A1", "Customer A1", null, null);
-        tokenA.setJoinedAt(Instant.now());
+        org.springframework.test.util.ReflectionTestUtils.setField(tokenA, "joinedAt", Instant.now());
         tokenA = tokenRepository.save(tokenA);
     }
 

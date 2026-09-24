@@ -141,6 +141,7 @@ public class TokenService {
             tokensAhead = tokenRepository.countTokensAhead(
                     token.getQueueId(),
                     EnumSet.of(TokenState.WAITING, TokenState.AWAY),
+                    token.getPriorityTimestamp(),
                     token.getJoinedAt()
             );
         }
@@ -148,6 +149,27 @@ public class TokenService {
         int estimatedWaitTimeMinutes = calculateEstimatedWaitTime(tokensAhead);
 
         return new TokenPositionResponse(token.getTokenNumber(), token.getState(), tokensAhead, estimatedWaitTimeMinutes);
+    }
+
+    @Transactional(readOnly = true)
+    public TokenResponse transferRecovery(UUID oldTokenId) {
+        Token oldToken = tokenRepository.findById(oldTokenId)
+                .orElseThrow(() -> new TokenNotFoundException(oldTokenId));
+
+        validateTenantAccess(oldToken);
+
+        if (oldToken.getState() != TokenState.TRANSFERRED) {
+            throw new InvalidTokenStateException("Token is not in TRANSFERRED state");
+        }
+
+        if (oldToken.getTransferredToTokenId() == null) {
+            throw new IllegalStateException("Transfer target not found");
+        }
+
+        Token newToken = tokenRepository.findById(oldToken.getTransferredToTokenId())
+                .orElseThrow(() -> new IllegalStateException("New token not found"));
+
+        return TokenResponse.from(newToken, jwtService.generateCustomerRealtimeToken(newToken));
     }
 
     @Transactional

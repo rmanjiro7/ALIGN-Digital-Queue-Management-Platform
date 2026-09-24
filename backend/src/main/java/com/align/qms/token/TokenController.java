@@ -20,9 +20,11 @@ import java.util.UUID;
 public class TokenController {
 
     private final TokenService tokenService;
+    private final StaffOperationsService staffOperationsService;
 
-    public TokenController(TokenService tokenService) {
+    public TokenController(TokenService tokenService, StaffOperationsService staffOperationsService) {
         this.tokenService = tokenService;
+        this.staffOperationsService = staffOperationsService;
     }
 
     @PostMapping
@@ -54,5 +56,16 @@ public class TokenController {
     @PostMapping("/{id}/return")
     public TokenResponse returnFromStepAway(@PathVariable("id") UUID id) {
         return tokenService.returnFromStepAway(id);
+    }
+
+    @PostMapping("/{id}/transfer")
+    public TokenResponse transferToken(@PathVariable("id") UUID id, @Valid @RequestBody com.align.qms.token.dto.TokenTransferRequest request) {
+        return staffOperationsService.transferToken(id, request);
+    }
+
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CUSTOMER_TOKEN') and principal.tokenId == #id")
+    @GetMapping("/{id}/transfer-recovery")
+    public TokenResponse getTransferRecovery(@PathVariable("id") UUID id) {
+        return tokenService.transferRecovery(id);
     }
 }

@@ -24,6 +24,7 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,7 +99,7 @@ public class QueueWaitTimeSchedulerTest extends com.align.qms.PostgresIntegratio
 
         // Add a token that joined 4 mins ago (No warning)
         Token t = new Token(orgId, locationId, serviceId, queueId, "W-1", "Name", "Phone", null);
-        t.setJoinedAt(Instant.now().minus(4, ChronoUnit.MINUTES));
+        ReflectionTestUtils.setField(t, "joinedAt", Instant.now().minus(4, ChronoUnit.MINUTES));
         tokenRepository.save(t);
 
         queueWarningService.evaluateWaitTimeWarnings();
@@ -108,7 +109,7 @@ public class QueueWaitTimeSchedulerTest extends com.align.qms.PostgresIntegratio
 
         // Add a new token that is 7 mins old (Trigger warning)
         Token t2 = new Token(orgId, locationId, serviceId, queueId, "W-2", "Name2", "Phone2", null);
-        t2.setJoinedAt(Instant.now().minus(7, ChronoUnit.MINUTES));
+        ReflectionTestUtils.setField(t2, "joinedAt", Instant.now().minus(7, ChronoUnit.MINUTES));
         tokenRepository.save(t2);
 
         queueWarningService.evaluateWaitTimeWarnings();

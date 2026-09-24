@@ -21,6 +21,7 @@ public class TokenResponse {
     private Instant stepAwayExpiresAt;
     private String idempotencyKey;
     private String realtimeToken;
+    private UUID transferredToTokenId;
 
     public static TokenResponse from(Token token) {
         return from(token, null);
@@ -44,6 +45,7 @@ public class TokenResponse {
         response.setStepAwayExpiresAt(token.getStepAwayExpiresAt());
         response.setIdempotencyKey(token.getIdempotencyKey());
         response.setRealtimeToken(realtimeToken);
+        response.setTransferredToTokenId(token.getTransferredToTokenId());
         
         return response;
     }
@@ -91,4 +93,7 @@ public class TokenResponse {
 
     public String getRealtimeToken() { return realtimeToken; }
     public void setRealtimeToken(String realtimeToken) { this.realtimeToken = realtimeToken; }
+
+    public UUID getTransferredToTokenId() { return transferredToTokenId; }
+    public void setTransferredToTokenId(UUID transferredToTokenId) { this.transferredToTokenId = transferredToTokenId; }
 }

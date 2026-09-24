@@ -218,18 +218,15 @@ public class JwtService {
      * Used in the JWT filter to load UserDetails before checking validity.
      * The filter then calls {@link #isTokenValid} for the actual gate check.
      */
-    public String extractUserIdUnchecked(String token) {
+    public io.jsonwebtoken.Claims extractClaimsUnchecked(String token) {
         try {
             return Jwts.parser()
                 .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
         } catch (ExpiredJwtException e) {
-            // Still return subject from an expired token so the filter can
-            // load the UserDetails and then reject with 401 for expiry.
-            return e.getClaims().getSubject();
+            return e.getClaims();
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }
