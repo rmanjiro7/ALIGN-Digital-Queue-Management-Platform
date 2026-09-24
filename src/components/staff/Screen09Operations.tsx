@@ -19,7 +19,8 @@ import {
   Pause,
   Play,
   ShieldAlert,
-  ChevronDown
+  ChevronDown,
+  ArrowRightLeft
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { apiClient } from '../../services/apiClient';
@@ -34,6 +35,10 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
   const [selectedCounterNumber, setSelectedCounterNumber] = useState<number>(1);
   const [secondsServing, setSecondsServing] = useState(0);
   const [isCallingNext, setIsCallingNext] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferTargetId, setTransferTargetId] = useState<string>('');
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
 
   const currentCounter = appState.counters.find(c => c.number === selectedCounterNumber) || appState.counters[0];
   const queueState = queueStore.getCounterQueueState(selectedCounterNumber);
@@ -153,6 +158,22 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
     if (currentToken) {
       queueStore.skipServingToken(currentToken.id);
       setSecondsServing(0);
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (!currentToken || !transferTargetId) return;
+    setIsTransferring(true);
+    setTransferError(null);
+    try {
+      await apiClient.transferToken(currentToken.id, transferTargetId);
+      setIsTransferModalOpen(false);
+      setTransferTargetId('');
+      setSecondsServing(0);
+    } catch (e: any) {
+      setTransferError(e.message || 'Transfer failed. Please try again.');
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -395,7 +416,7 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
                 </div>
 
                 {/* Desk Action Controls */}
-                <div className="grid grid-cols-3 gap-3 mt-8 max-w-md mx-auto">
+                <div className="grid grid-cols-2 gap-3 mt-8 max-w-md mx-auto">
                   <button
                     id="recall-token-btn"
                     onClick={handleRecall}
@@ -412,6 +433,19 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
                   >
                     <CheckCircle2 className="w-4 h-4 text-[#00ACC1]" />
                     <span>Complete</span>
+                  </button>
+
+                  <button
+                    id="transfer-token-btn"
+                    onClick={() => {
+                      setTransferTargetId('');
+                      setTransferError(null);
+                      setIsTransferModalOpen(true);
+                    }}
+                    className="py-3 px-3 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer uppercase tracking-wider"
+                  >
+                    <ArrowRightLeft className="w-4 h-4 text-blue-600" />
+                    <span>Transfer</span>
                   </button>
 
                   <button
@@ -559,6 +593,79 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
           </div>
         </div>
       </div>
+
+      {/* Transfer Modal */}
+      {isTransferModalOpen && currentToken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-xl border border-slate-200">
+            <h2 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-[#00ACC1]" />
+              Transfer Token
+            </h2>
+            <p className="text-xs text-slate-500 mb-6">
+              Select a target service to transfer token <span className="font-bold text-slate-900">{currentToken.tokenNumber}</span> to.
+            </p>
+
+            {transferError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{transferError}</span>
+              </div>
+            )}
+
+            <div className="mb-6 space-y-3">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Target Service
+              </label>
+              <select
+                value={transferTargetId}
+                onChange={(e) => setTransferTargetId(e.target.value)}
+                className="w-full bg-[#F1F5F9] border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00ACC1]/50 focus:border-[#00ACC1] transition-all"
+                disabled={isTransferring}
+              >
+                <option value="">-- Select Target Service --</option>
+                {appState.services
+                  .filter(s => s.locationId === currentToken.locationId && s.enabled && s.id !== currentToken.serviceId)
+                  .map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3 justify-end pt-4 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setIsTransferModalOpen(false);
+                  setTransferTargetId('');
+                  setTransferError(null);
+                }}
+                disabled={isTransferring}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTransfer}
+                disabled={!transferTargetId || isTransferring}
+                className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#00ACC1] hover:bg-[#0097A7] shadow-md shadow-[#00ACC1]/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTransferring ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Transferring...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Confirm Transfer</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

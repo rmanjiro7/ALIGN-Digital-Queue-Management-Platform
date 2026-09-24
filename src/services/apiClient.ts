@@ -184,11 +184,42 @@ export const apiClient = {
         customerPhone
       })
     });
-    
+
     if (!res.ok) {
       throw new Error('Failed to join queue');
     }
+
+    return res.json();
+  },
+
+  transferToken: async (tokenId: string, targetServiceId: string): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`/api/v1/tokens/${tokenId}/transfer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ targetServiceId })
+    });
     
+    if (!res.ok) {
+      throw new Error('Failed to transfer token');
+    }
+
+    return res.json();
+  },
+
+  transferRecovery: async (tokenId: string, realtimeToken: string): Promise<any> => {
+    const res = await fetch(`/api/v1/tokens/${tokenId}/transfer-recovery`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${realtimeToken}`
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to recover transferred token');
+    }
+
     return res.json();
   }
 };

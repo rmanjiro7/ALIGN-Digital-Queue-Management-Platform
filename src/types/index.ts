@@ -14,7 +14,8 @@ export type TokenState =
   | 'NO_SHOW'
   | 'SKIPPED' 
   | 'CANCELLED' 
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'TRANSFERRED';
 
 export type ScreenId = 
   | 'SCREEN_01_SPLASH'
@@ -128,6 +129,8 @@ export interface QueueToken {
   isPriority?: boolean;
   idempotencyKey?: string;
   realtimeToken?: string;
+  transferredToTokenId?: string;
+  priorityTimestamp?: string;
 }
 
 export type CounterAvailability = 'ONLINE' | 'ON_BREAK' | 'AWAY' | 'OFFLINE';

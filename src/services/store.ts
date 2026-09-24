@@ -930,8 +930,12 @@ export class QueueStore {
         if (counter && counter.currentServingTokenId === token!.id) {
           counter.serviceStartTime = token.servedAt;
         }
-      } else if (event.eventType === 'TOKEN_COMPLETED' || event.eventType === 'TOKEN_NO_SHOW') {
-        token.state = event.eventType === 'TOKEN_COMPLETED' ? 'COMPLETED' : 'NO_SHOW';
+      } else if (event.eventType === 'TOKEN_COMPLETED' || event.eventType === 'TOKEN_NO_SHOW' || event.eventType === 'TOKEN_TRANSFERRED') {
+        if (event.eventType === 'TOKEN_TRANSFERRED') {
+          token.state = 'TRANSFERRED';
+        } else {
+          token.state = event.eventType === 'TOKEN_COMPLETED' ? 'COMPLETED' : 'NO_SHOW';
+        }
         token.completedAt = event.timestamp || new Date().toISOString();
         
         const counter = this.state.counters.find(c => c.currentServingTokenId === token!.id || c.number === token!.counterNumber);
@@ -940,8 +944,12 @@ export class QueueStore {
           counter.currentServingTokenNumber = undefined;
           counter.serviceStartTime = undefined;
         }
-        this.state.historyTokens.unshift({ ...token });
-        this.state.tokens = this.state.tokens.filter(t => t.id !== token!.id);
+        if (event.eventType === 'TOKEN_TRANSFERRED') {
+          // Keep it in tokens so the customer screen can recover it
+        } else {
+          this.state.historyTokens.unshift({ ...token });
+          this.state.tokens = this.state.tokens.filter(t => t.id !== token!.id);
+        }
       }
     }
   }

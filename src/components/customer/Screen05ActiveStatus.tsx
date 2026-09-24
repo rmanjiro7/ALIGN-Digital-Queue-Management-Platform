@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { wsClient } from '../../services/websocketClient';
+import { apiClient } from '../../services/apiClient';
 import { QueueToken } from '../../types';
 
 interface Screen05ActiveStatusProps {
@@ -25,6 +26,8 @@ interface Screen05ActiveStatusProps {
 
 export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appState }) => {
   const [awaySecondsLeft, setAwaySecondsLeft] = useState<number>(15 * 60);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
 
   // Safely find active customer token by ID or first truly active token
   const activeTokens = appState.tokens.filter(t => ['WAITING', 'AWAY', 'CALLED', 'IN_SERVICE'].includes(t.state));
@@ -46,6 +49,26 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
       return () => clearInterval(interval);
     }
   }, [token?.state]);
+
+  // Handle Token Transfer Recovery
+  useEffect(() => {
+    if (token?.state === 'TRANSFERRED' && token?.realtimeToken && !isRecovering) {
+      setIsRecovering(true);
+      setRecoveryError(null);
+      apiClient.transferRecovery(token.id, token.realtimeToken)
+        .then(newToken => {
+          queueStore.addJoinedCustomerToken(newToken);
+          queueStore.setActiveCustomerToken(newToken.id);
+        })
+        .catch(err => {
+          console.error('[Screen05] Transfer recovery failed:', err);
+          setRecoveryError('Transfer failed. Please see staff for assistance.');
+        })
+        .finally(() => {
+          setIsRecovering(false);
+        });
+    }
+  }, [token?.state, token?.id, token?.realtimeToken, isRecovering]);
 
   // RT3: Customer Realtime Integration
   useEffect(() => {
@@ -131,6 +154,7 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
 
   const isCalled = token.state === 'CALLED' || token.state === 'IN_SERVICE';
   const isCompleted = token.state === 'COMPLETED';
+  const isTransferred = token.state === 'TRANSFERRED';
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 md:py-10">
@@ -202,6 +226,11 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 COMPLETED
               </span>
+            ) : isTransferred ? (
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-mono font-bold">
+                <ArrowRight className="w-3.5 h-3.5" />
+                TRANSFERRING...
+              </span>
             ) : (
               <span className="flex items-center gap-1.5 px-3 py-1 bg-[#00ACC1]/10 text-[#00ACC1] rounded-full text-xs font-mono font-bold">
                 <span className="w-2 h-2 rounded-full bg-[#00ACC1] animate-ping"></span>
@@ -224,7 +253,19 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
         </div>
 
         {/* Status Breakdown or Counter Call Notice */}
-        {isCalled ? (
+        {recoveryError ? (
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 text-center my-4">
+            <AlertTriangle className="w-6 h-6 text-rose-500 mx-auto mb-2" />
+            <div className="text-sm font-bold text-rose-900 mb-1">Transfer Failed</div>
+            <div className="text-xs text-rose-700">{recoveryError}</div>
+          </div>
+        ) : isTransferred ? (
+          <div className="p-8 bg-blue-50/50 rounded-2xl border border-blue-100 text-center my-4">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <div className="text-sm font-bold text-blue-900 mb-1">Transferring your token...</div>
+            <div className="text-xs text-blue-700">Please wait while we set up your new queue position.</div>
+          </div>
+        ) : isCalled ? (
           <div className="p-5 bg-white/10 rounded-2xl border border-[#00ACC1]/40 text-center my-4">
             <div className="text-xs uppercase font-mono tracking-wider text-[#00ACC1] font-bold mb-1">
               Please Proceed To
@@ -278,7 +319,7 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
       </div>
 
       {/* Leave Waiting Area / Step Away Module */}
-      {!isCalled && !isCompleted && (
+      {!isCalled && !isCompleted && !isTransferred && !recoveryError && (
         <div className="mt-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-amber-50 text-amber-700 rounded-xl mt-0.5">
@@ -320,7 +361,7 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
       </div>
 
       {/* Cancel Action */}
-      {!isCompleted && (
+      {!isCompleted && !isTransferred && (
         <div className="mt-6 text-center">
           <button
             id="cancel-token-btn"
