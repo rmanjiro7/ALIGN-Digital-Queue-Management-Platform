@@ -1,0 +1,1593 @@
+package com.align.qms.queue;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Queue entity — one queue per service (enforced by UNIQUE constraint on service_id).
+ *
+ * <p>Maps to the {@code queues} table created in V3__organization_domain.sql.
+ *
+ * <p>Key design points:
+ * <ul>
+ *   <li>{@code nextTokenNumber} — Phase 3 atomic counter. Present in schema
+ *       but NOT used by Phase 2 application logic. Phase 3 will increment it
+ *       atomically via {@code UPDATE queues SET next_token_number = next_token_number + 1
+ *       WHERE id = ? RETURNING next_token_number} (ADR-001).</li>
+ *   <li>{@code tokenPrefix} — single-letter or short prefix for generated token
+ *       labels, e.g. "A" → "A-001".</li>
+ *   <li>Tenant isolation enforced at service layer via {@code TenantContext}.</li>
+ * </ul>
+ */
+@Entity
+@Table(name = "queues")
+public class Queue {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    /** Organization (tenant) — denormalized for tenant-isolation queries. */
+    @Column(name = "org_id", nullable = false, updatable = false)
+    private UUID orgId;
+
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
+
+    /** Parent service. UNIQUE constraint enforces one queue per service. */
+    @Column(name = "service_id", nullable = false, updatable = false)
+    private UUID serviceId;
+
+    @Column(name = "name", nullable = false, length = 255)
+    private String name;
+
+    /**
+     * Token prefix for generated token labels (max 5 chars).
+     * e.g. "A" → "A-001", "B" → "B-001".
+     */
+    @Column(name = "token_prefix", nullable = false, length = 5)
+    private String tokenPrefix = "A";
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private QueueStatus status = QueueStatus.ACTIVE;
+
+    /** Maximum number of active tokens before the queue is considered full. */
+    @Column(name = "max_capacity", nullable = false)
+    private int maxCapacity = 100;
+
+    /**
+     * If TRUE, the queue automatically transitions to PAUSED when
+     * active token count reaches {@code maxCapacity}.
+     */
+    @Column(name = "auto_pause_at_capacity", nullable = false)
+    private boolean autoPauseAtCapacity = false;
+
+    /**
+     * ⭐ Phase 3 atomic counter — NOT used in Phase 2.
+     * Incremented atomically via raw SQL in Phase 3 (ADR-001).
+     */
+    @Column(name = "next_token_number", nullable = false)
+    private long nextTokenNumber = 1L;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    // ── Constructors ────────────────────────────────────────────────────────
+
+    protected Queue() {
+        // JPA required
+    }
+
+    public Queue(UUID orgId, UUID locationId, UUID serviceId, String name,
+                 String tokenPrefix, int maxCapacity) {
+        this.orgId              = orgId;
+        this.locationId         = locationId;
+        this.serviceId          = serviceId;
+        this.name               = name;
+        this.tokenPrefix        = tokenPrefix != null ? tokenPrefix : "A";
+        this.maxCapacity        = maxCapacity;
+        this.status             = QueueStatus.ACTIVE;
+        this.autoPauseAtCapacity = false;
+        this.nextTokenNumber    = 1L;
+        this.createdAt          = Instant.now();
+        this.updatedAt          = Instant.now();
+    }
+
+    // ── Getters ─────────────────────────────────────────────────────────────
+
+    public UUID        getId()                  { return id; }
+    public UUID        getOrgId()               { return orgId; }
+    public UUID        getLocationId()          { return locationId; }
+    public UUID        getServiceId()           { return serviceId; }
+    public String      getName()                { return name; }
+    public String      getTokenPrefix()         { return tokenPrefix; }
+    public QueueStatus getStatus()              { return status; }
+    public int         getMaxCapacity()         { return maxCapacity; }
+    public boolean     isAutoPauseAtCapacity()  { return autoPauseAtCapacity; }
+    public long        getNextTokenNumber()     { return nextTokenNumber; }
+    public Instant     getCreatedAt()           { return createdAt; }
+    public Instant     getUpdatedAt()           { return updatedAt; }
+
+    // ── Setters ──────────────────────────────────────────────────────────────
+
+    public void setName(String name)                              { this.name = name; }
+    public void setTokenPrefix(String tokenPrefix)                { this.tokenPrefix = tokenPrefix; }
+    public void setStatus(QueueStatus status)                     { this.status = status; }
+    public void setMaxCapacity(int maxCapacity)                   { this.maxCapacity = maxCapacity; }
+    public void setAutoPauseAtCapacity(boolean autoPause)         { this.autoPauseAtCapacity = autoPause; }
+    public void setNextTokenNumber(long nextTokenNumber)          { this.nextTokenNumber = nextTokenNumber; }
+}
+package com.align.qms.queue;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Repository for {@link Queue} entities.
+ *
+ * <p>The {@code UNIQUE(service_id)} constraint in the database ensures at most
+ * one queue per service. Service-layer code catches {@code DataIntegrityViolationException}
+ * and converts it to a domain {@code DuplicateQueueException} (409 Conflict).
+ */
+public interface QueueRepository extends JpaRepository<Queue, UUID> {
+
+    /** Get the queue for a given service. Empty if no queue created yet. */
+    Optional<Queue> findByServiceId(UUID serviceId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Queue q WHERE q.serviceId = :serviceId")
+    Optional<Queue> findByServiceIdForUpdate(@Param("serviceId") UUID serviceId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Queue q WHERE q.id = :id")
+    Optional<Queue> findByIdForUpdate(@Param("id") UUID id);
+
+    /** All queues at a specific location. */
+    List<Queue> findByLocationId(UUID locationId);
+
+    /** All queues for an organization. */
+    List<Queue> findByOrgId(UUID orgId);
+
+    /**
+     * Tenant-scoped single lookup — returns empty if the queue belongs to
+     * a different organization.
+     */
+    Optional<Queue> findByIdAndOrgId(UUID id, UUID orgId);
+
+    /** Check whether a queue already exists for a given service. */
+    boolean existsByServiceId(UUID serviceId);
+}
+package com.align.qms.security;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Spring Security configuration for the ALIGN stateless JWT API (SECURITY.md).
+ *
+ * <p>Key decisions:
+ * <ul>
+ *   <li><b>CSRF disabled</b>: stateless Bearer-token API. The browser never
+ *       automatically attaches Authorization headers, so CSRF attacks cannot
+ *       leverage authentication. Documented in SECURITY.md and ADR-011.</li>
+ *   <li><b>Sessions STATELESS</b>: no HttpSession created or used. Every
+ *       request must carry a valid JWT.</li>
+ *   <li><b>BCrypt strength 12</b>: balances security against brute-force
+ *       and acceptable login latency (~300ms on modern hardware).</li>
+ *   <li><b>Public endpoints</b>: explicitly allowlisted. Everything else
+ *       requires authentication by default (deny-by-default).</li>
+ *   <li><b>Method security</b>: {@code @PreAuthorize} enabled for controller-
+ *       and service-level RBAC enforcement.</li>
+ *   <li><b>Actuator</b>: only {@code /actuator/health} is public.
+ *       All other actuator endpoints require authentication.</li>
+ * </ul>
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+
+    private final UserDetailsServiceImpl  userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthEntryPoint          authEntryPoint;
+    private final AccessDeniedHandlerImpl accessDeniedHandler;
+
+    @Value("${align.cors.allowed-origins}")
+    private String allowedOriginsRaw;
+
+    public SecurityConfig(UserDetailsServiceImpl userDetailsService,
+                          JwtAuthenticationFilter jwtAuthenticationFilter,
+                          AuthEntryPoint authEntryPoint,
+                          AccessDeniedHandlerImpl accessDeniedHandler) {
+        this.userDetailsService      = userDetailsService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authEntryPoint          = authEntryPoint;
+        this.accessDeniedHandler     = accessDeniedHandler;
+    }
+
+    // ── Password Encoder ────────────────────────────────────────────────────
+
+    /**
+     * BCrypt password encoder — strength 12 (SECURITY.md).
+     * ~300ms per hash on a modern server: slow enough to impede brute-force,
+     * fast enough for a login endpoint.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
+    // ── Authentication Provider ─────────────────────────────────────────────
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    // ── Authentication Manager ──────────────────────────────────────────────
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    // ── Security Filter Chain ───────────────────────────────────────────────
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // ── CSRF ────────────────────────────────────────────────────────
+            // Disabled: stateless Bearer-token API. Browser never auto-attaches
+            // Authorization headers, so CSRF is not a viable attack vector.
+            .csrf(AbstractHttpConfigurer::disable)
+
+            // ── HTTP Basic ───────────────────────────────────────────────────
+            // Explicitly disabled: this is a Bearer-token JWT API only.
+            // Without explicit disabling, Spring Security's default
+            // BasicAuthenticationEntryPoint emits WWW-Authenticate: Basic on
+            // 401 responses, which causes JDK HttpURLConnection to attempt a
+            // Basic-auth retry on POST requests with a body (streaming mode),
+            // resulting in HttpRetryException in test clients.
+            .httpBasic(AbstractHttpConfigurer::disable)
+
+            // ── CORS ─────────────────────────────────────────────────────────
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            // ── Session ──────────────────────────────────────────────────────
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // ── Exception Handlers ───────────────────────────────────────────
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler))
+
+            // ── Authorization Rules ──────────────────────────────────────────
+            // Deny-by-default: any endpoint not listed here requires a valid JWT.
+            .authorizeHttpRequests(auth -> auth
+                // Public auth endpoints
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
+                // Public discovery endpoints
+                .requestMatchers(HttpMethod.GET, "/api/v1/services").permitAll()
+                // Phase 3 Token Engine endpoints (public for customers)
+                .requestMatchers("/api/v1/tokens/**").permitAll()
+                // Health endpoint (no auth required for load-balancer probes)
+                .requestMatchers("/actuator/health").permitAll()
+                // WebSocket upgrade (future Phase 5; permit here to avoid blocking)
+                .requestMatchers("/ws-align/**").permitAll()
+                // All other actuator endpoints require authentication
+                .requestMatchers("/actuator/**").authenticated()
+                // Every other request requires authentication
+                .anyRequest().authenticated()
+            )
+
+            // ── Authentication Provider ──────────────────────────────────────
+            .authenticationProvider(authenticationProvider())
+
+            // ── JWT Filter ───────────────────────────────────────────────────
+            // Runs before Spring Security's UsernamePasswordAuthenticationFilter
+            .addFilterBefore(jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class)
+
+            // ── Security Headers ─────────────────────────────────────────────
+            // Spring Security default headers are kept (X-Frame-Options,
+            // X-Content-Type-Options, etc.). No customization needed for a
+            // REST API serving no HTML — but defaults are sound.
+            ;
+
+        return http.build();
+    }
+
+    // ── CORS Configuration ──────────────────────────────────────────────────
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // Parse comma-separated origins from environment variable
+        List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .toList();
+        config.setAllowedOrigins(origins);
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of(
+            "Authorization", "Content-Type", "Accept", "X-Requested-With",
+            "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"
+        ));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+}
+package com.align.qms.exception;
+
+public class InvalidTokenStateException extends BusinessException {
+    public InvalidTokenStateException(String message) {
+        super(message, org.springframework.http.HttpStatus.CONFLICT, "INVALID_TOKEN_STATE");
+    }
+}
+package com.align.qms.exception;
+
+import java.util.UUID;
+
+public class QueueFullException extends BusinessException {
+    private final UUID queueId;
+    private final long activeCount;
+
+    public QueueFullException(UUID queueId, String queueName, long activeCount, int maxCapacity) {
+        super(String.format("Queue '%s' is full. Capacity: %d, Active: %d.", queueName, maxCapacity, activeCount), org.springframework.http.HttpStatus.CONFLICT, "QUEUE_FULL");
+        this.queueId = queueId;
+        this.activeCount = activeCount;
+    }
+
+    public UUID getQueueId() { return queueId; }
+    public long getActiveCount() { return activeCount; }
+}
+package com.align.qms.exception;
+
+import java.util.UUID;
+
+public class QueuePausedException extends BusinessException {
+    private final UUID queueId;
+
+    public QueuePausedException(UUID queueId, String message) {
+        super(message, org.springframework.http.HttpStatus.CONFLICT, "QUEUE_PAUSED");
+        this.queueId = queueId;
+    }
+
+    public UUID getQueueId() {
+        return queueId;
+    }
+}
+package com.align.qms.exception;
+
+public class StepAwayAlreadyUsedException extends BusinessException {
+    public StepAwayAlreadyUsedException(String message) {
+        super(message, org.springframework.http.HttpStatus.CONFLICT, "STEP_AWAY_USED");
+    }
+}
+package com.align.qms.exception;
+
+import java.util.UUID;
+
+public class TokenNotFoundException extends ResourceNotFoundException {
+    public TokenNotFoundException(UUID tokenId) {
+        super("Token not found with ID: " + tokenId);
+    }
+
+    public TokenNotFoundException(String message) {
+        super(message);
+    }
+}
+package com.align.qms.token;
+
+import com.align.qms.exception.InvalidTokenStateException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "tokens")
+public class Token {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "org_id", nullable = false)
+    private UUID orgId;
+
+    @Column(name = "location_id", nullable = false)
+    private UUID locationId;
+
+    @Column(name = "service_id", nullable = false)
+    private UUID serviceId;
+
+    @Column(name = "queue_id", nullable = false)
+    private UUID queueId;
+
+    @Column(name = "token_number", nullable = false, length = 20)
+    private String tokenNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "state", nullable = false, length = 20)
+    private TokenState state;
+
+    @Column(name = "counter_id")
+    private UUID counterId;
+
+    @Column(name = "called_by_staff_id")
+    private UUID calledByStaffId;
+
+    @Column(name = "customer_name")
+    private String customerName;
+
+    @Column(name = "customer_phone", length = 20)
+    private String customerPhone;
+
+    @Column(name = "joined_at", updatable = false)
+    private Instant joinedAt;
+
+    @Column(name = "called_at")
+    private Instant calledAt;
+
+    @Column(name = "served_at")
+    private Instant servedAt;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @Column(name = "step_away_expires_at")
+    private Instant stepAwayExpiresAt;
+
+    @Column(name = "idempotency_key", length = 100, unique = true)
+    private String idempotencyKey;
+
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    public Token() {
+    }
+
+    public Token(UUID orgId, UUID locationId, UUID serviceId, UUID queueId, String tokenNumber, String customerName, String customerPhone, String idempotencyKey) {
+        this.orgId = orgId;
+        this.locationId = locationId;
+        this.serviceId = serviceId;
+        this.queueId = queueId;
+        this.tokenNumber = tokenNumber;
+        this.customerName = customerName;
+        this.customerPhone = customerPhone;
+        this.idempotencyKey = idempotencyKey;
+        this.state = TokenState.WAITING;
+        this.joinedAt = Instant.now();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+        this.updatedAt = this.createdAt;
+        if (this.joinedAt == null) {
+            this.joinedAt = this.createdAt;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    public void transitionTo(TokenState targetState) {
+        if (!this.state.canTransitionTo(targetState)) {
+            throw new InvalidTokenStateException("Cannot transition from " + this.state + " to " + targetState);
+        }
+        this.state = targetState;
+    }
+
+    // Getters and Setters
+
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public UUID getOrgId() { return orgId; }
+    public void setOrgId(UUID orgId) { this.orgId = orgId; }
+
+    public UUID getLocationId() { return locationId; }
+    public void setLocationId(UUID locationId) { this.locationId = locationId; }
+
+    public UUID getServiceId() { return serviceId; }
+    public void setServiceId(UUID serviceId) { this.serviceId = serviceId; }
+
+    public UUID getQueueId() { return queueId; }
+    public void setQueueId(UUID queueId) { this.queueId = queueId; }
+
+    public String getTokenNumber() { return tokenNumber; }
+    public void setTokenNumber(String tokenNumber) { this.tokenNumber = tokenNumber; }
+
+    public TokenState getState() { return state; }
+    // Intentionally no public setState method to force use of transitionTo
+
+    public UUID getCounterId() { return counterId; }
+    public void setCounterId(UUID counterId) { this.counterId = counterId; }
+
+    public UUID getCalledByStaffId() { return calledByStaffId; }
+    public void setCalledByStaffId(UUID calledByStaffId) { this.calledByStaffId = calledByStaffId; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getCustomerPhone() { return customerPhone; }
+    public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }
+
+    public Instant getJoinedAt() { return joinedAt; }
+    public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
+
+    public Instant getCalledAt() { return calledAt; }
+    public void setCalledAt(Instant calledAt) { this.calledAt = calledAt; }
+
+    public Instant getServedAt() { return servedAt; }
+    public void setServedAt(Instant servedAt) { this.servedAt = servedAt; }
+
+    public Instant getCompletedAt() { return completedAt; }
+    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+
+    public Instant getStepAwayExpiresAt() { return stepAwayExpiresAt; }
+    public void setStepAwayExpiresAt(Instant stepAwayExpiresAt) { this.stepAwayExpiresAt = stepAwayExpiresAt; }
+
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+}
+package com.align.qms.token;
+
+import com.align.qms.token.dto.TokenJoinRequest;
+import com.align.qms.token.dto.TokenPositionResponse;
+import com.align.qms.token.dto.TokenResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/tokens")
+public class TokenController {
+
+    private final TokenService tokenService;
+
+    public TokenController(TokenService tokenService) {
+        this.tokenService = tokenService;
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public TokenResponse joinQueue(@Valid @RequestBody TokenJoinRequest request) {
+        return tokenService.joinQueue(request);
+    }
+
+    @GetMapping("/{id}")
+    public TokenResponse getToken(@PathVariable("id") UUID id) {
+        return tokenService.getToken(id);
+    }
+
+    @GetMapping("/{id}/position")
+    public TokenPositionResponse getTokenPosition(@PathVariable("id") UUID id) {
+        return tokenService.getTokenPosition(id);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public TokenResponse cancelToken(@PathVariable("id") UUID id) {
+        return tokenService.cancelToken(id);
+    }
+
+    @PostMapping("/{id}/step-away")
+    public TokenResponse stepAway(@PathVariable("id") UUID id) {
+        return tokenService.stepAway(id);
+    }
+
+    @PostMapping("/{id}/return")
+    public TokenResponse returnFromStepAway(@PathVariable("id") UUID id) {
+        return tokenService.returnFromStepAway(id);
+    }
+}
+package com.align.qms.token;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+
+@Entity
+@Table(name = "token_events")
+public class TokenEvent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "token_id", nullable = false)
+    private UUID tokenId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_type", nullable = false, length = 50)
+    private TokenEventType eventType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "from_state", length = 20)
+    private TokenState fromState;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "to_state", length = 20)
+    private TokenState toState;
+
+    @Column(name = "counter_id")
+    private UUID counterId;
+
+    @Column(name = "actor_id")
+    private UUID actorId;
+
+    @Column(name = "actor_name")
+    private String actorName;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata", columnDefinition = "jsonb")
+    private Map<String, Object> metadata;
+
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
+    public TokenEvent() {
+    }
+
+    public TokenEvent(UUID tokenId, TokenEventType eventType, TokenState fromState, TokenState toState, UUID counterId, UUID actorId, String actorName, Map<String, Object> metadata) {
+        this.tokenId = tokenId;
+        this.eventType = eventType;
+        this.fromState = fromState;
+        this.toState = toState;
+        this.counterId = counterId;
+        this.actorId = actorId;
+        this.actorName = actorName;
+        this.metadata = metadata;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+    }
+
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public UUID getTokenId() { return tokenId; }
+    public void setTokenId(UUID tokenId) { this.tokenId = tokenId; }
+
+    public TokenEventType getEventType() { return eventType; }
+    public void setEventType(TokenEventType eventType) { this.eventType = eventType; }
+
+    public TokenState getFromState() { return fromState; }
+    public void setFromState(TokenState fromState) { this.fromState = fromState; }
+
+    public TokenState getToState() { return toState; }
+    public void setToState(TokenState toState) { this.toState = toState; }
+
+    public UUID getCounterId() { return counterId; }
+    public void setCounterId(UUID counterId) { this.counterId = counterId; }
+
+    public UUID getActorId() { return actorId; }
+    public void setActorId(UUID actorId) { this.actorId = actorId; }
+
+    public String getActorName() { return actorName; }
+    public void setActorName(String actorName) { this.actorName = actorName; }
+
+    public Map<String, Object> getMetadata() { return metadata; }
+    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+}
+package com.align.qms.token;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface TokenEventRepository extends JpaRepository<TokenEvent, UUID> {
+    List<TokenEvent> findByTokenIdOrderByCreatedAtAsc(UUID tokenId);
+}
+package com.align.qms.token;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+
+@Service
+public class TokenEventService {
+
+    private final TokenEventRepository tokenEventRepository;
+
+    public TokenEventService(TokenEventRepository tokenEventRepository) {
+        this.tokenEventRepository = tokenEventRepository;
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordEvent(Token token, TokenEventType eventType) {
+        recordEvent(token, eventType, null, null);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordEvent(Token token, TokenEventType eventType, TokenState fromState, Map<String, Object> metadata) {
+        TokenEvent event = new TokenEvent();
+        event.setTokenId(token.getId());
+        event.setEventType(eventType);
+        event.setFromState(fromState);
+        event.setToState(token.getState());
+        event.setCounterId(token.getCounterId());
+        
+        // For Phase 3 Token Engine, actor is typically customer (unauthenticated or implicit).
+        // If staff actions are added (Phase 4), we can extract actor from TenantContext.
+        event.setActorId(null);
+        event.setActorName(null);
+        
+        event.setMetadata(metadata);
+        
+        tokenEventRepository.save(event);
+    }
+}
+package com.align.qms.token;
+
+public enum TokenEventType {
+    TOKEN_CREATED,
+    TOKEN_CALLED,
+    TOKEN_RECALLED,
+    TOKEN_SERVING_STARTED,
+    TOKEN_COMPLETED,
+    TOKEN_SKIPPED,
+    TOKEN_NO_SHOW,
+    TOKEN_CANCELLED,
+    TOKEN_STEP_AWAY_STARTED,
+    TOKEN_STEP_AWAY_RETURNED,
+    TOKEN_STEP_AWAY_EXPIRED
+}
+package com.align.qms.token;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface TokenRepository extends JpaRepository<Token, UUID> {
+
+    Optional<Token> findByIdempotencyKey(String idempotencyKey);
+
+    long countByQueueIdAndStateIn(UUID queueId, Collection<TokenState> states);
+
+    @Query("SELECT count(t) FROM Token t WHERE t.queueId = :queueId AND t.state IN :states AND t.joinedAt < :joinedAt")
+    long countTokensAhead(
+            @Param("queueId") UUID queueId, 
+            @Param("states") Collection<TokenState> states, 
+            @Param("joinedAt") Instant joinedAt
+    );
+}
+package com.align.qms.token;
+
+import com.align.qms.exception.QueueFullException;
+import com.align.qms.exception.QueuePausedException;
+import com.align.qms.exception.StepAwayAlreadyUsedException;
+import com.align.qms.exception.TokenNotFoundException;
+import com.align.qms.queue.Queue;
+import com.align.qms.queue.QueueRepository;
+import com.align.qms.queue.QueueStatus;
+import com.align.qms.token.dto.TokenJoinRequest;
+import com.align.qms.token.dto.TokenPositionResponse;
+import com.align.qms.token.dto.TokenResponse;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class TokenService {
+
+    private final TokenRepository tokenRepository;
+    private final TokenEventService tokenEventService;
+    private final QueueRepository queueRepository;
+
+    public TokenService(TokenRepository tokenRepository, TokenEventService tokenEventService, QueueRepository queueRepository) {
+        this.tokenRepository = tokenRepository;
+        this.tokenEventService = tokenEventService;
+        this.queueRepository = queueRepository;
+    }
+
+    @Transactional
+    public TokenResponse joinQueue(TokenJoinRequest request) {
+        // Idempotency check before lock if provided to save resources
+        if (request.getIdempotencyKey() != null) {
+            Optional<Token> existingToken = tokenRepository.findByIdempotencyKey(request.getIdempotencyKey());
+            if (existingToken.isPresent()) {
+                return TokenResponse.from(existingToken.get());
+            }
+        }
+
+        // Lock the queue to prevent concurrent capacity overflow
+        Queue queue = queueRepository.findByServiceIdForUpdate(request.getServiceId())
+                .orElseThrow(() -> new IllegalArgumentException("Queue not found for service: " + request.getServiceId()));
+
+        if (queue.getStatus() == QueueStatus.PAUSED || queue.getStatus() == QueueStatus.CLOSED) {
+            throw new QueuePausedException(queue.getId(), "Queue is currently " + queue.getStatus());
+        }
+
+        // Count active tokens
+        EnumSet<TokenState> activeStates = EnumSet.of(TokenState.WAITING, TokenState.CALLED, TokenState.AWAY);
+        long activeCount = tokenRepository.countByQueueIdAndStateIn(queue.getId(), activeStates);
+
+        if (activeCount >= queue.getMaxCapacity()) {
+            if (queue.isAutoPauseAtCapacity() && queue.getStatus() == QueueStatus.ACTIVE) {
+                queue.setStatus(QueueStatus.PAUSED);
+                queueRepository.save(queue);
+            }
+            throw new QueueFullException(queue.getId(), queue.getName(), activeCount, queue.getMaxCapacity());
+        }
+
+        // Generate token number
+        long nextNumber = queue.getNextTokenNumber();
+        String tokenString = String.format("%s%03d", queue.getTokenPrefix(), nextNumber);
+        
+        // Update next token number safely within the lock
+        queue.setNextTokenNumber(nextNumber + 1);
+        queueRepository.save(queue);
+
+        Token token = new Token(
+                queue.getOrgId(),
+                queue.getLocationId(),
+                queue.getServiceId(),
+                queue.getId(),
+                tokenString,
+                request.getCustomerName(),
+                request.getCustomerPhone(),
+                request.getIdempotencyKey()
+        );
+
+        token = tokenRepository.save(token);
+        
+        tokenEventService.recordEvent(token, TokenEventType.TOKEN_CREATED, null, null);
+
+        return TokenResponse.from(token);
+    }
+
+    @Transactional(readOnly = true)
+    public TokenResponse getToken(UUID tokenId) {
+        Token token = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new TokenNotFoundException(tokenId));
+        return TokenResponse.from(token);
+    }
+
+    @Transactional(readOnly = true)
+    public TokenPositionResponse getTokenPosition(UUID tokenId) {
+        Token token = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new TokenNotFoundException(tokenId));
+
+        long tokensAhead = 0;
+        if (token.getState() == TokenState.WAITING) {
+            tokensAhead = tokenRepository.countTokensAhead(
+                    token.getQueueId(),
+                    EnumSet.of(TokenState.WAITING, TokenState.AWAY),
+                    token.getJoinedAt()
+            );
+        }
+
+        int estimatedWaitTimeMinutes = calculateEstimatedWaitTime(tokensAhead);
+
+        return new TokenPositionResponse(token.getTokenNumber(), token.getState(), tokensAhead, estimatedWaitTimeMinutes);
+    }
+
+    @Transactional
+    public TokenResponse cancelToken(UUID tokenId) {
+        Token token = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new TokenNotFoundException(tokenId));
+        
+        TokenState oldState = token.getState();
+        token.transitionTo(TokenState.CANCELLED);
+        
+        token = tokenRepository.save(token);
+        tokenEventService.recordEvent(token, TokenEventType.TOKEN_CANCELLED, oldState, null);
+
+        return TokenResponse.from(token);
+    }
+
+    @Transactional
+    public TokenResponse stepAway(UUID tokenId) {
+        Token token = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new TokenNotFoundException(tokenId));
+
+        if (token.getStepAwayExpiresAt() != null) {
+            throw new StepAwayAlreadyUsedException("Step-away allowance has already been used.");
+        }
+
+        TokenState oldState = token.getState();
+        token.transitionTo(TokenState.AWAY);
+        token.setStepAwayExpiresAt(Instant.now().plus(15, ChronoUnit.MINUTES)); // Fixed allowance BR-004
+
+        token = tokenRepository.save(token);
+        tokenEventService.recordEvent(token, TokenEventType.TOKEN_STEP_AWAY_STARTED, oldState, null);
+
+        return TokenResponse.from(token);
+    }
+
+    @Transactional
+    public TokenResponse returnFromStepAway(UUID tokenId) {
+        Token token = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new TokenNotFoundException(tokenId));
+
+        TokenState oldState = token.getState();
+        token.transitionTo(TokenState.WAITING);
+
+        token = tokenRepository.save(token);
+        tokenEventService.recordEvent(token, TokenEventType.TOKEN_STEP_AWAY_RETURNED, oldState, null);
+
+        return TokenResponse.from(token);
+    }
+
+    private int calculateEstimatedWaitTime(long tokensAhead) {
+        // Simple heuristic for phase 3
+        return (int) (tokensAhead * 5); // 5 minutes per person
+    }
+}
+package com.align.qms.token;
+
+public enum TokenState {
+    WAITING,
+    AWAY,
+    CALLED,
+    IN_SERVICE,
+    COMPLETED,
+    NO_SHOW,
+    CANCELLED,
+    EXPIRED;
+
+    public boolean canTransitionTo(TokenState targetState) {
+        if (targetState == null) return false;
+        if (this == targetState) return false;
+
+        return switch (this) {
+            case WAITING -> targetState == CALLED || targetState == AWAY || targetState == CANCELLED;
+            case AWAY -> targetState == WAITING || targetState == CANCELLED || targetState == EXPIRED;
+            case CALLED -> targetState == IN_SERVICE || targetState == NO_SHOW;
+            case IN_SERVICE -> targetState == COMPLETED;
+            case COMPLETED, NO_SHOW, CANCELLED, EXPIRED -> false; // Terminal states
+        };
+    }
+}
+package com.align.qms.token.dto;
+
+import jakarta.validation.constraints.NotNull;
+import java.util.UUID;
+
+public class TokenJoinRequest {
+
+    @NotNull(message = "Service ID is required")
+    private UUID serviceId;
+
+    private String customerName;
+    private String customerPhone;
+    private String idempotencyKey;
+
+    public TokenJoinRequest() {
+    }
+
+    public UUID getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(UUID serviceId) {
+        this.serviceId = serviceId;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public void setCustomerPhone(String customerPhone) {
+        this.customerPhone = customerPhone;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
+}
+package com.align.qms.token.dto;
+
+import com.align.qms.token.TokenState;
+
+public class TokenPositionResponse {
+    private String tokenNumber;
+    private TokenState state;
+    private long position;
+    private int estimatedWaitTimeMinutes;
+
+    public TokenPositionResponse() {}
+
+    public TokenPositionResponse(String tokenNumber, TokenState state, long position, int estimatedWaitTimeMinutes) {
+        this.tokenNumber = tokenNumber;
+        this.state = state;
+        this.position = position;
+        this.estimatedWaitTimeMinutes = estimatedWaitTimeMinutes;
+    }
+
+    public String getTokenNumber() {
+        return tokenNumber;
+    }
+
+    public void setTokenNumber(String tokenNumber) {
+        this.tokenNumber = tokenNumber;
+    }
+
+    public TokenState getState() {
+        return state;
+    }
+
+    public void setState(TokenState state) {
+        this.state = state;
+    }
+
+    public long getPosition() {
+        return position;
+    }
+
+    public void setPosition(long position) {
+        this.position = position;
+    }
+
+    public int getEstimatedWaitTimeMinutes() {
+        return estimatedWaitTimeMinutes;
+    }
+
+    public void setEstimatedWaitTimeMinutes(int estimatedWaitTimeMinutes) {
+        this.estimatedWaitTimeMinutes = estimatedWaitTimeMinutes;
+    }
+}
+package com.align.qms.token.dto;
+
+import com.align.qms.token.Token;
+import com.align.qms.token.TokenState;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public class TokenResponse {
+    private UUID id;
+    private UUID orgId;
+    private UUID locationId;
+    private UUID serviceId;
+    private UUID queueId;
+    private String tokenNumber;
+    private TokenState state;
+    private String customerName;
+    private String customerPhone;
+    private Instant joinedAt;
+    private Instant calledAt;
+    private Instant stepAwayExpiresAt;
+    private String idempotencyKey;
+
+    public static TokenResponse from(Token token) {
+        if (token == null) return null;
+        
+        TokenResponse response = new TokenResponse();
+        response.setId(token.getId());
+        response.setOrgId(token.getOrgId());
+        response.setLocationId(token.getLocationId());
+        response.setServiceId(token.getServiceId());
+        response.setQueueId(token.getQueueId());
+        response.setTokenNumber(token.getTokenNumber());
+        response.setState(token.getState());
+        response.setCustomerName(token.getCustomerName());
+        response.setCustomerPhone(token.getCustomerPhone());
+        response.setJoinedAt(token.getJoinedAt());
+        response.setCalledAt(token.getCalledAt());
+        response.setStepAwayExpiresAt(token.getStepAwayExpiresAt());
+        response.setIdempotencyKey(token.getIdempotencyKey());
+        
+        return response;
+    }
+
+    // Getters and Setters
+
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public UUID getOrgId() { return orgId; }
+    public void setOrgId(UUID orgId) { this.orgId = orgId; }
+
+    public UUID getLocationId() { return locationId; }
+    public void setLocationId(UUID locationId) { this.locationId = locationId; }
+
+    public UUID getServiceId() { return serviceId; }
+    public void setServiceId(UUID serviceId) { this.serviceId = serviceId; }
+
+    public UUID getQueueId() { return queueId; }
+    public void setQueueId(UUID queueId) { this.queueId = queueId; }
+
+    public String getTokenNumber() { return tokenNumber; }
+    public void setTokenNumber(String tokenNumber) { this.tokenNumber = tokenNumber; }
+
+    public TokenState getState() { return state; }
+    public void setState(TokenState state) { this.state = state; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getCustomerPhone() { return customerPhone; }
+    public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }
+
+    public Instant getJoinedAt() { return joinedAt; }
+    public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
+
+    public Instant getCalledAt() { return calledAt; }
+    public void setCalledAt(Instant calledAt) { this.calledAt = calledAt; }
+
+    public Instant getStepAwayExpiresAt() { return stepAwayExpiresAt; }
+    public void setStepAwayExpiresAt(Instant stepAwayExpiresAt) { this.stepAwayExpiresAt = stepAwayExpiresAt; }
+
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+}
+-- =============================================================================
+-- V4__token_engine.sql
+-- ALIGN QMS — Phase 3 Token Engine Migration
+-- =============================================================================
+
+-- =============================================================================
+-- 1. tokens
+-- =============================================================================
+CREATE TABLE tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+    queue_id UUID NOT NULL REFERENCES queues(id) ON DELETE CASCADE,
+    token_number VARCHAR(20) NOT NULL,
+    state VARCHAR(20) NOT NULL,
+    counter_id UUID REFERENCES counters(id) ON DELETE SET NULL,
+    called_by_staff_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    customer_name VARCHAR(255),
+    customer_phone VARCHAR(20),
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    called_at TIMESTAMP WITH TIME ZONE,
+    served_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    step_away_expires_at TIMESTAMP WITH TIME ZONE,
+    idempotency_key VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT uq_token_number_queue UNIQUE(queue_id, token_number),
+    CONSTRAINT uq_idempotency_key UNIQUE(idempotency_key),
+    CONSTRAINT chk_token_state CHECK (state IN (
+        'WAITING', 'AWAY', 'CALLED', 'IN_SERVICE', 
+        'COMPLETED', 'NO_SHOW', 'CANCELLED', 'EXPIRED'
+    ))
+);
+
+-- Performance indexes
+CREATE INDEX idx_tokens_queue_state ON tokens(queue_id, state) 
+    WHERE state IN ('WAITING', 'AWAY', 'CALLED', 'IN_SERVICE');
+
+CREATE INDEX idx_tokens_location_state ON tokens(location_id, state);
+
+CREATE INDEX idx_tokens_customer_phone ON tokens(customer_phone) 
+    WHERE customer_phone IS NOT NULL;
+
+CREATE INDEX idx_tokens_step_away_expiry ON tokens(step_away_expires_at) 
+    WHERE state = 'AWAY' AND step_away_expires_at IS NOT NULL;
+
+CREATE INDEX idx_tokens_idempotency ON tokens(idempotency_key) 
+    WHERE idempotency_key IS NOT NULL;
+
+
+-- =============================================================================
+-- 2. token_events
+-- =============================================================================
+CREATE TABLE token_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_id UUID NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL,
+    from_state VARCHAR(20),
+    to_state VARCHAR(20),
+    counter_id UUID REFERENCES counters(id) ON DELETE SET NULL,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    actor_name VARCHAR(255),
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_token_events_token ON token_events(token_id, created_at DESC);
+CREATE INDEX idx_token_events_type ON token_events(event_type);
+CREATE INDEX idx_token_events_created ON token_events(created_at DESC);
+
+COMMENT ON TABLE token_events IS 'Token lifecycle event history for analytics and ML training';
+COMMENT ON COLUMN token_events.metadata IS 'Extensible JSONB field for event-specific data';
+
+-- =============================================================================
+-- 3. Update schema_info
+-- =============================================================================
+INSERT INTO schema_info (key, value) VALUES
+    ('phase', '3 — Token Engine')
+ON CONFLICT (key) DO UPDATE
+    SET value      = EXCLUDED.value,
+        updated_at = NOW();
+
+INSERT INTO schema_info (key, value) VALUES
+    ('token_engine_migration', 'V4__token_engine.sql — tokens, token_events')
+ON CONFLICT (key) DO UPDATE
+    SET value      = EXCLUDED.value,
+        updated_at = NOW();
+package com.align.qms.token;
+
+import com.align.qms.PostgresIntegrationTest;
+import com.align.qms.queue.Queue;
+import com.align.qms.queue.QueueRepository;
+import com.align.qms.token.dto.TokenJoinRequest;
+import com.align.qms.token.dto.TokenResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class IdempotencyTest extends PostgresIntegrationTest {
+
+    @Autowired private TokenService tokenService;
+    @Autowired private QueueRepository queueRepository;
+    @Autowired private TokenRepository tokenRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
+
+    private UUID orgId;
+    private UUID locationId;
+    private UUID serviceId;
+
+    @BeforeEach
+    void setUp() {
+        tokenRepository.deleteAll();
+        queueRepository.deleteAll();
+        
+        orgId = UUID.randomUUID();
+        locationId = UUID.randomUUID();
+        serviceId = UUID.randomUUID();
+
+        jdbcTemplate.update("INSERT INTO organizations (id, code, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", orgId, "IDEM-ORG-" + System.currentTimeMillis(), "Test Org");
+        jdbcTemplate.update("INSERT INTO locations (id, org_id, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", locationId, orgId, "Test Loc");
+        jdbcTemplate.update("INSERT INTO services (id, location_id, org_id, name, is_fast_track, created_at, updated_at) VALUES (?, ?, ?, ?, ?, now(), now())", serviceId, locationId, orgId, "Test Service", false);
+
+        Queue queue = new Queue(orgId, locationId, serviceId, "Test Queue", "A", 100);
+        queueRepository.save(queue);
+    }
+
+    @Test
+    @DisplayName("Idempotency: Same idempotency key returns existing token instead of creating new one")
+    void testIdempotentJoin() {
+        String idempotencyKey = UUID.randomUUID().toString();
+        
+        TokenJoinRequest request1 = new TokenJoinRequest();
+        request1.setServiceId(serviceId);
+        request1.setCustomerName("Test 1");
+        request1.setIdempotencyKey(idempotencyKey);
+        
+        TokenResponse response1 = tokenService.joinQueue(request1);
+        assertThat(response1).isNotNull();
+        
+        TokenJoinRequest request2 = new TokenJoinRequest();
+        request2.setServiceId(serviceId);
+        request2.setCustomerName("Test 2"); // different name, but same key
+        request2.setIdempotencyKey(idempotencyKey);
+        
+        TokenResponse response2 = tokenService.joinQueue(request2);
+        
+        // Assert identical tokens are returned
+        assertThat(response2.getId()).isEqualTo(response1.getId());
+        assertThat(response2.getTokenNumber()).isEqualTo(response1.getTokenNumber());
+        assertThat(response2.getCustomerName()).isEqualTo("Test 1"); // Original data is retained
+        
+        // Ensure only one token was actually inserted
+        assertThat(tokenRepository.count()).isEqualTo(1);
+    }
+}
+package com.align.qms.token;
+
+import com.align.qms.PostgresIntegrationTest;
+import com.align.qms.exception.QueueFullException;
+import com.align.qms.queue.Queue;
+import com.align.qms.queue.QueueRepository;
+import com.align.qms.token.dto.TokenJoinRequest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class QueueCapacityConcurrencyTest extends PostgresIntegrationTest {
+
+    @Autowired private TokenService tokenService;
+    @Autowired private QueueRepository queueRepository;
+    @Autowired private TokenRepository tokenRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
+
+    private UUID orgId;
+    private UUID locationId;
+    private UUID serviceId;
+
+    @BeforeEach
+    void setUp() {
+        tokenRepository.deleteAll();
+        queueRepository.deleteAll();
+        
+        orgId = UUID.randomUUID();
+        locationId = UUID.randomUUID();
+        serviceId = UUID.randomUUID();
+
+        // Stub parent domain entities to satisfy foreign key constraints
+        jdbcTemplate.update("INSERT INTO organizations (id, code, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", orgId, "TC-ORG-" + System.currentTimeMillis(), "Test Org");
+        jdbcTemplate.update("INSERT INTO locations (id, org_id, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", locationId, orgId, "Test Loc");
+        jdbcTemplate.update("INSERT INTO services (id, location_id, org_id, name, is_fast_track, created_at, updated_at) VALUES (?, ?, ?, ?, ?, now(), now())", serviceId, locationId, orgId, "Test Service", false);
+
+        Queue queue = new Queue(orgId, locationId, serviceId, "Test Queue", "A", 10);
+        queueRepository.save(queue);
+    }
+
+    @Test
+    @DisplayName("Concurrency: EXACTLY 10 requests succeed when capacity is 10 and 20 concurrent requests arrive")
+    void testQueueCapacityConcurrency() throws InterruptedException {
+        int totalRequests = 20;
+        int maxCapacity = 10;
+        
+        ExecutorService executor = Executors.newFixedThreadPool(totalRequests);
+        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(totalRequests);
+        
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+        List<Exception> otherExceptions = Collections.synchronizedList(new ArrayList<>());
+        
+        for (int i = 0; i < totalRequests; i++) {
+            executor.submit(() -> {
+                try {
+                    latch.await();
+                    
+                    TokenJoinRequest request = new TokenJoinRequest();
+                    request.setServiceId(serviceId);
+                    request.setCustomerName("Test Customer");
+                    
+                    tokenService.joinQueue(request);
+                    successCount.incrementAndGet();
+                } catch (QueueFullException e) {
+                    failCount.incrementAndGet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    otherExceptions.add(e);
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+        
+        // Unleash all threads
+        latch.countDown();
+        doneLatch.await();
+        
+        assertThat(otherExceptions).isEmpty();
+        assertThat(successCount.get()).isEqualTo(maxCapacity);
+        assertThat(failCount.get()).isEqualTo(totalRequests - maxCapacity);
+        
+        long count = tokenRepository.count();
+        assertThat(count).isEqualTo(maxCapacity);
+    }
+}
+package com.align.qms.token;
+
+import com.align.qms.PostgresIntegrationTest;
+import com.align.qms.exception.StepAwayAlreadyUsedException;
+import com.align.qms.queue.Queue;
+import com.align.qms.queue.QueueRepository;
+import com.align.qms.token.dto.TokenJoinRequest;
+import com.align.qms.token.dto.TokenResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class TokenLifecycleTest extends PostgresIntegrationTest {
+
+    @Autowired private TokenService tokenService;
+    @Autowired private QueueRepository queueRepository;
+    @Autowired private TokenRepository tokenRepository;
+    @Autowired private TokenEventRepository tokenEventRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
+
+    private UUID serviceId;
+
+    @BeforeEach
+    void setUp() {
+        tokenEventRepository.deleteAll();
+        tokenRepository.deleteAll();
+        queueRepository.deleteAll();
+        
+        UUID orgId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+        serviceId = UUID.randomUUID();
+
+        jdbcTemplate.update("INSERT INTO organizations (id, code, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", orgId, "LIFE-ORG-" + System.currentTimeMillis(), "Test Org");
+        jdbcTemplate.update("INSERT INTO locations (id, org_id, name, created_at, updated_at) VALUES (?, ?, ?, now(), now())", locationId, orgId, "Test Loc");
+        jdbcTemplate.update("INSERT INTO services (id, location_id, org_id, name, is_fast_track, created_at, updated_at) VALUES (?, ?, ?, ?, ?, now(), now())", serviceId, locationId, orgId, "Test Service", false);
+
+        Queue queue = new Queue(orgId, locationId, serviceId, "Test Queue", "B", 10);
+        queueRepository.save(queue);
+    }
+
+    @Test
+    @DisplayName("Lifecycle: Join -> Step Away -> Return -> Cancel")
+    void testTokenLifecycle() {
+        // JOIN
+        TokenJoinRequest req = new TokenJoinRequest();
+        req.setServiceId(serviceId);
+        TokenResponse token = tokenService.joinQueue(req);
+        assertThat(token.getState()).isEqualTo(TokenState.WAITING);
+
+        // STEP AWAY
+        TokenResponse steppedAway = tokenService.stepAway(token.getId());
+        assertThat(steppedAway.getState()).isEqualTo(TokenState.AWAY);
+        assertThat(steppedAway.getStepAwayExpiresAt()).isNotNull();
+
+        // CANNOT STEP AWAY TWICE
+        assertThrows(StepAwayAlreadyUsedException.class, () -> {
+            tokenService.stepAway(token.getId());
+        });
+
+        // RETURN
+        TokenResponse returned = tokenService.returnFromStepAway(token.getId());
+        assertThat(returned.getState()).isEqualTo(TokenState.WAITING);
+
+        // CANCEL
+        TokenResponse cancelled = tokenService.cancelToken(token.getId());
+        assertThat(cancelled.getState()).isEqualTo(TokenState.CANCELLED);
+        
+        // Assert events were recorded
+        long eventCount = tokenEventRepository.count();
+        assertThat(eventCount).isEqualTo(4); // JOINED, STEPPED_AWAY, RETURNED, CANCELLED
+    }
+}

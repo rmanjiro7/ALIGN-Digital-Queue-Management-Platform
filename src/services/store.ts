@@ -319,7 +319,7 @@ const INITIAL_QUEUES: QueueItem[] = [
 
 const INITIAL_COUNTERS: CounterItem[] = [
   {
-    id: 'e2e00000-0000-0000-0000-000000000011',
+    id: 'e2e00000-0000-0000-0000-000000000005',
     orgId: 'e2e00000-0000-0000-0000-000000000001',
     locationId: 'e2e00000-0000-0000-0000-000000000002',
     number: 1,
@@ -796,7 +796,13 @@ export class QueueStore {
     }
 
     // Replace canonical queue state
-    this.state.tokens = [...(snapshot.activeTokens || []), ...(snapshot.waitingTokens || [])];
+    const mappedTokens = [...(snapshot.activeTokens || []), ...(snapshot.waitingTokens || [])].map((t: any) => ({
+      ...t,
+      orgId: t.orgId || this.state.selectedOrgId,
+      locationId: t.locationId || expectedLocationId
+    }));
+    this.state.tokens = mappedTokens;
+    
     if (snapshot.counters) {
       snapshot.counters.forEach((snapCounter: any) => {
         const c = this.state.counters.find(x => x.number === snapCounter.number);
@@ -804,6 +810,15 @@ export class QueueStore {
           Object.assign(c, snapCounter);
         }
       });
+    }
+
+    if (snapshot.services) {
+      this.state.services = snapshot.services.map((s: any) => ({
+        ...s,
+        orgId: s.orgId || this.state.selectedOrgId,
+        locationId: s.locationId || expectedLocationId,
+        enabled: s.enabled ?? true
+      }));
     }
 
     try {
@@ -840,7 +855,7 @@ export class QueueStore {
       // Warning events don't have eventId for deduplication, process directly
       if (this.state.syncStatus === 'SNAPSHOT_SYNC') {
         this.eventBuffer.push(event);
-      } else if (this.state.syncStatus === 'LIVE') {
+      } else {
         this.processLiveEvent(event);
         this.saveState();
       }
@@ -862,13 +877,14 @@ export class QueueStore {
 
     if (this.state.syncStatus === 'SNAPSHOT_SYNC') {
       this.eventBuffer.push(event);
-    } else if (this.state.syncStatus === 'LIVE') {
+    } else {
       this.processLiveEvent(event);
       this.saveState();
     }
   }
 
   private processLiveEvent(event: any) {
+    console.log(`[Store] processLiveEvent: ${event.eventType} for token ${event.tokenId}`, JSON.stringify(event));
     if (event.warningType === 'QUEUE_CAPACITY_WARNING' || event.warningType === 'QUEUE_WAIT_WARNING') {
       let warningState = this.state.queueWarnings.find(w => w.queueId === event.queueId);
       if (!warningState) {
@@ -896,9 +912,9 @@ export class QueueStore {
       token = {
         id: event.tokenId,
         orgId: event.orgId || this.state.selectedOrgId,
-        locationId: event.locationId,
+        locationId: event.locationId || this.state.selectedLocationId,
         queueId: event.queueId || 'e2e00000-0000-0000-0000-000000000004',
-        serviceId: 'e2e00000-0000-0000-0000-000000000003',
+        serviceId: event.serviceId || 'e2e00000-0000-0000-0000-000000000003',
         tokenNumber: event.tokenNumber,
         state: 'WAITING',
         customerName: 'Customer',
@@ -916,6 +932,7 @@ export class QueueStore {
       if (event.eventType === 'TOKEN_CALLED' || event.eventType === 'TOKEN_RECALLED') {
         token.state = 'CALLED';
         token.counterNumber = event.counterNumber || token.counterNumber;
+        token.counterId = event.counterId || token.counterId;
         token.calledAt = event.timestamp || new Date().toISOString();
         const counter = this.state.counters.find(c => c.number === token!.counterNumber);
         if (counter) {

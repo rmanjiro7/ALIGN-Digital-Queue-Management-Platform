@@ -33,7 +33,10 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
   const activeTokens = appState.tokens.filter(t => ['WAITING', 'AWAY', 'CALLED', 'IN_SERVICE'].includes(t.state));
   
   const token: QueueToken | null = 
-    (appState.activeCustomerTokenId ? appState.tokens.find(t => t.id === appState.activeCustomerTokenId) : null) ||
+    (appState.activeCustomerTokenId 
+      ? (appState.tokens.find(t => t.id === appState.activeCustomerTokenId) || 
+         appState.historyTokens.find(t => t.id === appState.activeCustomerTokenId))
+      : null) ||
     activeTokens[0] ||
     null;
 

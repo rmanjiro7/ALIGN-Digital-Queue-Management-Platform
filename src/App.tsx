@@ -33,7 +33,7 @@ import { Screen16TenantManagement } from './components/platform/Screen16TenantMa
 import { Screen22PublicDisplay } from './components/public/Screen22PublicDisplay';
 
 export default function App() {
-  const [appState, setAppState] = useState<AppState>(queueStore.getState());
+  const [appState, setAppState] = useState<AppState>(queueStore.getState()); (window as any).getAppState = () => appState;
 
   useEffect(() => {
     const unsubscribe = queueStore.subscribe((state) => {

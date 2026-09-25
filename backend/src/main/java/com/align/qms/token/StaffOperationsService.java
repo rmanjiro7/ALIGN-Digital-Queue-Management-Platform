@@ -136,6 +136,14 @@ public class StaffOperationsService {
         validateCounterMatch(token, counterId);
 
         TokenState previousState = token.getState();
+        if (previousState == TokenState.CALLED) {
+            token.transitionTo(TokenState.IN_SERVICE);
+            token.setServedAt(Instant.now());
+            // Record implicit start event
+            tokenEventService.recordEvent(token, TokenEventType.TOKEN_SERVING_STARTED, previousState, null);
+            previousState = TokenState.IN_SERVICE;
+        }
+
         token.transitionTo(TokenState.COMPLETED);
         token.setCompletedAt(Instant.now());
         tokenRepository.save(token);

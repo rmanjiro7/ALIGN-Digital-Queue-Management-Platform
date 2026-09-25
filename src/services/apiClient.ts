@@ -221,5 +221,11 @@ export const apiClient = {
     }
 
     return res.json();
+  },
+
+  completeToken: async (tokenId: string, counterId: string): Promise<any> => {
+    return apiClient.authenticatedFetch(`${API_BASE}/staff/tokens/${tokenId}/complete?counterId=${counterId}`, {
+      method: 'POST'
+    });
   }
 };

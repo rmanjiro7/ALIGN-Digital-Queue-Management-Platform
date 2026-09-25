@@ -148,3 +148,57 @@ VALUES (
     'ONLINE',
     'e2e00000-0000-0000-0000-000000000006'
 );
+
+INSERT INTO services (id, org_id, location_id, name, description, icon, enabled, is_fast_track)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000010',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000002',
+    'E2E Specialist Service',
+    'Specialist service for transfer testing',
+    'star',
+    TRUE,
+    FALSE
+);
+
+INSERT INTO queues (id, org_id, location_id, service_id, name, token_prefix, status, max_capacity, next_token_number)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000011',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000002',
+    'e2e00000-0000-0000-0000-000000000010',
+    'E2E Specialist Queue',
+    'S',
+    'ACTIVE',
+    100,
+    1
+);
+
+INSERT INTO counters (id, org_id, location_id, number, name, status, availability, assigned_staff_id)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000012',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000002',
+    2,
+    'Counter 2',
+    'ACTIVE',
+    'ONLINE',
+    'e2e00000-0000-0000-0000-000000000006'
+);
+
+-- -----------------------------------------------------------------------------
+-- 8. COUNTER SERVICE ASSIGNMENTS
+-- -----------------------------------------------------------------------------
+INSERT INTO counter_service_assignments (id, counter_id, service_id)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000013',
+    'e2e00000-0000-0000-0000-000000000005', -- Counter 1
+    'e2e00000-0000-0000-0000-000000000003'  -- Service A
+);
+
+INSERT INTO counter_service_assignments (id, counter_id, service_id)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000014',
+    'e2e00000-0000-0000-0000-000000000012', -- Counter 2
+    'e2e00000-0000-0000-0000-000000000010'  -- Service B
+);

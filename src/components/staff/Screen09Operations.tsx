@@ -147,10 +147,21 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
     }
   };
 
-  const handleComplete = () => {
-    if (currentToken) {
+  const handleComplete = async () => {
+    console.log('[E2E-DEBUG] handleComplete called! currentToken:', currentToken?.id, 'counterId:', currentToken?.counterId);
+    if (currentToken && currentToken.counterId) {
+      // Optimistic update
       queueStore.completeService(currentToken.id);
       setSecondsServing(0);
+      try {
+        console.log('[E2E-DEBUG] Calling completeToken API...');
+        await apiClient.completeToken(currentToken.id, currentToken.counterId);
+        console.log('[E2E-DEBUG] completeToken API success');
+      } catch (err) {
+        console.error('Failed to complete token', err);
+      }
+    } else {
+      console.log('[E2E-DEBUG] Cannot complete token because currentToken or currentToken.counterId is missing.');
     }
   };
 
@@ -618,6 +629,7 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
                 Target Service
               </label>
               <select
+                id="transfer-target-select"
                 value={transferTargetId}
                 onChange={(e) => setTransferTargetId(e.target.value)}
                 className="w-full bg-[#F1F5F9] border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00ACC1]/50 focus:border-[#00ACC1] transition-all"
@@ -647,6 +659,7 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
                 Cancel
               </button>
               <button
+                id="confirm-transfer-btn"
                 onClick={handleTransfer}
                 disabled={!transferTargetId || isTransferring}
                 className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#00ACC1] hover:bg-[#0097A7] shadow-md shadow-[#00ACC1]/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
