@@ -15,6 +15,7 @@ import {
   Activity,
   Layers,
   Filter,
+  Download,
 } from 'lucide-react';
 import { AppState, queueStore } from '../../services/store';
 import { adminApi } from '../../services/adminApi';
@@ -65,7 +66,8 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
 
     const fetchLocations = async () => {
       try {
-        const allLocations = await adminApi.getLocations();
+        if (!selectedOrgId) return;
+        const allLocations = await adminApi.getLocations(selectedOrgId);
         if (cancelled) return;
         const orgLocations = allLocations.filter(l => l.orgId === selectedOrgId);
         setLocations(orgLocations);
@@ -143,6 +145,108 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
   const currentOrg = appState.tenants.find(t => t.id === selectedOrgId);
   const currentLocation = locations.find(l => l.id === selectedLocationId);
 
+  // ── CSV Export Helpers ────────────────────────────────────────────────────
+  const generateFilename = (prefix: string) => {
+    let dateSuffix = '';
+    if (dateRange === 'TODAY') {
+      dateSuffix = new Date().toISOString().split('T')[0];
+    } else {
+      const { start, end } = getDateRange(dateRange);
+      const startStr = start.split('T')[0];
+      const endStr = end.split('T')[0];
+      dateSuffix = `${startStr}-to-${endStr}`;
+    }
+    return `align-analytics-${prefix}-${dateSuffix}.csv`;
+  };
+
+  const downloadCsv = (filename: string, headers: string[], rows: string[][]) => {
+    const escapeCell = (cell: any) => {
+      if (cell === null || cell === undefined || cell === '') return '';
+      const str = String(cell);
+      if (/[",\n\r]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvContent = [
+      headers.map(escapeCell).join(','),
+      ...rows.map(row => row.map(escapeCell).join(','))
+    ].join('\n');
+
+    // Add BOM for Excel compatibility
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportSummaryCsv = () => {
+    if (!summary) return;
+    const headers = ['Metric', 'Value'];
+    const rows = [
+      ['Operational Token Volume', String(summary.operationalTokenVolume)],
+      ['Queue Volume', String(summary.queueVolume)],
+      ['Tokens Completed', String(summary.completedTokens)],
+      ['No-Shows', String(summary.noShows)],
+      ['Cancellations', String(summary.cancellations)],
+      ['Transfers', String(summary.transfers)],
+      ['Completion Rate', fmtPct(summary.completionRate)],
+      ['No-Show Rate', fmtPct(summary.noShowRate)],
+      ['Cancellation Rate', fmtPct(summary.cancellationRate)],
+      ['Current Queue Load', String(summary.currentQueueLoad)]
+    ];
+    downloadCsv(generateFilename('summary'), headers, rows);
+    alert('Summary CSV downloaded');
+  };
+
+  const exportQueuesCsv = () => {
+    const headers = [
+      'Queue',
+      'Operational Tokens',
+      'Completed',
+      'No-Shows',
+      'Cancellations',
+      'Transfers',
+      'Completion Rate',
+      'No-Show Rate',
+      'Cancellation Rate',
+      'Current Load'
+    ];
+    const rows = queueData.map(q => [
+      q.queueName,
+      String(q.operationalTokenVolume),
+      String(q.completedTokens),
+      String(q.noShows),
+      String(q.cancellations),
+      String(q.transfers),
+      fmtPct(q.completionRate),
+      fmtPct(q.noShowRate),
+      fmtPct(q.cancellationRate),
+      String(q.currentQueueLoad)
+    ]);
+    downloadCsv(generateFilename('queues'), headers, rows);
+    alert('Queue CSV downloaded');
+  };
+
+  const exportStaffCsv = () => {
+    const headers = ['Staff', 'Completed Segments', 'Average Service Duration'];
+    const rows = staffData.map(s => [
+      s.staffName || 'Unknown Staff',
+      String(s.completedSegments),
+      s.averageServiceDurationSeconds !== null && s.averageServiceDurationSeconds !== undefined
+        ? String(s.averageServiceDurationSeconds)
+        : 'N/A'
+    ]);
+    downloadCsv(generateFilename('staff'), headers, rows);
+    alert('Staff CSV downloaded');
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6">
@@ -158,15 +262,47 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
             {currentLocation ? ` · ${currentLocation.name}` : ''}
           </p>
         </div>
-        <button
-          id="analytics-refresh-btn"
-          onClick={fetchAnalytics}
-          disabled={loadState === 'LOADING'}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-[#1E293B] transition-all disabled:opacity-50 cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadState === 'LOADING' ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id="analytics-export-summary-btn"
+            onClick={exportSummaryCsv}
+            disabled={loadState !== 'SUCCESS' || !summary}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all disabled:opacity-50 cursor-pointer"
+            title="Export Summary CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Summary CSV
+          </button>
+          <button
+            id="analytics-export-queues-btn"
+            onClick={exportQueuesCsv}
+            disabled={loadState !== 'SUCCESS'}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all disabled:opacity-50 cursor-pointer"
+            title="Export Queue CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Queue CSV
+          </button>
+          <button
+            id="analytics-export-staff-btn"
+            onClick={exportStaffCsv}
+            disabled={loadState !== 'SUCCESS'}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all disabled:opacity-50 cursor-pointer"
+            title="Export Staff CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Staff CSV
+          </button>
+          <button
+            id="analytics-refresh-btn"
+            onClick={fetchAnalytics}
+            disabled={loadState === 'LOADING'}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-[#1E293B] transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadState === 'LOADING' ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* ── Filter Bar ────────────────────────────────────────────────────── */}

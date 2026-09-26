@@ -49,8 +49,8 @@ export const adminApi = {
   },
 
   // ── Locations ────────────────────────────────────────────────────────────
-  getLocations: async (): Promise<LocationBranch[]> => {
-    const res = await apiClient.authenticatedFetch(`${API_BASE}/locations`);
+  getLocations: async (orgId: string): Promise<LocationBranch[]> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/locations?orgId=${orgId}`);
     if (!res.ok) throw new Error('Failed to fetch locations');
     return res.json();
   },

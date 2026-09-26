@@ -49,7 +49,8 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
     try {
       setIsLoading(true);
       setError(null);
-      const data = await adminApi.getLocations();
+      if (!currentOrg?.id) return;
+      const data = await adminApi.getLocations(currentOrg.id);
       queueStore.setLocations(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load locations');
