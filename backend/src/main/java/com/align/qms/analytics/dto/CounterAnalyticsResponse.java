@@ -4,9 +4,11 @@ import java.util.UUID;
 
 public record CounterAnalyticsResponse(
     UUID counterId,
-    Integer counterNumber,
     String counterName,
-    String currentAvailability,
-    Long tokensCompleted,
-    Double avgServiceTimeSeconds
+    Long operationalTokenVolume,
+    Long completedTokens,
+    Long noShows,
+    Long cancellations,
+    Long transfers,
+    Integer averageServiceDurationSeconds
 ) {}

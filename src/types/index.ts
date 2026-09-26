@@ -202,3 +202,45 @@ export interface AuditLogEntry {
   timestamp: string;
   details?: string;
 }
+
+export interface HourlyBucket {
+  hour: number;
+  tokensJoined: number;
+  tokensCompleted: number;
+}
+
+export interface DailyBucket {
+  date: string;
+  tokensJoined: number;
+  tokensCompleted: number;
+}
+
+export interface AnalyticsTrafficResponse {
+  hourlyBuckets: HourlyBucket[];
+  dailyBuckets: DailyBucket[];
+}
+
+export interface ServiceAnalyticsResponse {
+  serviceId: string;
+  serviceName: string;
+  operationalTokenVolume: number;
+  completedTokens: number;
+  noShows: number;
+  cancellations: number;
+  transfers: number;
+  completionRate: number;
+  noShowRate: number;
+  cancellationRate: number;
+  averageServiceDurationSeconds: number | null;
+}
+
+export interface CounterAnalyticsResponse {
+  counterId: string;
+  counterName: string;
+  operationalTokenVolume: number;
+  completedTokens: number;
+  noShows: number;
+  cancellations: number;
+  transfers: number;
+  averageServiceDurationSeconds: number | null;
+}

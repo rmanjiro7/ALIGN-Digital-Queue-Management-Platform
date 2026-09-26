@@ -5,14 +5,13 @@ import java.util.UUID;
 public record ServiceAnalyticsResponse(
     UUID serviceId,
     String serviceName,
-    Long totalTokens,
-    Long completed,
-    Long noShow,
-    Long cancelled,
-    Long expired,
-    Long currentWaiting,
-    Double avgWaitTimeSeconds,
-    Double avgServiceTimeSeconds,
+    Long operationalTokenVolume,
+    Long completedTokens,
+    Long noShows,
+    Long cancellations,
+    Long transfers,
+    Double completionRate,
     Double noShowRate,
-    Double cancellationRate
+    Double cancellationRate,
+    Integer averageServiceDurationSeconds
 ) {}

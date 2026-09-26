@@ -23,7 +23,7 @@ import {
 import { queueStore, AppState } from '../../services/store';
 import { CounterAvailability } from '../../types';
 import { DateRangeFilter, DateRangePreset } from '../analytics/DateRangeFilter';
-import { analyticsApi, AnalyticsOverviewResponse, AnalyticsTrafficResponse, ServiceAnalyticsResponse } from '../../services/analyticsApi';
+import { analyticsApi, AnalyticsOverviewResponse, LegacyAnalyticsTrafficResponse, LegacyServiceAnalyticsResponse } from '../../services/analyticsApi';
 import { getDateRange, formatDuration } from '../../utils/dateUtils';
 import { AnalyticsBarChart } from '../analytics/AnalyticsBarChart';
 import { AnalyticsServiceProgress } from '../analytics/AnalyticsServiceProgress';
@@ -38,8 +38,8 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
 
   const [dateRange, setDateRange] = useState<DateRangePreset>('TODAY');
   const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(null);
-  const [traffic, setTraffic] = useState<AnalyticsTrafficResponse | null>(null);
-  const [services, setServices] = useState<ServiceAnalyticsResponse[] | null>(null);
+  const [traffic, setTraffic] = useState<LegacyAnalyticsTrafficResponse | null>(null);
+  const [services, setServices] = useState<LegacyServiceAnalyticsResponse[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {

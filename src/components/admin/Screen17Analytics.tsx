@@ -16,6 +16,7 @@ import {
   Layers,
   Filter,
   Download,
+  Monitor,
 } from 'lucide-react';
 import { AppState, queueStore } from '../../services/store';
 import { adminApi } from '../../services/adminApi';
@@ -25,6 +26,12 @@ import {
   QueueAnalyticsResponse,
   StaffServiceDurationResponse,
 } from '../../services/analyticsApi';
+import {
+  AnalyticsTrafficResponse,
+  ServiceAnalyticsResponse,
+  CounterAnalyticsResponse
+} from '../../types';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { KpiCard } from '../analytics/KpiCard';
 import { DateRangeFilter, DateRangePreset } from '../analytics/DateRangeFilter';
 import { getDateRange, formatDuration } from '../../utils/dateUtils';
@@ -56,6 +63,9 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
   const [summary, setSummary] = useState<AnalyticsSummaryResponse | null>(null);
   const [queueData, setQueueData] = useState<QueueAnalyticsResponse[]>([]);
   const [staffData, setStaffData] = useState<StaffServiceDurationResponse[]>([]);
+  const [trafficData, setTrafficData] = useState<AnalyticsTrafficResponse | null>(null);
+  const [serviceData, setServiceData] = useState<ServiceAnalyticsResponse[]>([]);
+  const [counterData, setCounterData] = useState<CounterAnalyticsResponse[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('IDLE');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -97,20 +107,30 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
     const { start, end } = getDateRange(dateRange);
 
     try {
-      const [summaryRes, queueRes, staffRes] = await Promise.all([
+      const [summaryRes, queueRes, staffRes, trafficRes, serviceRes, counterRes] = await Promise.all([
         analyticsApi.getSummary(selectedOrgId, start, end, selectedLocationId),
         analyticsApi.getQueues(selectedOrgId, start, end, selectedLocationId),
         analyticsApi.getStaffServiceDuration(selectedOrgId, start, end, selectedLocationId),
+        analyticsApi.getTrafficPhase685(selectedOrgId, start, end, selectedLocationId),
+        analyticsApi.getServicesPhase685(selectedOrgId, start, end, selectedLocationId),
+        analyticsApi.getCountersPhase685(selectedOrgId, start, end, selectedLocationId),
       ]);
 
       setSummary(summaryRes);
       setQueueData(queueRes);
       setStaffData(staffRes);
+      setTrafficData(trafficRes);
+      setServiceData(serviceRes);
+      setCounterData(counterRes);
 
       const hasData =
         summaryRes.operationalTokenVolume > 0 ||
         queueRes.length > 0 ||
-        staffRes.length > 0;
+        staffRes.length > 0 ||
+        trafficRes.hourlyBuckets.length > 0 ||
+        trafficRes.dailyBuckets.length > 0 ||
+        serviceRes.length > 0 ||
+        counterRes.length > 0;
 
       setLoadState(hasData ? 'SUCCESS' : 'EMPTY');
     } catch (err: any) {
@@ -130,6 +150,9 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
     setSummary(null);
     setQueueData([]);
     setStaffData([]);
+    setTrafficData(null);
+    setServiceData([]);
+    setCounterData([]);
   };
 
   // ── Format helpers ────────────────────────────────────────────────────────
@@ -549,6 +572,137 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
                         <td className="text-right py-3 px-5">
                           <span className="font-mono font-bold text-[#00ACC1] bg-[#00ACC1]/10 px-3 py-1 rounded-full">
                             {fmtDuration(s.averageServiceDurationSeconds)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          {/* ── Traffic Analytics ─────────────────────────────────────── */}
+          {trafficData && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="analytics-traffic-chart">
+              <div className="p-5 border-b border-slate-100">
+                <h2 className="text-sm font-black text-[#0F172A] flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#00ACC1]" />
+                  Traffic Volume ({dateRange === 'TODAY' || dateRange === 'YESTERDAY' ? 'Hourly' : 'Daily'})
+                </h2>
+              </div>
+              <div className="p-5 h-[300px]">
+                {(dateRange === 'TODAY' || dateRange === 'YESTERDAY' ? trafficData.hourlyBuckets.length : trafficData.dailyBuckets.length) > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={dateRange === 'TODAY' || dateRange === 'YESTERDAY' ? trafficData.hourlyBuckets.map(b => ({ label: `${String(b.hour).padStart(2, '0')}:00`, volume: b.tokensJoined })) : trafficData.dailyBuckets.map(b => ({ label: b.date.split('T')[0], volume: b.tokensJoined }))}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="volume" fill="#00ACC1" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-sm font-mono">No traffic data</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Service-Level Breakdown ─────────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="analytics-service-table">
+            <div className="p-5 border-b border-slate-100">
+              <h2 className="text-sm font-black text-[#0F172A] flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#00ACC1]" />
+                Service-Level Operational Breakdown
+              </h2>
+            </div>
+            {serviceData.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-400 font-mono">
+                No service-level data for the selected period.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs" role="table">
+                  <thead>
+                    <tr className="bg-[#F8FAFC] text-slate-500 font-mono uppercase text-[10px] tracking-wider">
+                      <th className="text-left py-3 px-5 font-bold">Service</th>
+                      <th className="text-right py-3 px-4 font-bold">Op. Tokens</th>
+                      <th className="text-right py-3 px-4 font-bold">Completed</th>
+                      <th className="text-right py-3 px-4 font-bold">No-Shows</th>
+                      <th className="text-right py-3 px-4 font-bold">Cancellations</th>
+                      <th className="text-right py-3 px-4 font-bold">Transfers</th>
+                      <th className="text-right py-3 px-4 font-bold">Completion %</th>
+                      <th className="text-right py-3 px-4 font-bold">No-Show %</th>
+                      <th className="text-right py-3 px-4 font-bold">Cancel %</th>
+                      <th className="text-right py-3 px-4 font-bold">Avg. Svc Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceData.map((s, idx) => (
+                      <tr key={s.serviceId} className={`border-t border-slate-100 hover:bg-[#F8FAFC] transition-colors ${idx % 2 === 0 ? '' : 'bg-[#FAFBFD]'}`}>
+                        <td className="py-3 px-5 font-bold text-slate-800">{s.serviceName}</td>
+                        <td className="text-right py-3 px-4 font-mono font-bold text-[#0F172A]">{s.operationalTokenVolume}</td>
+                        <td className="text-right py-3 px-4 font-mono text-emerald-600">{s.completedTokens}</td>
+                        <td className="text-right py-3 px-4 font-mono text-amber-600">{s.noShows}</td>
+                        <td className="text-right py-3 px-4 font-mono text-red-600">{s.cancellations}</td>
+                        <td className="text-right py-3 px-4 font-mono text-violet-600">{s.transfers}</td>
+                        <td className="text-right py-3 px-4 font-mono font-bold">{fmtPct(s.completionRate)}</td>
+                        <td className="text-right py-3 px-4 font-mono">{fmtPct(s.noShowRate)}</td>
+                        <td className="text-right py-3 px-4 font-mono">{fmtPct(s.cancellationRate)}</td>
+                        <td className="text-right py-3 px-4">
+                          <span className="font-mono font-bold text-[#00ACC1] bg-[#00ACC1]/10 px-2 py-0.5 rounded-full text-[10px]">
+                            {fmtDuration(s.averageServiceDurationSeconds)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ── Counter-Level Breakdown ─────────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="analytics-counter-table">
+            <div className="p-5 border-b border-slate-100">
+              <h2 className="text-sm font-black text-[#0F172A] flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-[#00ACC1]" />
+                Counter-Level Operational Breakdown
+              </h2>
+            </div>
+            {counterData.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-400 font-mono">
+                No counter-level data for the selected period.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs" role="table">
+                  <thead>
+                    <tr className="bg-[#F8FAFC] text-slate-500 font-mono uppercase text-[10px] tracking-wider">
+                      <th className="text-left py-3 px-5 font-bold">Counter</th>
+                      <th className="text-right py-3 px-4 font-bold">Op. Tokens</th>
+                      <th className="text-right py-3 px-4 font-bold">Completed</th>
+                      <th className="text-right py-3 px-4 font-bold">No-Shows</th>
+                      <th className="text-right py-3 px-4 font-bold">Cancellations</th>
+                      <th className="text-right py-3 px-4 font-bold">Transfers</th>
+                      <th className="text-right py-3 px-4 font-bold">Avg. Svc Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {counterData.map((c, idx) => (
+                      <tr key={c.counterId} className={`border-t border-slate-100 hover:bg-[#F8FAFC] transition-colors ${idx % 2 === 0 ? '' : 'bg-[#FAFBFD]'}`}>
+                        <td className="py-3 px-5 font-bold text-slate-800">{c.counterName}</td>
+                        <td className="text-right py-3 px-4 font-mono font-bold text-[#0F172A]">{c.operationalTokenVolume}</td>
+                        <td className="text-right py-3 px-4 font-mono text-emerald-600">{c.completedTokens}</td>
+                        <td className="text-right py-3 px-4 font-mono text-amber-600">{c.noShows}</td>
+                        <td className="text-right py-3 px-4 font-mono text-red-600">{c.cancellations}</td>
+                        <td className="text-right py-3 px-4 font-mono text-violet-600">{c.transfers}</td>
+                        <td className="text-right py-3 px-4">
+                          <span className="font-mono font-bold text-[#00ACC1] bg-[#00ACC1]/10 px-2 py-0.5 rounded-full text-[10px]">
+                            {fmtDuration(c.averageServiceDurationSeconds)}
                           </span>
                         </td>
                       </tr>

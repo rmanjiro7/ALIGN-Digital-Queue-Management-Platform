@@ -117,4 +117,72 @@ public class AnalyticsRepository {
         
         return responses;
     }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> getTrafficByHourIndex(UUID orgId, UUID locationId, Instant start, Instant end) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT FLOOR(EXTRACT(EPOCH FROM (joined_at - :start)) / 3600) as h_idx, " +
+            "COUNT(id) as joined, " +
+            "SUM(CASE WHEN state = 'COMPLETED' THEN 1 ELSE 0 END) as completed " +
+            "FROM tokens WHERE org_id = :orgId AND joined_at >= :start AND joined_at < :end"
+        );
+        if (locationId != null) sql.append(" AND location_id = :locationId");
+        sql.append(" GROUP BY h_idx");
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("orgId", orgId);
+        query.setParameter("start", start);
+        query.setParameter("end", end);
+        if (locationId != null) query.setParameter("locationId", locationId);
+
+        return query.getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> getServiceAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT t.service_id, s.name, COUNT(t.id) as op_vol, " +
+            "SUM(CASE WHEN t.state = 'COMPLETED' THEN 1 ELSE 0 END) as comp, " +
+            "SUM(CASE WHEN t.state = 'NO_SHOW' THEN 1 ELSE 0 END) as ns, " +
+            "SUM(CASE WHEN t.state = 'CANCELLED' THEN 1 ELSE 0 END) as canc, " +
+            "SUM(CASE WHEN t.state = 'TRANSFERRED' THEN 1 ELSE 0 END) as trans, " +
+            "AVG(CASE WHEN t.state = 'COMPLETED' THEN EXTRACT(EPOCH FROM (t.completed_at - t.served_at)) ELSE NULL END) as avg_duration " +
+            "FROM tokens t JOIN services s ON t.service_id = s.id " +
+            "WHERE t.org_id = :orgId AND t.joined_at >= :start AND t.joined_at < :end"
+        );
+        if (locationId != null) sql.append(" AND t.location_id = :locationId");
+        sql.append(" GROUP BY t.service_id, s.name");
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("orgId", orgId);
+        query.setParameter("start", start);
+        query.setParameter("end", end);
+        if (locationId != null) query.setParameter("locationId", locationId);
+
+        return query.getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> getCounterAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT t.counter_id, c.name, COUNT(t.id) as op_vol, " +
+            "SUM(CASE WHEN t.state = 'COMPLETED' THEN 1 ELSE 0 END) as comp, " +
+            "SUM(CASE WHEN t.state = 'NO_SHOW' THEN 1 ELSE 0 END) as ns, " +
+            "SUM(CASE WHEN t.state = 'CANCELLED' THEN 1 ELSE 0 END) as canc, " +
+            "SUM(CASE WHEN t.state = 'TRANSFERRED' THEN 1 ELSE 0 END) as trans, " +
+            "AVG(CASE WHEN t.state = 'COMPLETED' THEN EXTRACT(EPOCH FROM (t.completed_at - t.served_at)) ELSE NULL END) as avg_duration " +
+            "FROM tokens t JOIN counters c ON t.counter_id = c.id " +
+            "WHERE t.org_id = :orgId AND t.joined_at >= :start AND t.joined_at < :end"
+        );
+        if (locationId != null) sql.append(" AND t.location_id = :locationId");
+        sql.append(" GROUP BY t.counter_id, c.name");
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("orgId", orgId);
+        query.setParameter("start", start);
+        query.setParameter("end", end);
+        if (locationId != null) query.setParameter("locationId", locationId);
+
+        return query.getResultList();
+    }
 }

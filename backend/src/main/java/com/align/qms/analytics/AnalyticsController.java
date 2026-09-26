@@ -3,6 +3,9 @@ package com.align.qms.analytics;
 import com.align.qms.analytics.dto.AnalyticsSummaryResponse;
 import com.align.qms.analytics.dto.QueueAnalyticsResponse;
 import com.align.qms.analytics.dto.StaffServiceDurationResponse;
+import com.align.qms.analytics.dto.AnalyticsTrafficResponse;
+import com.align.qms.analytics.dto.ServiceAnalyticsResponse;
+import com.align.qms.analytics.dto.CounterAnalyticsResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,5 +56,32 @@ public class AnalyticsController {
             @RequestParam Instant end,
             @RequestParam UUID locationId) {
         return ResponseEntity.ok(analyticsService.getQueueAnalytics(orgId, locationId, start, end));
+    }
+
+    @GetMapping("/traffic")
+    public ResponseEntity<AnalyticsTrafficResponse> getTraffic(
+            @RequestParam UUID orgId,
+            @RequestParam Instant start,
+            @RequestParam Instant end,
+            @RequestParam(required = false) UUID locationId) {
+        return ResponseEntity.ok(analyticsService.getTraffic(orgId, locationId, start, end));
+    }
+
+    @GetMapping("/services")
+    public ResponseEntity<List<ServiceAnalyticsResponse>> getServices(
+            @RequestParam UUID orgId,
+            @RequestParam Instant start,
+            @RequestParam Instant end,
+            @RequestParam(required = false) UUID locationId) {
+        return ResponseEntity.ok(analyticsService.getServiceAnalytics(orgId, locationId, start, end));
+    }
+
+    @GetMapping("/counters")
+    public ResponseEntity<List<CounterAnalyticsResponse>> getCounters(
+            @RequestParam UUID orgId,
+            @RequestParam Instant start,
+            @RequestParam Instant end,
+            @RequestParam(required = false) UUID locationId) {
+        return ResponseEntity.ok(analyticsService.getCounterAnalytics(orgId, locationId, start, end));
     }
 }

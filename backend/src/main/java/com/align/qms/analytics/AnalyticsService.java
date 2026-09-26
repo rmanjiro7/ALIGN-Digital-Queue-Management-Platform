@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -105,5 +107,107 @@ public class AnalyticsService {
         }
         
         return responses;
+    }
+
+    public com.align.qms.analytics.dto.AnalyticsTrafficResponse getTraffic(UUID orgId, UUID locationId, Instant start, Instant end) {
+        requireOrgExistsAndAccess(orgId);
+        List<Object[]> rows = analyticsRepository.getTrafficByHourIndex(orgId, locationId, start, end);
+        
+        List<com.align.qms.analytics.dto.HourlyBucket> hourly = new ArrayList<>();
+        List<com.align.qms.analytics.dto.DailyBucket> daily = new ArrayList<>();
+        
+        // Compute duration to see if it's > 24 hours
+        long totalHours = java.time.Duration.between(start, end).toHours();
+        boolean isMultiDay = totalHours > 24;
+
+        if (isMultiDay) {
+            // Aggregate into daily buckets
+            java.util.Map<Integer, com.align.qms.analytics.dto.DailyBucket> dailyMap = new java.util.HashMap<>();
+            for (Object[] row : rows) {
+                int hIdx = ((Number) row[0]).intValue();
+                int dayIdx = hIdx / 24;
+                long joined = ((Number) row[1]).longValue();
+                long comp = ((Number) row[2]).longValue();
+                
+                com.align.qms.analytics.dto.DailyBucket b = dailyMap.getOrDefault(dayIdx, 
+                    new com.align.qms.analytics.dto.DailyBucket(start.plus(dayIdx, ChronoUnit.DAYS), 0L, 0L));
+                dailyMap.put(dayIdx, new com.align.qms.analytics.dto.DailyBucket(
+                    b.date(), b.tokensJoined() + joined, b.tokensCompleted() + comp));
+            }
+            daily.addAll(dailyMap.values());
+            // Sort by date
+            daily.sort(java.util.Comparator.comparing(com.align.qms.analytics.dto.DailyBucket::date));
+        } else {
+            for (Object[] row : rows) {
+                int hIdx = ((Number) row[0]).intValue();
+                long joined = ((Number) row[1]).longValue();
+                long comp = ((Number) row[2]).longValue();
+                
+                int localHour = hIdx % 24;
+                hourly.add(new com.align.qms.analytics.dto.HourlyBucket(localHour, joined, comp));
+            }
+            hourly.sort(java.util.Comparator.comparing(com.align.qms.analytics.dto.HourlyBucket::hour));
+        }
+
+        return new com.align.qms.analytics.dto.AnalyticsTrafficResponse(hourly, daily);
+    }
+
+    public List<com.align.qms.analytics.dto.ServiceAnalyticsResponse> getServiceAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
+        requireOrgExistsAndAccess(orgId);
+        List<Object[]> rows = analyticsRepository.getServiceAnalytics(orgId, locationId, start, end);
+        List<com.align.qms.analytics.dto.ServiceAnalyticsResponse> res = new ArrayList<>();
+        for (Object[] row : rows) {
+            long opVol = ((Number) row[2]).longValue();
+            long comp = ((Number) row[3]).longValue();
+            long ns = ((Number) row[4]).longValue();
+            long canc = ((Number) row[5]).longValue();
+            long trans = ((Number) row[6]).longValue();
+            Number avgDurObj = (Number) row[7];
+            Integer avgDur = avgDurObj != null ? avgDurObj.intValue() : null;
+
+            res.add(new com.align.qms.analytics.dto.ServiceAnalyticsResponse(
+                (UUID) row[0],
+                (String) row[1],
+                opVol,
+                comp,
+                ns,
+                canc,
+                trans,
+                opVol > 0 ? (double) comp / opVol : 0.0,
+                opVol > 0 ? (double) ns / opVol : 0.0,
+                opVol > 0 ? (double) canc / opVol : 0.0,
+                avgDur
+            ));
+        }
+        return res;
+    }
+
+    public List<com.align.qms.analytics.dto.CounterAnalyticsResponse> getCounterAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
+        requireOrgExistsAndAccess(orgId);
+        List<Object[]> rows = analyticsRepository.getCounterAnalytics(orgId, locationId, start, end);
+        List<com.align.qms.analytics.dto.CounterAnalyticsResponse> res = new ArrayList<>();
+        for (Object[] row : rows) {
+            UUID counterId = (UUID) row[0];
+            String counterName = row[1] != null ? (String) row[1] : "Unknown Counter";
+            long opVol = ((Number) row[2]).longValue();
+            long comp = ((Number) row[3]).longValue();
+            long ns = ((Number) row[4]).longValue();
+            long canc = ((Number) row[5]).longValue();
+            long trans = ((Number) row[6]).longValue();
+            Number avgDurObj = (Number) row[7];
+            Integer avgDur = avgDurObj != null ? avgDurObj.intValue() : null;
+
+            res.add(new com.align.qms.analytics.dto.CounterAnalyticsResponse(
+                counterId,
+                counterName,
+                opVol,
+                comp,
+                ns,
+                canc,
+                trans,
+                avgDur
+            ));
+        }
+        return res;
     }
 }

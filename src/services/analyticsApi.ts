@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { AnalyticsTrafficResponse, ServiceAnalyticsResponse, CounterAnalyticsResponse } from '../types';
 
 // ── Phase 6.8.2 Backend DTO Type Mappings ───────────────────────────────────
 
@@ -60,17 +61,17 @@ export interface AnalyticsOverviewResponse {
     peakHourTokenCount: number | null;
 }
 
-export interface HourlyBucket {
+export interface LegacyHourlyBucket {
     hour: number;
     tokensJoined: number;
     tokensCompleted: number;
 }
 
-export interface AnalyticsTrafficResponse {
-    hourlyBuckets: HourlyBucket[];
+export interface LegacyAnalyticsTrafficResponse {
+    hourlyBuckets: LegacyHourlyBucket[];
 }
 
-export interface ServiceAnalyticsResponse {
+export interface LegacyServiceAnalyticsResponse {
     serviceId: string;
     serviceName: string;
     totalTokens: number;
@@ -159,6 +160,47 @@ export const analyticsApi = {
         return res.json();
     },
 
+    // ── Phase 6.8.5 endpoints ───────────────────────────────────────────────
+
+    /** GET /api/v1/analytics/traffic */
+    getTrafficPhase685: async (
+        orgId: string,
+        start: string,
+        end: string,
+        locationId?: string,
+    ): Promise<AnalyticsTrafficResponse> => {
+        const params = buildParams({ orgId, start, end, locationId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/traffic?${params.toString()}`);
+        if (!res.ok) throw new Error(`Traffic analytics request failed: ${res.status}`);
+        return res.json();
+    },
+
+    /** GET /api/v1/analytics/services */
+    getServicesPhase685: async (
+        orgId: string,
+        start: string,
+        end: string,
+        locationId?: string,
+    ): Promise<ServiceAnalyticsResponse[]> => {
+        const params = buildParams({ orgId, start, end, locationId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/services?${params.toString()}`);
+        if (!res.ok) throw new Error(`Service analytics request failed: ${res.status}`);
+        return res.json();
+    },
+
+    /** GET /api/v1/analytics/counters */
+    getCountersPhase685: async (
+        orgId: string,
+        start: string,
+        end: string,
+        locationId?: string,
+    ): Promise<CounterAnalyticsResponse[]> => {
+        const params = buildParams({ orgId, start, end, locationId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/counters?${params.toString()}`);
+        if (!res.ok) throw new Error(`Counter analytics request failed: ${res.status}`);
+        return res.json();
+    },
+
     // ── Legacy endpoints (preserved for Screen12OrgDashboard) ───────────────
 
     getOverview: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<AnalyticsOverviewResponse> => {
@@ -167,13 +209,14 @@ export const analyticsApi = {
         return res.json();
     },
 
-    getTraffic: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<AnalyticsTrafficResponse> => {
+    getTraffic: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<LegacyAnalyticsTrafficResponse> => {
         const params = buildLegacyParams(startDate, endDate, orgId, locationId);
+        // Note: the backend no longer uses startDate/endDate, this will likely fail or require updating Screen12
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/traffic?${params.toString()}`);
         return res.json();
     },
 
-    getServices: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<ServiceAnalyticsResponse[]> => {
+    getServices: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<LegacyServiceAnalyticsResponse[]> => {
         const params = buildLegacyParams(startDate, endDate, orgId, locationId);
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/services?${params.toString()}`);
         return res.json();

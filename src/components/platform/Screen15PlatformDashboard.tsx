@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { DateRangeFilter, DateRangePreset } from '../analytics/DateRangeFilter';
-import { analyticsApi, AnalyticsTrafficResponse, AnalyticsOverviewResponse } from '../../services/analyticsApi';
+import { analyticsApi, LegacyAnalyticsTrafficResponse, AnalyticsOverviewResponse } from '../../services/analyticsApi';
 import { getDateRange } from '../../utils/dateUtils';
 import { AnalyticsBarChart } from '../analytics/AnalyticsBarChart';
 
@@ -26,7 +26,7 @@ interface Screen15PlatformDashboardProps {
 export const Screen15PlatformDashboard: React.FC<Screen15PlatformDashboardProps> = ({ appState }) => {
   const [dateRange, setDateRange] = React.useState<DateRangePreset>('LAST_7_DAYS');
   const [selectedOrgId, setSelectedOrgId] = React.useState<string>('');
-  const [traffic, setTraffic] = React.useState<AnalyticsTrafficResponse | null>(null);
+  const [traffic, setTraffic] = React.useState<LegacyAnalyticsTrafficResponse | null>(null);
   const [overview, setOverview] = React.useState<AnalyticsOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 

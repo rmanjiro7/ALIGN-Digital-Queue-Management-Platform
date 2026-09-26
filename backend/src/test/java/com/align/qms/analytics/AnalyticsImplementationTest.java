@@ -3,6 +3,9 @@ package com.align.qms.analytics;
 import com.align.qms.analytics.dto.AnalyticsSummaryResponse;
 import com.align.qms.analytics.dto.QueueAnalyticsResponse;
 import com.align.qms.analytics.dto.StaffServiceDurationResponse;
+import com.align.qms.analytics.dto.AnalyticsTrafficResponse;
+import com.align.qms.analytics.dto.ServiceAnalyticsResponse;
+import com.align.qms.analytics.dto.CounterAnalyticsResponse;
 import com.align.qms.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -173,5 +176,46 @@ public class AnalyticsImplementationTest extends BaseAnalyticsIntegrationTest {
         assertEquals("Queue 1", q1.getQueueName());
         assertEquals(5, q1.getOperationalTokenVolume()); 
         assertEquals(2, q1.getCompletedTokens());
+    }
+
+    @Test
+    void testTrafficAnalytics_Hourly() {
+        Instant start = baseTime.minus(1, ChronoUnit.HOURS);
+        Instant end = baseTime.plus(5, ChronoUnit.HOURS);
+
+        AnalyticsTrafficResponse traffic = analyticsService.getTraffic(orgId1, loc1Org1, start, end);
+        assertNotNull(traffic);
+        assertFalse(traffic.hourlyBuckets().isEmpty());
+        assertTrue(traffic.dailyBuckets().isEmpty());
+    }
+
+    @Test
+    void testTrafficAnalytics_Daily() {
+        Instant start = baseTime.minus(2, ChronoUnit.DAYS);
+        Instant end = baseTime.plus(5, ChronoUnit.DAYS);
+
+        AnalyticsTrafficResponse traffic = analyticsService.getTraffic(orgId1, loc1Org1, start, end);
+        assertNotNull(traffic);
+        assertTrue(traffic.hourlyBuckets().isEmpty());
+        assertFalse(traffic.dailyBuckets().isEmpty());
+    }
+
+    @Test
+    void testServiceAnalytics() {
+        Instant start = baseTime.minus(1, ChronoUnit.HOURS);
+        Instant end = baseTime.plus(5, ChronoUnit.HOURS);
+
+        List<ServiceAnalyticsResponse> services = analyticsService.getServiceAnalytics(orgId1, loc1Org1, start, end);
+        assertNotNull(services);
+        assertFalse(services.isEmpty());
+    }
+
+    @Test
+    void testCounterAnalytics() {
+        Instant start = baseTime.minus(1, ChronoUnit.HOURS);
+        Instant end = baseTime.plus(5, ChronoUnit.HOURS);
+
+        List<CounterAnalyticsResponse> counters = analyticsService.getCounterAnalytics(orgId1, loc1Org1, start, end);
+        assertNotNull(counters);
     }
 }
