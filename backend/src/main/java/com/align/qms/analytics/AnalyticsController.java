@@ -1,6 +1,8 @@
 package com.align.qms.analytics;
 
-import com.align.qms.analytics.dto.*;
+import com.align.qms.analytics.dto.AnalyticsSummaryResponse;
+import com.align.qms.analytics.dto.QueueAnalyticsResponse;
+import com.align.qms.analytics.dto.StaffServiceDurationResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,60 +25,33 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
-    @GetMapping("/overview")
-    public ResponseEntity<AnalyticsOverviewResponse> getOverview(
-            @RequestParam(required = false) UUID orgId,
+    @GetMapping("/summary")
+    public ResponseEntity<AnalyticsSummaryResponse> getSummary(
+            @RequestParam UUID orgId,
+            @RequestParam Instant start,
+            @RequestParam Instant end,
             @RequestParam(required = false) UUID locationId,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        return ResponseEntity.ok(analyticsService.getOverview(orgId, locationId, startDate, endDate));
+            @RequestParam(required = false) UUID serviceId,
+            @RequestParam(required = false) UUID queueId) {
+        return ResponseEntity.ok(analyticsService.getSummary(orgId, locationId, serviceId, queueId, start, end));
     }
 
-    @GetMapping("/traffic")
-    public ResponseEntity<AnalyticsTrafficResponse> getTraffic(
-            @RequestParam(required = false) UUID orgId,
+    @GetMapping("/staff-service-duration")
+    public ResponseEntity<List<StaffServiceDurationResponse>> getStaffServiceDuration(
+            @RequestParam UUID orgId,
+            @RequestParam Instant start,
+            @RequestParam Instant end,
             @RequestParam(required = false) UUID locationId,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        return ResponseEntity.ok(analyticsService.getTraffic(orgId, locationId, startDate, endDate));
+            @RequestParam(required = false) UUID staffId) {
+        return ResponseEntity.ok(analyticsService.getStaffServiceDuration(orgId, locationId, staffId, start, end));
     }
 
     @GetMapping("/queues")
     public ResponseEntity<List<QueueAnalyticsResponse>> getQueues(
-            @RequestParam(required = false) UUID orgId,
-            @RequestParam(required = false) UUID locationId,
-            @RequestParam(required = false) UUID queueId,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        return ResponseEntity.ok(analyticsService.getQueues(orgId, locationId, queueId, startDate, endDate));
-    }
-
-    @GetMapping("/services")
-    public ResponseEntity<List<ServiceAnalyticsResponse>> getServices(
-            @RequestParam(required = false) UUID orgId,
-            @RequestParam(required = false) UUID locationId,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        return ResponseEntity.ok(analyticsService.getServices(orgId, locationId, startDate, endDate));
-    }
-
-    @GetMapping("/staff")
-    public ResponseEntity<List<StaffAnalyticsResponse>> getStaff(
-            @RequestParam(required = false) UUID orgId,
-            @RequestParam(required = false) UUID locationId,
-            @RequestParam(required = false) UUID staffId,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        return ResponseEntity.ok(analyticsService.getStaff(orgId, locationId, staffId, startDate, endDate));
-    }
-
-    @GetMapping("/counters")
-    public ResponseEntity<List<CounterAnalyticsResponse>> getCounters(
-            @RequestParam(required = false) UUID orgId,
-            @RequestParam(required = false) UUID locationId,
-            @RequestParam(required = false) UUID counterId,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        return ResponseEntity.ok(analyticsService.getCounters(orgId, locationId, counterId, startDate, endDate));
+            @RequestParam UUID orgId,
+            @RequestParam Instant start,
+            @RequestParam Instant end,
+            @RequestParam UUID locationId) {
+        return ResponseEntity.ok(analyticsService.getQueueAnalytics(orgId, locationId, start, end));
     }
 }
