@@ -70,6 +70,7 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
         { id: 'SCREEN_12_ORG_DASHBOARD', label: 'Overview Dashboard', icon: <Home className="w-4 h-4" /> },
         { id: 'SCREEN_13_LOCATION_MANAGEMENT', label: 'Locations & Branches', icon: <MapPin className="w-4 h-4" /> },
         { id: 'SCREEN_14_SERVICE_QUEUE_CONFIG', label: 'Service & Queue Settings', icon: <Settings className="w-4 h-4" /> },
+        { id: 'SCREEN_17_ANALYTICS', label: 'Analytics & Reporting', icon: <BarChart3 className="w-4 h-4" /> },
         { id: 'SCREEN_09_STAFF_OPERATIONS', label: 'Switch to Live Queue', icon: <ListOrdered className="w-4 h-4" /> },
       ];
 
@@ -100,6 +101,7 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
       const items: { id: ScreenId; label: string; icon: React.ReactNode }[] = [
         { id: 'SCREEN_15_PLATFORM_DASHBOARD', label: 'Global Platform Overview', icon: <Layers className="w-4 h-4" /> },
         { id: 'SCREEN_16_TENANT_MANAGEMENT', label: 'Tenant Management', icon: <Building className="w-4 h-4" /> },
+        { id: 'SCREEN_17_ANALYTICS', label: 'Analytics & Reporting', icon: <BarChart3 className="w-4 h-4" /> },
       ];
 
       return items.map((item) => {
@@ -137,7 +139,7 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
             A
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-white leading-none">ALIGN</h1>
+            <span className="text-lg font-bold tracking-tight text-white leading-none block">ALIGN</span>
             <span className="text-[10px] text-slate-400 font-mono">Operations Hub</span>
           </div>
         </div>

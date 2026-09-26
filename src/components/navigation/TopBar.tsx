@@ -140,6 +140,7 @@ export const TopBar: React.FC<TopBarProps> = ({ appState }) => {
         {/* User / Org Avatar with Menu */}
         <div className="relative">
           <button
+            id="nav-customer-portal"
             onClick={() => setShowRoleMenu(!showRoleMenu)}
             className="flex items-center gap-2.5 pl-2 py-1 pr-2 rounded-xl hover:bg-[#1E293B] transition-colors cursor-pointer"
           >

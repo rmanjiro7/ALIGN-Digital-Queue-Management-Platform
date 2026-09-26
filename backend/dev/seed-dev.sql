@@ -23,7 +23,8 @@
 DELETE FROM users WHERE id IN (
     'e2e00000-0000-0000-0000-000000000006', -- STAFF
     'e2e00000-0000-0000-0000-000000000007', -- DISPLAY
-    'e2e00000-0000-0000-0000-000000000008'  -- ADMIN
+    'e2e00000-0000-0000-0000-000000000008', -- ADMIN
+    'e2e00000-0000-0000-0000-000000000009'  -- PLATFORM
 );
 
 DELETE FROM organizations WHERE id = 'e2e00000-0000-0000-0000-000000000001';
@@ -117,6 +118,19 @@ VALUES (
     '$2a$12$nTNHFRy3bYimBZaBG2V72./Bhe3AUNd5t5I0zedWae96Yt7zFVyFa',
     'E2E Staff',
     'STAFF',
+    'ACTIVE'
+);
+
+-- PLATFORM_ADMIN User
+INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000009',
+    NULL,
+    NULL,
+    'e2e.platform@align.local',
+    '$2a$12$nTNHFRy3bYimBZaBG2V72./Bhe3AUNd5t5I0zedWae96Yt7zFVyFa',
+    'E2E Platform Admin',
+    'PLATFORM_ADMIN',
     'ACTIVE'
 );
 

@@ -24,6 +24,7 @@ import { Screen11Announcements } from './components/staff/Screen11Announcements'
 import { Screen12OrgDashboard } from './components/admin/Screen12OrgDashboard';
 import { Screen13LocationManagement } from './components/admin/Screen13LocationManagement';
 import { Screen14ServiceQueueConfig } from './components/admin/Screen14ServiceQueueConfig';
+import { Screen17Analytics } from './components/admin/Screen17Analytics';
 
 // Platform Admin Screens
 import { Screen15PlatformDashboard } from './components/platform/Screen15PlatformDashboard';
@@ -100,6 +101,8 @@ export default function App() {
         return <Screen13LocationManagement appState={appState} />;
       case 'SCREEN_14_SERVICE_QUEUE_CONFIG':
         return <Screen14ServiceQueueConfig appState={appState} />;
+      case 'SCREEN_17_ANALYTICS':
+        return <Screen17Analytics appState={appState} />;
 
       // Platform Admin Flow
       case 'SCREEN_15_PLATFORM_DASHBOARD':

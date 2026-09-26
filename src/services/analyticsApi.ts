@@ -1,5 +1,46 @@
 import { apiClient } from './apiClient';
 
+// ── Phase 6.8.2 Backend DTO Type Mappings ───────────────────────────────────
+
+/** Maps to com.align.qms.analytics.dto.AnalyticsSummaryResponse */
+export interface AnalyticsSummaryResponse {
+    operationalTokenVolume: number;
+    queueVolume: number;
+    completedTokens: number;
+    noShows: number;
+    cancellations: number;
+    transfers: number;
+    completionRate: number;
+    noShowRate: number;
+    cancellationRate: number;
+    currentQueueLoad: number;
+}
+
+/** Maps to com.align.qms.analytics.dto.QueueAnalyticsResponse */
+export interface QueueAnalyticsResponse {
+    queueId: string;
+    queueName: string;
+    operationalTokenVolume: number;
+    completedTokens: number;
+    noShows: number;
+    cancellations: number;
+    transfers: number;
+    completionRate: number;
+    noShowRate: number;
+    cancellationRate: number;
+    currentQueueLoad: number;
+}
+
+/** Maps to com.align.qms.analytics.dto.StaffServiceDurationResponse */
+export interface StaffServiceDurationResponse {
+    staffId: string;
+    staffName: string | null;
+    completedSegments: number;
+    averageServiceDurationSeconds: number | null;
+}
+
+// ── Legacy interfaces kept for backward compatibility with Screen12 ─────────
+
 export interface AnalyticsOverviewResponse {
     totalTokensIssued: number;
     tokensCompleted: number;
@@ -29,22 +70,6 @@ export interface AnalyticsTrafficResponse {
     hourlyBuckets: HourlyBucket[];
 }
 
-export interface QueueAnalyticsResponse {
-    queueId: string;
-    queueName: string;
-    serviceName: string;
-    totalTokens: number;
-    completed: number;
-    noShow: number;
-    cancelled: number;
-    expired: number;
-    currentWaiting: number;
-    avgWaitTimeSeconds: number | null;
-    avgServiceTimeSeconds: number | null;
-    noShowRate: number | null;
-    cancellationRate: number | null;
-}
-
 export interface ServiceAnalyticsResponse {
     serviceId: string;
     serviceName: string;
@@ -60,31 +85,25 @@ export interface ServiceAnalyticsResponse {
     cancellationRate: number | null;
 }
 
-export interface StaffAnalyticsResponse {
-    staffId: string;
-    staffName: string;
-    tokensCompleted: number;
-    avgWaitTimeSeconds: number | null;
-    avgServiceTimeSeconds: number | null;
-    tokensNoShow: number;
+// ── Helper ──────────────────────────────────────────────────────────────────
+
+function buildParams(params: Record<string, string | undefined>): URLSearchParams {
+    const sp = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') sp.append(k, v);
+    });
+    return sp;
 }
 
-export interface CounterAnalyticsResponse {
-    counterId: string;
-    counterNumber: number;
-    counterName: string;
-    currentAvailability: string;
-    tokensCompleted: number;
-    avgServiceTimeSeconds: number | null;
-}
+// ── Legacy API functions (used by Screen12OrgDashboard) ─────────────────────
 
-function buildParams(startDate: string, endDate: string, orgId?: string, locationId?: string, extraParams?: Record<string, string>): URLSearchParams {
+function buildLegacyParams(startDate: string, endDate: string, orgId?: string, locationId?: string, extraParams?: Record<string, string>): URLSearchParams {
     const params = new URLSearchParams();
     params.append('startDate', startDate);
     params.append('endDate', endDate);
     if (orgId) params.append('orgId', orgId);
     if (locationId) params.append('locationId', locationId);
-    
+
     if (extraParams) {
         Object.entries(extraParams).forEach(([k, v]) => {
             if (v) params.append(k, v);
@@ -93,40 +112,70 @@ function buildParams(startDate: string, endDate: string, orgId?: string, locatio
     return params;
 }
 
+// ── Exported API ────────────────────────────────────────────────────────────
+
 export const analyticsApi = {
+    // ── Phase 6.8.2 endpoints ───────────────────────────────────────────────
+
+    /** GET /api/v1/analytics/summary */
+    getSummary: async (
+        orgId: string,
+        start: string,
+        end: string,
+        locationId?: string,
+        serviceId?: string,
+        queueId?: string,
+    ): Promise<AnalyticsSummaryResponse> => {
+        const params = buildParams({ orgId, start, end, locationId, serviceId, queueId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/summary?${params.toString()}`);
+        if (!res.ok) throw new Error(`Analytics summary request failed: ${res.status}`);
+        return res.json();
+    },
+
+    /** GET /api/v1/analytics/staff-service-duration */
+    getStaffServiceDuration: async (
+        orgId: string,
+        start: string,
+        end: string,
+        locationId?: string,
+        staffId?: string,
+    ): Promise<StaffServiceDurationResponse[]> => {
+        const params = buildParams({ orgId, start, end, locationId, staffId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/staff-service-duration?${params.toString()}`);
+        if (!res.ok) throw new Error(`Staff service duration request failed: ${res.status}`);
+        return res.json();
+    },
+
+    /** GET /api/v1/analytics/queues */
+    getQueues: async (
+        orgId: string,
+        start: string,
+        end: string,
+        locationId: string,
+    ): Promise<QueueAnalyticsResponse[]> => {
+        const params = buildParams({ orgId, start, end, locationId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/queues?${params.toString()}`);
+        if (!res.ok) throw new Error(`Queue analytics request failed: ${res.status}`);
+        return res.json();
+    },
+
+    // ── Legacy endpoints (preserved for Screen12OrgDashboard) ───────────────
+
     getOverview: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<AnalyticsOverviewResponse> => {
-        const params = buildParams(startDate, endDate, orgId, locationId);
+        const params = buildLegacyParams(startDate, endDate, orgId, locationId);
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/overview?${params.toString()}`);
         return res.json();
     },
 
     getTraffic: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<AnalyticsTrafficResponse> => {
-        const params = buildParams(startDate, endDate, orgId, locationId);
+        const params = buildLegacyParams(startDate, endDate, orgId, locationId);
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/traffic?${params.toString()}`);
         return res.json();
     },
 
-    getQueues: async (startDate: string, endDate: string, orgId?: string, locationId?: string, queueId?: string): Promise<QueueAnalyticsResponse[]> => {
-        const params = buildParams(startDate, endDate, orgId, locationId, queueId ? { queueId } : undefined);
-        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/queues?${params.toString()}`);
-        return res.json();
-    },
-
     getServices: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<ServiceAnalyticsResponse[]> => {
-        const params = buildParams(startDate, endDate, orgId, locationId);
+        const params = buildLegacyParams(startDate, endDate, orgId, locationId);
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/services?${params.toString()}`);
         return res.json();
     },
-
-    getStaff: async (startDate: string, endDate: string, orgId?: string, locationId?: string, staffId?: string): Promise<StaffAnalyticsResponse[]> => {
-        const params = buildParams(startDate, endDate, orgId, locationId, staffId ? { staffId } : undefined);
-        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/staff?${params.toString()}`);
-        return res.json();
-    },
-
-    getCounters: async (startDate: string, endDate: string, orgId?: string, locationId?: string, counterId?: string): Promise<CounterAnalyticsResponse[]> => {
-        const params = buildParams(startDate, endDate, orgId, locationId, counterId ? { counterId } : undefined);
-        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/counters?${params.toString()}`);
-        return res.json();
-    }
 };
