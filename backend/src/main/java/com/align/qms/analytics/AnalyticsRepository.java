@@ -119,20 +119,22 @@ public class AnalyticsRepository {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Object[]> getTrafficByHourIndex(UUID orgId, UUID locationId, Instant start, Instant end) {
+    public List<Object[]> getTrafficByTimezone(UUID orgId, UUID locationId, Instant start, Instant end, String timezone) {
         StringBuilder sql = new StringBuilder(
-            "SELECT FLOOR(EXTRACT(EPOCH FROM (joined_at - :start)) / 3600) as h_idx, " +
+            "SELECT CAST(DATE(joined_at AT TIME ZONE :timezone) AS VARCHAR) as local_date, " +
+            "CAST(EXTRACT(HOUR FROM joined_at AT TIME ZONE :timezone) AS INTEGER) as local_hour, " +
             "COUNT(id) as joined, " +
             "SUM(CASE WHEN state = 'COMPLETED' THEN 1 ELSE 0 END) as completed " +
             "FROM tokens WHERE org_id = :orgId AND joined_at >= :start AND joined_at < :end"
         );
         if (locationId != null) sql.append(" AND location_id = :locationId");
-        sql.append(" GROUP BY h_idx");
+        sql.append(" GROUP BY local_date, local_hour");
 
         Query query = entityManager.createNativeQuery(sql.toString());
         query.setParameter("orgId", orgId);
         query.setParameter("start", start);
         query.setParameter("end", end);
+        query.setParameter("timezone", timezone);
         if (locationId != null) query.setParameter("locationId", locationId);
 
         return query.getResultList();

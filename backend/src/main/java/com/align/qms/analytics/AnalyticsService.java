@@ -109,9 +109,9 @@ public class AnalyticsService {
         return responses;
     }
 
-    public com.align.qms.analytics.dto.AnalyticsTrafficResponse getTraffic(UUID orgId, UUID locationId, Instant start, Instant end) {
+    public com.align.qms.analytics.dto.AnalyticsTrafficResponse getTraffic(UUID orgId, UUID locationId, Instant start, Instant end, String timezone) {
         requireOrgExistsAndAccess(orgId);
-        List<Object[]> rows = analyticsRepository.getTrafficByHourIndex(orgId, locationId, start, end);
+        List<Object[]> rows = analyticsRepository.getTrafficByTimezone(orgId, locationId, start, end, timezone);
         
         List<com.align.qms.analytics.dto.HourlyBucket> hourly = new ArrayList<>();
         List<com.align.qms.analytics.dto.DailyBucket> daily = new ArrayList<>();
@@ -121,31 +121,35 @@ public class AnalyticsService {
         boolean isMultiDay = totalHours > 24;
 
         if (isMultiDay) {
-            // Aggregate into daily buckets
-            java.util.Map<Integer, com.align.qms.analytics.dto.DailyBucket> dailyMap = new java.util.HashMap<>();
+            // Aggregate into daily buckets using local calendar date
+            java.util.Map<String, com.align.qms.analytics.dto.DailyBucket> dailyMap = new java.util.HashMap<>();
             for (Object[] row : rows) {
-                int hIdx = ((Number) row[0]).intValue();
-                int dayIdx = hIdx / 24;
-                long joined = ((Number) row[1]).longValue();
-                long comp = ((Number) row[2]).longValue();
+                String localDateStr = (String) row[0];
+                long joined = ((Number) row[2]).longValue();
+                long comp = ((Number) row[3]).longValue();
                 
-                com.align.qms.analytics.dto.DailyBucket b = dailyMap.getOrDefault(dayIdx, 
-                    new com.align.qms.analytics.dto.DailyBucket(start.plus(dayIdx, ChronoUnit.DAYS), 0L, 0L));
-                dailyMap.put(dayIdx, new com.align.qms.analytics.dto.DailyBucket(
+                com.align.qms.analytics.dto.DailyBucket b = dailyMap.getOrDefault(localDateStr,
+                    new com.align.qms.analytics.dto.DailyBucket(localDateStr, 0L, 0L));
+                dailyMap.put(localDateStr, new com.align.qms.analytics.dto.DailyBucket(
                     b.date(), b.tokensJoined() + joined, b.tokensCompleted() + comp));
             }
             daily.addAll(dailyMap.values());
-            // Sort by date
+            // Sort by date string
             daily.sort(java.util.Comparator.comparing(com.align.qms.analytics.dto.DailyBucket::date));
         } else {
+            // Aggregate into hourly buckets using local calendar hour
+            java.util.Map<Integer, com.align.qms.analytics.dto.HourlyBucket> hourMap = new java.util.HashMap<>();
             for (Object[] row : rows) {
-                int hIdx = ((Number) row[0]).intValue();
-                long joined = ((Number) row[1]).longValue();
-                long comp = ((Number) row[2]).longValue();
+                int localHour = ((Number) row[1]).intValue();
+                long joined = ((Number) row[2]).longValue();
+                long comp = ((Number) row[3]).longValue();
                 
-                int localHour = hIdx % 24;
-                hourly.add(new com.align.qms.analytics.dto.HourlyBucket(localHour, joined, comp));
+                com.align.qms.analytics.dto.HourlyBucket b = hourMap.getOrDefault(localHour,
+                    new com.align.qms.analytics.dto.HourlyBucket(localHour, 0L, 0L));
+                hourMap.put(localHour, new com.align.qms.analytics.dto.HourlyBucket(
+                    b.hour(), b.tokensJoined() + joined, b.tokensCompleted() + comp));
             }
+            hourly.addAll(hourMap.values());
             hourly.sort(java.util.Comparator.comparing(com.align.qms.analytics.dto.HourlyBucket::hour));
         }
 
@@ -165,8 +169,9 @@ public class AnalyticsService {
             Number avgDurObj = (Number) row[7];
             Integer avgDur = avgDurObj != null ? avgDurObj.intValue() : null;
 
+            UUID serviceId = row[0] != null ? UUID.fromString(row[0].toString()) : null;
             res.add(new com.align.qms.analytics.dto.ServiceAnalyticsResponse(
-                (UUID) row[0],
+                serviceId,
                 (String) row[1],
                 opVol,
                 comp,
@@ -187,7 +192,7 @@ public class AnalyticsService {
         List<Object[]> rows = analyticsRepository.getCounterAnalytics(orgId, locationId, start, end);
         List<com.align.qms.analytics.dto.CounterAnalyticsResponse> res = new ArrayList<>();
         for (Object[] row : rows) {
-            UUID counterId = (UUID) row[0];
+            UUID counterId = row[0] != null ? UUID.fromString(row[0].toString()) : null;
             String counterName = row[1] != null ? (String) row[1] : "Unknown Counter";
             long opVol = ((Number) row[2]).longValue();
             long comp = ((Number) row[3]).longValue();

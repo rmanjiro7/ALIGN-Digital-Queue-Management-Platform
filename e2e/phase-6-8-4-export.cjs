@@ -124,7 +124,7 @@ async function run() {
              !!document.querySelector('#analytics-export-staff-btn');
     }));
 
-    await new Promise(r => setTimeout(r, 1000)); // wait for data to load
+    await page.waitForSelector('#analytics-kpi-grid', { timeout: 10000 });
 
     // Export Summary
     await page.evaluate(() => {

@@ -63,8 +63,9 @@ public class AnalyticsController {
             @RequestParam UUID orgId,
             @RequestParam Instant start,
             @RequestParam Instant end,
-            @RequestParam(required = false) UUID locationId) {
-        return ResponseEntity.ok(analyticsService.getTraffic(orgId, locationId, start, end));
+            @RequestParam(required = false) UUID locationId,
+            @RequestParam(required = false, defaultValue = "UTC") String timezone) {
+        return ResponseEntity.ok(analyticsService.getTraffic(orgId, locationId, start, end, timezone));
     }
 
     @GetMapping("/services")

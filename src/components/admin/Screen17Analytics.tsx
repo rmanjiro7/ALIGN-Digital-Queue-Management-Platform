@@ -111,7 +111,7 @@ export const Screen17Analytics: React.FC<Screen17AnalyticsProps> = ({ appState }
         analyticsApi.getSummary(selectedOrgId, start, end, selectedLocationId),
         analyticsApi.getQueues(selectedOrgId, start, end, selectedLocationId),
         analyticsApi.getStaffServiceDuration(selectedOrgId, start, end, selectedLocationId),
-        analyticsApi.getTrafficPhase685(selectedOrgId, start, end, selectedLocationId),
+        analyticsApi.getTrafficPhase685(selectedOrgId, start, end, selectedLocationId, Intl.DateTimeFormat().resolvedOptions().timeZone),
         analyticsApi.getServicesPhase685(selectedOrgId, start, end, selectedLocationId),
         analyticsApi.getCountersPhase685(selectedOrgId, start, end, selectedLocationId),
       ]);

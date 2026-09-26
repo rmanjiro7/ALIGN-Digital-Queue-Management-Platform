@@ -100,8 +100,8 @@ function buildParams(params: Record<string, string | undefined>): URLSearchParam
 
 function buildLegacyParams(startDate: string, endDate: string, orgId?: string, locationId?: string, extraParams?: Record<string, string>): URLSearchParams {
     const params = new URLSearchParams();
-    params.append('startDate', startDate);
-    params.append('endDate', endDate);
+    params.append('start', startDate);
+    params.append('end', endDate);
     if (orgId) params.append('orgId', orgId);
     if (locationId) params.append('locationId', locationId);
 
@@ -168,8 +168,9 @@ export const analyticsApi = {
         start: string,
         end: string,
         locationId?: string,
+        timezone?: string,
     ): Promise<AnalyticsTrafficResponse> => {
-        const params = buildParams({ orgId, start, end, locationId });
+        const params = buildParams({ orgId, start, end, locationId, timezone });
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/traffic?${params.toString()}`);
         if (!res.ok) throw new Error(`Traffic analytics request failed: ${res.status}`);
         return res.json();
