@@ -34,6 +34,7 @@ public class TokenService {
     private final TokenEventService tokenEventService;
     private final QueueRepository queueRepository;
     private final com.align.qms.security.JwtService jwtService;
+    private final com.align.qms.location.LocationScheduleService locationScheduleService;
     
     @Autowired
     @Lazy
@@ -42,11 +43,13 @@ public class TokenService {
     public TokenService(TokenRepository tokenRepository, 
                         TokenEventService tokenEventService, 
                         QueueRepository queueRepository,
-                        com.align.qms.security.JwtService jwtService) {
+                        com.align.qms.security.JwtService jwtService,
+                        com.align.qms.location.LocationScheduleService locationScheduleService) {
         this.tokenRepository = tokenRepository;
         this.tokenEventService = tokenEventService;
         this.queueRepository = queueRepository;
         this.jwtService = jwtService;
+        this.locationScheduleService = locationScheduleService;
     }
 
     public TokenResponse joinQueue(TokenJoinRequest request) {
@@ -74,6 +77,10 @@ public class TokenService {
     public TokenResponse joinQueueTx(TokenJoinRequest request) {
         Queue queue = queueRepository.findByServiceIdForUpdate(request.getServiceId())
                 .orElseThrow(() -> new IllegalArgumentException("Queue not found for service: " + request.getServiceId()));
+
+        if (!locationScheduleService.isLocationOpen(queue.getLocationId(), Instant.now())) {
+            throw new com.align.qms.exception.LocationClosedException(queue.getLocationId());
+        }
 
         if (queue.getStatus() == QueueStatus.PAUSED || queue.getStatus() == QueueStatus.CLOSED) {
             throw new QueuePausedException(queue.getId(), "Queue is currently " + queue.getStatus());

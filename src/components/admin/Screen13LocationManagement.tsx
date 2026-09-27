@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  MapPin, 
-  Plus, 
-  Building2, 
-  Users, 
-  Layers, 
-  CheckCircle2, 
-  XCircle, 
-  Edit, 
-  ChevronRight, 
+import {
+  MapPin,
+  Plus,
+  Building2,
+  Users,
+  Layers,
+  CheckCircle2,
+  XCircle,
+  Edit,
+  ChevronRight,
   ArrowLeft,
   Clock,
   Check
@@ -20,12 +20,60 @@ interface Screen13LocationManagementProps {
   appState: AppState;
 }
 
+
+const ScheduleEditor = ({ schedules, onChange }: { schedules: any[], onChange: (s: any[]) => void }) => {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const toggleDay = (dayIndex: number) => {
+    const existing = schedules.find(s => s.dayOfWeek === dayIndex + 1);
+    if (existing) {
+      onChange(schedules.filter(s => s.dayOfWeek !== dayIndex + 1));
+    } else {
+      onChange([...schedules, { dayOfWeek: dayIndex + 1, openTime: '09:00:00', closeTime: '17:00:00' }]);
+    }
+  };
+
+  const updateTime = (dayIndex: number, field: 'openTime' | 'closeTime', val: string) => {
+    if (val.length === 5) val = val + ':00'; // Append seconds for API
+    onChange(schedules.map(s => s.dayOfWeek === dayIndex + 1 ? { ...s, [field]: val } : s));
+  };
+
+  return (
+    <div className="space-y-2 border border-slate-200 p-3 rounded-xl mt-3">
+      <div className="text-[11px] font-bold text-slate-700 mb-2">Operating Schedule</div>
+      {days.map((day, i) => {
+        const s = schedules.find(sch => sch.dayOfWeek === i + 1);
+        return (
+          <div key={day} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
+            <div className="flex items-center gap-2 w-28">
+              <input type="checkbox" checked={!!s} onChange={() => toggleDay(i)} className="rounded border-slate-300 text-[#00ACC1] focus:ring-[#00ACC1]" />
+              <span className={s ? 'font-bold text-slate-800' : 'text-slate-400'}>{day}</span>
+            </div>
+            {s ? (
+              <div className="flex items-center gap-2">
+                <input type="time" value={s.openTime.slice(0,5)} onChange={e => updateTime(i, 'openTime', e.target.value)} className="px-2 py-1 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-[#00ACC1]" />
+                <span className="text-slate-400 text-[10px] uppercase">to</span>
+                <input type="time" value={s.closeTime.slice(0,5)} onChange={e => updateTime(i, 'closeTime', e.target.value)} className="px-2 py-1 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-[#00ACC1]" />
+              </div>
+            ) : (
+              <span className="text-slate-400 italic text-[11px]">Closed</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const Screen13LocationManagement: React.FC<Screen13LocationManagementProps> = ({ appState }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newLocName, setNewLocName] = useState('');
   const [newLocSubtitle, setNewLocSubtitle] = useState('');
   const [newLocAddress, setNewLocAddress] = useState('');
   const [newLocCity, setNewLocCity] = useState('');
+  const [newLocTimezone, setNewLocTimezone] = useState('UTC');
+  const [newLocEnforce, setNewLocEnforce] = useState(false);
+  const [newLocSchedules, setNewLocSchedules] = useState<any[]>([]);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLocId, setEditLocId] = useState('');
@@ -33,6 +81,9 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
   const [editLocSubtitle, setEditLocSubtitle] = useState('');
   const [editLocAddress, setEditLocAddress] = useState('');
   const [editLocCity, setEditLocCity] = useState('');
+  const [editLocTimezone, setEditLocTimezone] = useState('UTC');
+  const [editLocEnforce, setEditLocEnforce] = useState(false);
+  const [editLocSchedules, setEditLocSchedules] = useState<any[]>([]);
 
 
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
@@ -87,14 +138,20 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
         address: newLocAddress || '100 Metro Blvd',
         city: newLocCity || 'Metro City',
         operatingHours: '09:00 AM - 05:00 PM',
-        isHq: false
+        isHq: false,
+        timezone: newLocTimezone,
+        enforceSchedule: newLocEnforce,
+        schedules: newLocSchedules
       } as any);
-      
+
       await fetchLocations();
       setNewLocName('');
       setNewLocSubtitle('');
       setNewLocAddress('');
       setNewLocCity('');
+      setNewLocTimezone('UTC');
+      setNewLocEnforce(false);
+      setNewLocSchedules([]);
       setShowAddModal(false);
     } catch (err: any) {
       setError(err.message || 'Failed to create location');
@@ -109,6 +166,9 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
     setEditLocSubtitle(loc.subtitle || '');
     setEditLocAddress(loc.address || '');
     setEditLocCity(loc.city || '');
+    setEditLocTimezone(loc.timezone || 'UTC');
+    setEditLocEnforce(loc.enforceSchedule || false);
+    setEditLocSchedules(loc.schedules || []);
     setShowEditModal(true);
   };
 
@@ -125,9 +185,12 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
         address: editLocAddress,
         city: editLocCity,
         operatingHours: '09:00 AM - 05:00 PM',
-        isHq: false
+        isHq: false,
+        timezone: editLocTimezone,
+        enforceSchedule: editLocEnforce,
+        schedules: editLocSchedules
       } as any);
-      
+
       await fetchLocations();
       setShowEditModal(false);
     } catch (err: any) {
@@ -188,8 +251,8 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
                   </div>
 
                   <span className={`text-[10px] font-mono px-3 py-1 rounded-full font-bold border flex items-center gap-1.5 ${
-                    isActive 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-slate-100 text-slate-500 border-slate-200'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
@@ -264,10 +327,10 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
             <form onSubmit={handleAddLocation} className="space-y-3">
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Location Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
-                  placeholder="e.g. Westside Branch" 
+                  placeholder="e.g. Westside Branch"
                   value={newLocName}
                   onChange={(e) => setNewLocName(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -276,9 +339,9 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Subtitle / Descriptor</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Financial Center" 
+                <input
+                  type="text"
+                  placeholder="e.g. Financial Center"
                   value={newLocSubtitle}
                   onChange={(e) => setNewLocSubtitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -288,9 +351,9 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">Address</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 500 West Ave" 
+                  <input
+                    type="text"
+                    placeholder="e.g. 500 West Ave"
                     value={newLocAddress}
                     onChange={(e) => setNewLocAddress(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -298,9 +361,9 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">City</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Metro City" 
+                  <input
+                    type="text"
+                    placeholder="e.g. Metro City"
                     value={newLocCity}
                     onChange={(e) => setNewLocCity(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -308,6 +371,34 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
                 </div>
               </div>
 
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Timezone</label>
+                <select
+                  value={newLocTimezone}
+                  onChange={(e) => setNewLocTimezone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                >
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">America/New_York</option>
+                  <option value="America/Chicago">America/Chicago</option>
+                  <option value="America/Denver">America/Denver</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles</option>
+                  <option value="Asia/Kolkata">Asia/Kolkata</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="enforceSchedule"
+                  checked={newLocEnforce}
+                  onChange={(e) => setNewLocEnforce(e.target.checked)}
+                  className="rounded border-slate-300 text-[#00ACC1] focus:ring-[#00ACC1]"
+                />
+                <label htmlFor="enforceSchedule" className="text-[11px] font-bold text-slate-700">Enforce Operating Schedule (Blocks joining when closed)</label>
+              </div>
+
+              {newLocEnforce && <ScheduleEditor schedules={newLocSchedules} onChange={setNewLocSchedules} />}
               <div className="flex gap-2 pt-3">
                 <button
                   type="button"
@@ -339,8 +430,8 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
             <form onSubmit={handleUpdateLocation} className="space-y-3">
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Location Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={editLocName}
                   onChange={(e) => setEditLocName(e.target.value)}
@@ -350,8 +441,8 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Subtitle / Descriptor</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={editLocSubtitle}
                   onChange={(e) => setEditLocSubtitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -361,8 +452,8 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">Address</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={editLocAddress}
                     onChange={(e) => setEditLocAddress(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -370,14 +461,43 @@ export const Screen13LocationManagement: React.FC<Screen13LocationManagementProp
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">City</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={editLocCity}
                     onChange={(e) => setEditLocCity(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Timezone</label>
+                <select
+                  value={editLocTimezone}
+                  onChange={(e) => setEditLocTimezone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                >
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">America/New_York</option>
+                  <option value="America/Chicago">America/Chicago</option>
+                  <option value="America/Denver">America/Denver</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles</option>
+                  <option value="Asia/Kolkata">Asia/Kolkata</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editEnforceSchedule"
+                  checked={editLocEnforce}
+                  onChange={(e) => setEditLocEnforce(e.target.checked)}
+                  className="rounded border-slate-300 text-[#00ACC1] focus:ring-[#00ACC1]"
+                />
+                <label htmlFor="editEnforceSchedule" className="text-[11px] font-bold text-slate-700">Enforce Operating Schedule (Blocks joining when closed)</label>
+              </div>
+
+              {editLocEnforce && <ScheduleEditor schedules={editLocSchedules} onChange={setEditLocSchedules} />}
 
               <div className="flex gap-2 pt-3">
                 <button

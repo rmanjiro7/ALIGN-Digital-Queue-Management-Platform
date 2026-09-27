@@ -27,17 +27,20 @@ public class StaffOperationsService {
     private final TokenEventService tokenEventService;
     private final com.align.qms.queue.QueueRepository queueRepository;
     private final com.align.qms.audit.AdminAuditService adminAuditService;
+    private final com.align.qms.location.LocationScheduleService locationScheduleService;
 
     public StaffOperationsService(TokenRepository tokenRepository,
                                   CounterRepository counterRepository,
                                   TokenEventService tokenEventService,
                                   com.align.qms.queue.QueueRepository queueRepository,
-                                  com.align.qms.audit.AdminAuditService adminAuditService) {
+                                  com.align.qms.audit.AdminAuditService adminAuditService,
+                                  com.align.qms.location.LocationScheduleService locationScheduleService) {
         this.tokenRepository = tokenRepository;
         this.counterRepository = counterRepository;
         this.tokenEventService = tokenEventService;
         this.queueRepository = queueRepository;
         this.adminAuditService = adminAuditService;
+        this.locationScheduleService = locationScheduleService;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -190,6 +193,10 @@ public class StaffOperationsService {
 
         com.align.qms.queue.Queue targetQueue = queueRepository.findByServiceIdForUpdate(request.getTargetServiceId())
                 .orElseThrow(() -> new IllegalArgumentException("Target service has no queue"));
+
+        if (!locationScheduleService.isLocationOpen(targetQueue.getLocationId(), Instant.now())) {
+            throw new com.align.qms.exception.LocationClosedException(targetQueue.getLocationId());
+        }
 
         if (targetQueue.getStatus() != com.align.qms.queue.QueueStatus.ACTIVE) {
             throw new IllegalStateException("Target queue is not ACTIVE");

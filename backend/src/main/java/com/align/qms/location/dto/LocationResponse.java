@@ -21,6 +21,9 @@ public class LocationResponse {
     private String         city;
     private LocationStatus status;
     private String         operatingHours;
+    private String         timezone;
+    private boolean        enforceSchedule;
+    private java.util.List<LocationScheduleDto> schedules;
     private boolean        isHq;
     private Instant        createdAt;
     private Instant        updatedAt;
@@ -37,6 +40,8 @@ public class LocationResponse {
         r.city           = location.getCity();
         r.status         = location.getStatus();
         r.operatingHours = location.getOperatingHours();
+        r.timezone       = location.getTimezone();
+        r.enforceSchedule= location.isEnforceSchedule();
         r.isHq           = location.isHq();
         r.createdAt      = location.getCreatedAt();
         r.updatedAt      = location.getUpdatedAt();
@@ -53,7 +58,14 @@ public class LocationResponse {
     public String         getCity()           { return city; }
     public LocationStatus getStatus()         { return status; }
     public String         getOperatingHours() { return operatingHours; }
+    public String         getTimezone()       { return timezone; }
+    public boolean        isEnforceSchedule() { return enforceSchedule; }
+    public java.util.List<LocationScheduleDto> getSchedules() { return schedules; }
     public boolean        isHq()              { return isHq; }
     public Instant        getCreatedAt()      { return createdAt; }
     public Instant        getUpdatedAt()      { return updatedAt; }
+
+    public void setSchedules(java.util.List<LocationScheduleDto> schedules) {
+        this.schedules = schedules;
+    }
 }

@@ -37,13 +37,16 @@ public class LocationService {
     private final LocationRepository     locationRepository;
     private final OrganizationRepository organizationRepository;
     private final com.align.qms.audit.AdminAuditService adminAuditService;
+    private final LocationScheduleService locationScheduleService;
 
     public LocationService(LocationRepository locationRepository,
                            OrganizationRepository organizationRepository,
-                           com.align.qms.audit.AdminAuditService adminAuditService) {
+                           com.align.qms.audit.AdminAuditService adminAuditService,
+                           LocationScheduleService locationScheduleService) {
         this.locationRepository     = locationRepository;
         this.organizationRepository = organizationRepository;
         this.adminAuditService = adminAuditService;
+        this.locationScheduleService = locationScheduleService;
     }
 
     // ── List ─────────────────────────────────────────────────────────────────
@@ -55,7 +58,11 @@ public class LocationService {
 
         return locationRepository.findByOrgId(orgId)
             .stream()
-            .map(LocationResponse::from)
+            .map(loc -> {
+                LocationResponse r = LocationResponse.from(loc);
+                r.setSchedules(locationScheduleService.getSchedules(loc.getId()));
+                return r;
+            })
             .collect(Collectors.toList());
     }
 
@@ -67,7 +74,9 @@ public class LocationService {
             .orElseThrow(() -> new LocationNotFoundException(locationId));
 
         TenantContext.requireSameTenant(location.getOrgId());
-        return LocationResponse.from(location);
+        LocationResponse response = LocationResponse.from(location);
+        response.setSchedules(locationScheduleService.getSchedules(locationId));
+        return response;
     }
 
     // ── Create ───────────────────────────────────────────────────────────────
@@ -88,9 +97,22 @@ public class LocationService {
             request.getOperatingHours(),
             Boolean.TRUE.equals(request.getIsHq())
         );
+        if (request.getTimezone() != null) {
+            location.setTimezone(request.getTimezone());
+        }
+        if (request.getEnforceSchedule() != null) {
+            location.setEnforceSchedule(request.getEnforceSchedule());
+        }
 
         Location saved = locationRepository.save(location);
+
+        if (request.getSchedules() != null) {
+            locationScheduleService.updateSchedules(saved.getId(), request.getSchedules());
+        }
+
         LocationResponse response = LocationResponse.from(saved);
+        response.setSchedules(locationScheduleService.getSchedules(saved.getId()));
+
         adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "LOCATION", "CREATE", null, response);
         log.info("Location created: id={} orgId={}", saved.getId(), saved.getOrgId());
         return response;
@@ -107,6 +129,7 @@ public class LocationService {
         TenantContext.requireSameTenant(location.getOrgId());
 
         LocationResponse beforeState = LocationResponse.from(location);
+        beforeState.setSchedules(locationScheduleService.getSchedules(locationId));
 
         boolean changed = false;
 
@@ -134,6 +157,19 @@ public class LocationService {
             location.setHq(request.getIsHq());
             changed = true;
         }
+        if (request.getTimezone() != null && !request.getTimezone().equals(location.getTimezone())) {
+            location.setTimezone(request.getTimezone());
+            changed = true;
+        }
+        if (request.getEnforceSchedule() != null && !request.getEnforceSchedule().equals(location.isEnforceSchedule())) {
+            location.setEnforceSchedule(request.getEnforceSchedule());
+            changed = true;
+        }
+
+        if (request.getSchedules() != null) {
+            locationScheduleService.updateSchedules(locationId, request.getSchedules());
+            changed = true; // Schedule updates always count as a change to the aggregate
+        }
 
         if (!changed) {
             return beforeState;
@@ -141,6 +177,8 @@ public class LocationService {
 
         Location saved = locationRepository.save(location);
         LocationResponse afterState = LocationResponse.from(saved);
+        afterState.setSchedules(locationScheduleService.getSchedules(locationId));
+
         adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "LOCATION", "UPDATE", beforeState, afterState);
         log.info("Location updated: id={}", saved.getId());
         return afterState;
@@ -157,6 +195,7 @@ public class LocationService {
         TenantContext.requireSameTenant(location.getOrgId());
 
         LocationResponse beforeState = LocationResponse.from(location);
+        beforeState.setSchedules(locationScheduleService.getSchedules(locationId));
 
         if (location.getStatus() == request.getStatus()) {
             return beforeState;
@@ -166,6 +205,8 @@ public class LocationService {
 
         Location saved = locationRepository.save(location);
         LocationResponse afterState = LocationResponse.from(saved);
+        afterState.setSchedules(locationScheduleService.getSchedules(locationId));
+
         adminAuditService.logEvent(saved.getOrgId(), saved.getId(), "LOCATION", "UPDATE_STATUS", beforeState, afterState);
         log.info("Location status updated: id={} status={}", saved.getId(), saved.getStatus());
         return afterState;

@@ -25,6 +25,14 @@ public class UpdateLocationRequest {
 
     private Boolean isHq;
 
+    @Size(max = 50, message = "Timezone must not exceed 50 characters")
+    private String timezone;
+
+    private Boolean enforceSchedule;
+
+    @jakarta.validation.Valid
+    private java.util.List<LocationScheduleDto> schedules;
+
     // ── Getters / Setters ────────────────────────────────────────────────────
 
     public String  getName()           { return name; }
@@ -33,6 +41,9 @@ public class UpdateLocationRequest {
     public String  getCity()           { return city; }
     public String  getOperatingHours() { return operatingHours; }
     public Boolean getIsHq()           { return isHq; }
+    public String  getTimezone()       { return timezone; }
+    public Boolean getEnforceSchedule(){ return enforceSchedule; }
+    public java.util.List<LocationScheduleDto> getSchedules() { return schedules; }
 
     public void setName(String name)            { this.name = name; }
     public void setSubtitle(String subtitle)    { this.subtitle = subtitle; }
@@ -40,4 +51,7 @@ public class UpdateLocationRequest {
     public void setCity(String city)            { this.city = city; }
     public void setOperatingHours(String hours) { this.operatingHours = hours; }
     public void setIsHq(Boolean isHq)           { this.isHq = isHq; }
+    public void setTimezone(String tz)          { this.timezone = tz; }
+    public void setEnforceSchedule(Boolean enforce){ this.enforceSchedule = enforce; }
+    public void setSchedules(java.util.List<LocationScheduleDto> s) { this.schedules = s; }
 }

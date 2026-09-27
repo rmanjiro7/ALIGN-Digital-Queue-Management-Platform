@@ -56,6 +56,12 @@ public class Location {
     @Column(name = "operating_hours", length = 100)
     private String operatingHours;
 
+    @Column(name = "timezone", nullable = false, length = 50)
+    private String timezone = "UTC";
+
+    @Column(name = "enforce_schedule", nullable = false)
+    private boolean enforceSchedule = false;
+
     /** TRUE if this is the headquarters / main branch. */
     @Column(name = "is_hq", nullable = false)
     private boolean isHq = false;
@@ -87,6 +93,8 @@ public class Location {
         this.operatingHours = operatingHours;
         this.isHq           = isHq;
         this.status         = LocationStatus.ACTIVE;
+        this.timezone       = "UTC";
+        this.enforceSchedule= false;
         this.createdAt      = Instant.now();
         this.updatedAt      = Instant.now();
     }
@@ -101,6 +109,8 @@ public class Location {
     public String         getCity()           { return city; }
     public LocationStatus getStatus()         { return status; }
     public String         getOperatingHours() { return operatingHours; }
+    public String         getTimezone()       { return timezone; }
+    public boolean        isEnforceSchedule() { return enforceSchedule; }
     public boolean        isHq()              { return isHq; }
     public Instant        getCreatedAt()      { return createdAt; }
     public Instant        getUpdatedAt()      { return updatedAt; }
@@ -113,5 +123,7 @@ public class Location {
     public void setCity(String city)                   { this.city = city; }
     public void setStatus(LocationStatus status)       { this.status = status; }
     public void setOperatingHours(String hours)        { this.operatingHours = hours; }
+    public void setTimezone(String timezone)           { this.timezone = timezone; }
+    public void setEnforceSchedule(boolean enforce)    { this.enforceSchedule = enforce; }
     public void setHq(boolean isHq)                    { this.isHq = isHq; }
 }
