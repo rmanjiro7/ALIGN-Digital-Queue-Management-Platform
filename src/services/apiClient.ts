@@ -200,7 +200,7 @@ export const apiClient = {
       },
       body: JSON.stringify({ targetServiceId })
     });
-    
+
     if (!res.ok) {
       throw new Error('Failed to transfer token');
     }
@@ -227,5 +227,17 @@ export const apiClient = {
     return apiClient.authenticatedFetch(`${API_BASE}/staff/tokens/${tokenId}/complete?counterId=${counterId}`, {
       method: 'POST'
     });
+  },
+
+  createAnnouncement: async (payload: { locationId: string, text: string, tokenId?: string, tokenNumber?: string, counterId?: string, counterNumber?: number }): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/staff/announcements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      throw new Error('Failed to create announcement');
+    }
+    return res.json();
   }
 };

@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  Volume2, 
-  Radio, 
-  Play, 
-  CheckCircle2, 
-  AlertCircle, 
-  Mic, 
-  RefreshCw, 
-  Clock, 
+import {
+  Volume2,
+  Radio,
+  Play,
+  CheckCircle2,
+  AlertCircle,
+  Mic,
+  RefreshCw,
+  Clock,
   Sparkles,
   Sliders,
   ArrowLeft
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { apiClient } from '../../services/apiClient';
 
 interface Screen11AnnouncementsProps {
   appState: AppState;
@@ -25,25 +26,40 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastStatus, setLastStatus] = useState<'idle' | 'speaking' | 'completed' | 'failed'>('idle');
 
-  const handleSpeakNow = () => {
+  const handleSpeakNow = async () => {
     setIsSpeaking(true);
     setLastStatus('speaking');
 
-    queueStore.speakAnnouncementText(
-      customMessage,
-      () => {
-        setIsSpeaking(true);
-        setLastStatus('speaking');
-      },
-      () => {
-        setIsSpeaking(false);
-        setLastStatus('completed');
-      },
-      () => {
-        setIsSpeaking(false);
-        setLastStatus('failed');
-      }
-    );
+    try {
+      const locationId = appState.currentUser?.locationId || 'default-loc';
+
+      await apiClient.createAnnouncement({
+        locationId,
+        text: customMessage
+      });
+
+      // Still call local synthesize for immediate feedback if desired, or skip it
+      // Let's just keep the local one as well for now so it still works if no STOMP client is connected
+      queueStore.speakAnnouncementText(
+        customMessage,
+        () => {
+          setIsSpeaking(true);
+          setLastStatus('speaking');
+        },
+        () => {
+          setIsSpeaking(false);
+          setLastStatus('completed');
+        },
+        () => {
+          setIsSpeaking(false);
+          setLastStatus('failed');
+        }
+      );
+    } catch (e) {
+      console.error('Failed to create announcement API', e);
+      setIsSpeaking(false);
+      setLastStatus('failed');
+    }
   };
 
   const handleUpdateTokenNumber = (token: string, counter: number) => {
@@ -101,8 +117,8 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 block mb-1">Target Token</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={tokenInput}
                     onChange={(e) => handleUpdateTokenNumber(e.target.value, counterInput)}
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -110,8 +126,8 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
                 </div>
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 block mb-1">Target Counter</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     value={counterInput}
                     onChange={(e) => handleUpdateTokenNumber(tokenInput, parseInt(e.target.value) || 1)}
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:outline-none focus:border-[#00ACC1]"
@@ -121,7 +137,7 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
 
               <div>
                 <label className="text-[11px] font-semibold text-slate-600 block mb-1">Speech Teleprompter</label>
-                <textarea 
+                <textarea
                   rows={2}
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
@@ -214,8 +230,8 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
                       Token {ann.tokenNumber} &rarr; Counter {ann.counterNumber}
                     </span>
                     <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                      ann.status === 'Sent' 
-                        ? 'bg-emerald-100 text-emerald-800' 
+                      ann.status === 'Sent'
+                        ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-rose-100 text-rose-800'
                     }`}>
                       {ann.status}
