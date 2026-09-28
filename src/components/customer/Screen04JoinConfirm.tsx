@@ -22,6 +22,7 @@ interface Screen04JoinConfirmProps {
 export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appState }) => {
   const [customerName, setCustomerName] = useState('Jane Doe');
   const [customerPhone, setCustomerPhone] = useState('+1 (555) 234-5678');
+  const [smsConsent, setSmsConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedService = appState.services.find(s => s.id === appState.selectedServiceId) || appState.services[0];
@@ -36,7 +37,8 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
         currentLocation.id,
         selectedService.id,
         customerName || undefined,
-        customerPhone || undefined
+        customerPhone || undefined,
+        smsConsent
       );
       if (res && res.id) {
         // We add the backend token to the local store so UI can render it
@@ -62,6 +64,7 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
       } else {
         // Fallback
         queueStore.joinQueue(selectedService.id, customerName, customerPhone);
+        // Note: queueStore doesn't store consent yet in frontend mockup
         queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
       }
     } catch (e) {
@@ -171,6 +174,20 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
                   className="w-full pl-9 pr-3 py-2.5 bg-[#F1F5F9] border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1] focus:bg-white"
                 />
               </div>
+              {customerPhone && (
+                <div className="mt-2 flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="smsConsent"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className="mt-0.5 rounded text-[#00ACC1] focus:ring-[#00ACC1] w-3 h-3"
+                  />
+                  <label htmlFor="smsConsent" className="text-[10px] text-slate-600 leading-tight">
+                    I consent to receive SMS notifications about my queue status.
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -196,7 +213,7 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
 
         <button
           id="confirm-join-queue-btn"
-          disabled={isSubmitting}
+          disabled={isSubmitting || (!!customerPhone && !smsConsent && false)}
           onClick={handleConfirmJoin}
           className="flex-2 py-3.5 px-6 rounded-2xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold shadow-lg shadow-[#00ACC1]/25 uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >

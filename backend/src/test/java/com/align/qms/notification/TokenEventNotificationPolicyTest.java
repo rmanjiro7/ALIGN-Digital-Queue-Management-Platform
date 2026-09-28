@@ -21,10 +21,14 @@ public class TokenEventNotificationPolicyTest {
     private NotificationRepository notificationRepository;
     private TokenEventNotificationPolicy policy;
 
+    private com.align.qms.location.LocationScheduleService locationScheduleService;
+
     @BeforeEach
     public void setup() {
         notificationRepository = mock(NotificationRepository.class);
-        policy = new TokenEventNotificationPolicy(notificationRepository, new com.fasterxml.jackson.databind.ObjectMapper());
+        locationScheduleService = mock(com.align.qms.location.LocationScheduleService.class);
+        when(locationScheduleService.isLocationOpen(any(), any())).thenReturn(true);
+        policy = new TokenEventNotificationPolicy(notificationRepository, new com.fasterxml.jackson.databind.ObjectMapper(), locationScheduleService);
     }
 
     @Test
@@ -41,7 +45,8 @@ public class TokenEventNotificationPolicyTest {
             "A-001", 
             "Test", 
             "+15551234567", 
-            null
+            null,
+            true
         );
         token.setId(UUID.randomUUID());
 
@@ -74,7 +79,8 @@ public class TokenEventNotificationPolicyTest {
             "A-001", 
             "Test", 
             null, 
-            null
+            null,
+            false
         );
         token.setId(UUID.randomUUID());
         // No phone

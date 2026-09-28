@@ -1,0 +1,1 @@
+ALTER TABLE tokens ADD COLUMN sms_consent BOOLEAN NOT NULL DEFAULT false, ADD COLUMN sms_consent_timestamp TIMESTAMPTZ NULL;

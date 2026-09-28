@@ -63,7 +63,7 @@ class SkipLockedConcurrencyTest extends PostgresIntegrationTest {
         // Insert 10 tokens
         createdTokens = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
-            Token token = new Token(orgId, locationId, serviceId, queueId, "A" + i, "Customer " + i, null, null);
+            Token token = new Token(orgId, locationId, serviceId, queueId, "A" + i, "Customer " + i, null, null, false);
             org.springframework.test.util.ReflectionTestUtils.setField(token, "joinedAt", Instant.now().plusMillis(i)); // Ensure strict ordering
             createdTokens.add(tokenRepository.save(token));
         }

@@ -17,14 +17,15 @@ public class TokenRealtimeDispatcher {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTokenRealtimeEvent(TokenRealtimeEvent event) {
         TokenRealtimePayload payload = event.getPayload();
+        TokenRealtimePayload publicPayload = payload.maskedForPublic();
         
         // Legacy topic (for backward compatibility during Phase 6.4 transition)
-        messagingTemplate.convertAndSend("/topic/location." + payload.getLocationId(), payload);
+        messagingTemplate.convertAndSend("/topic/location." + payload.getLocationId(), publicPayload);
         
         // New Option B topics
         messagingTemplate.convertAndSend(
             String.format("/topic/tenant/%s/location/%s/public", payload.getOrgId(), payload.getLocationId()), 
-            payload
+            publicPayload
         );
         messagingTemplate.convertAndSend(
             String.format("/topic/tenant/%s/location/%s/staff", payload.getOrgId(), payload.getLocationId()), 

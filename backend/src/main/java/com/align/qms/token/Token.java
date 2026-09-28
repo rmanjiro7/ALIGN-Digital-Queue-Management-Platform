@@ -72,6 +72,13 @@ public class Token {
     @Column(name = "idempotency_key", length = 100, unique = true)
     private String idempotencyKey;
 
+    @Column(name = "sms_consent", nullable = false)
+    private Boolean smsConsent = false;
+
+    @Column(name = "sms_consent_timestamp")
+    private Instant smsConsentTimestamp;
+
+
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
@@ -87,7 +94,7 @@ public class Token {
     public Token() {
     }
 
-    public Token(UUID orgId, UUID locationId, UUID serviceId, UUID queueId, String tokenNumber, String customerName, String customerPhone, String idempotencyKey) {
+    public Token(UUID orgId, UUID locationId, UUID serviceId, UUID queueId, String tokenNumber, String customerName, String customerPhone, String idempotencyKey, Boolean smsConsent) {
         this.orgId = orgId;
         this.locationId = locationId;
         this.serviceId = serviceId;
@@ -98,7 +105,9 @@ public class Token {
         this.idempotencyKey = idempotencyKey;
         this.state = TokenState.WAITING;
         this.joinedAt = Instant.now();
+        this.setSmsConsent(smsConsent != null ? smsConsent : false);
     }
+
 
     @PrePersist
     protected void onCreate() {
@@ -172,6 +181,21 @@ public class Token {
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public Boolean getSmsConsent() { return smsConsent; }
+    public void setSmsConsent(Boolean smsConsent) {
+        this.smsConsent = smsConsent != null ? smsConsent : false;
+        if (this.smsConsent) {
+            if (this.smsConsentTimestamp == null) {
+                this.smsConsentTimestamp = Instant.now();
+            }
+        } else {
+            this.smsConsentTimestamp = null;
+        }
+    }
+
+    public Instant getSmsConsentTimestamp() { return smsConsentTimestamp; }
+
 
     public UUID getTransferredToTokenId() { return transferredToTokenId; }
     public void setTransferredToTokenId(UUID transferredToTokenId) { this.transferredToTokenId = transferredToTokenId; }

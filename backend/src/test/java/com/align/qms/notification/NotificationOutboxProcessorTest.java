@@ -57,7 +57,8 @@ public class NotificationOutboxProcessorTest {
             "A-001", 
             "Test", 
             "+15551234567", 
-            null
+            null,
+            false
         );
         token.setId(notification.getTokenId());
 
@@ -89,7 +90,8 @@ public class NotificationOutboxProcessorTest {
             "A-001", 
             "Test", 
             "+15551234567", 
-            null
+            null,
+            false
         );
         token.setId(notification.getTokenId());
 
@@ -122,7 +124,8 @@ public class NotificationOutboxProcessorTest {
             "A-001", 
             "Test", 
             "+15551234567", 
-            null
+            null,
+            false
         );
         token.setId(notification.getTokenId());
         token.transitionTo(TokenState.CALLED);

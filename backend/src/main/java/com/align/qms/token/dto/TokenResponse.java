@@ -22,6 +22,8 @@ public class TokenResponse {
     private String idempotencyKey;
     private String realtimeToken;
     private UUID transferredToTokenId;
+    private Boolean smsConsent;
+    private Instant smsConsentTimestamp;
 
     public static TokenResponse from(Token token) {
         return from(token, null);
@@ -46,6 +48,8 @@ public class TokenResponse {
         response.setIdempotencyKey(token.getIdempotencyKey());
         response.setRealtimeToken(realtimeToken);
         response.setTransferredToTokenId(token.getTransferredToTokenId());
+        response.setSmsConsent(token.getSmsConsent());
+        response.setSmsConsentTimestamp(token.getSmsConsentTimestamp());
         
         return response;
     }
@@ -96,4 +100,10 @@ public class TokenResponse {
 
     public UUID getTransferredToTokenId() { return transferredToTokenId; }
     public void setTransferredToTokenId(UUID transferredToTokenId) { this.transferredToTokenId = transferredToTokenId; }
+
+    public Boolean getSmsConsent() { return smsConsent; }
+    public void setSmsConsent(Boolean smsConsent) { this.smsConsent = smsConsent; }
+
+    public Instant getSmsConsentTimestamp() { return smsConsentTimestamp; }
+    public void setSmsConsentTimestamp(Instant smsConsentTimestamp) { this.smsConsentTimestamp = smsConsentTimestamp; }
 }

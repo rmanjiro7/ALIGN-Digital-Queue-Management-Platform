@@ -7,17 +7,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.align.qms.location.LocationScheduleService;
 import java.util.Map;
+import java.time.Instant;
 
 @Component
 public class TokenEventNotificationPolicy {
 
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
+    private final LocationScheduleService locationScheduleService;
 
-    public TokenEventNotificationPolicy(NotificationRepository notificationRepository, ObjectMapper objectMapper) {
+    public TokenEventNotificationPolicy(NotificationRepository notificationRepository, ObjectMapper objectMapper, LocationScheduleService locationScheduleService) {
         this.notificationRepository = notificationRepository;
         this.objectMapper = objectMapper;
+        this.locationScheduleService = locationScheduleService;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
@@ -54,17 +58,20 @@ public class TokenEventNotificationPolicy {
                 return;
         }
 
-        // Only schedule if customerPhone is present (or we assume it's passed somehow? We need the phone number)
-        // Since payload.getToken().getCustomerPhone() is not directly in payload, we have the token object in payload?
-        // Wait, TokenRealtimePayload has token fields but maybe not phone.
-        // Let's check TokenRealtimePayload.java.
-        
         String phone = payload.getCustomerPhone(); 
-        // We will need to check if customerPhone exists in Payload, or we can fetch it, or if it has it.
-        // If not, we can just save it with empty recipient, mock provider will just log it.
-        if (phone == null || phone.isBlank()) {
+        Boolean consent = payload.getSmsConsent();
+
+        // 1. Phone must be present
+        // 2. Consent must be explicitly granted
+        if (phone == null || phone.isBlank() || !Boolean.TRUE.equals(consent)) {
             return;
         }
+
+        // 3. Must be during operating hours
+        if (!locationScheduleService.isLocationOpen(payload.getLocationId(), Instant.now())) {
+            return;
+        }
+
 
         Notification notification = new Notification();
         notification.setOrgId(payload.getOrgId());

@@ -169,11 +169,32 @@ public class TokenRealtimeIntegrationTest extends PostgresIntegrationTest {
             String.format("/topic/token/%s", called.getId())
         );
         
-        // All payloads should be identical
-        TokenRealtimePayload payload = payloads.get(0);
-        for (TokenRealtimePayload p : payloads) {
-            assertThat(p).isEqualTo(payload);
+        TokenRealtimePayload legacyPayload = null;
+        TokenRealtimePayload publicPayload = null;
+        TokenRealtimePayload staffPayload = null;
+        TokenRealtimePayload tokenPayload = null;
+
+        for (int i = 0; i < destinations.size(); i++) {
+            String dest = destinations.get(i);
+            TokenRealtimePayload p = payloads.get(i);
+            if (dest.endsWith("/public")) {
+                publicPayload = p;
+            } else if (dest.endsWith("/staff")) {
+                staffPayload = p;
+            } else if (dest.startsWith("/topic/token/")) {
+                tokenPayload = p;
+            } else {
+                legacyPayload = p;
+            }
         }
+
+        assertThat(staffPayload).usingRecursiveComparison().isEqualTo(tokenPayload);
+        assertThat(publicPayload).usingRecursiveComparison().isEqualTo(legacyPayload);
+        assertThat(staffPayload).usingRecursiveComparison().ignoringFields("customerPhone", "smsConsent").isEqualTo(publicPayload);
+        assertThat(publicPayload.getCustomerPhone()).isNull();
+        assertThat(publicPayload.getSmsConsent()).isNull();
+
+        TokenRealtimePayload payload = staffPayload;
         
         assertThat(payload.getEventType()).isEqualTo(TokenEventType.TOKEN_CALLED);
         assertThat(payload.getLocationId()).isEqualTo(locationId);

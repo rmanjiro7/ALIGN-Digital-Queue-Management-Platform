@@ -10,6 +10,7 @@ public class TokenJoinRequest {
 
     private String customerName;
     private String customerPhone;
+    private Boolean smsConsent = false;
     private String idempotencyKey;
 
     public TokenJoinRequest() {
@@ -37,6 +38,14 @@ public class TokenJoinRequest {
 
     public void setCustomerPhone(String customerPhone) {
         this.customerPhone = customerPhone;
+    }
+
+    public Boolean getSmsConsent() {
+        return smsConsent;
+    }
+
+    public void setSmsConsent(Boolean smsConsent) {
+        this.smsConsent = smsConsent;
     }
 
     public String getIdempotencyKey() {

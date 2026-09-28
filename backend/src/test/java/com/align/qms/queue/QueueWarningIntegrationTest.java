@@ -176,7 +176,7 @@ public class QueueWarningIntegrationTest extends com.align.qms.PostgresIntegrati
 
         // Create 10 tokens manually directly into the database to bypass application events
         for (int i = 0; i < 10; i++) {
-            Token t = new Token(orgId, locationId, serviceId, queueId, "T-" + i, "Name", "Phone", null);
+            Token t = new Token(orgId, locationId, serviceId, queueId, "T-" + i, "Name", "Phone", null, false);
             tokenRepository.save(t);
         }
 

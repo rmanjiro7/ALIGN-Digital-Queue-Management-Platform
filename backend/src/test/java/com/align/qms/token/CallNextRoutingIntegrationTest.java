@@ -197,7 +197,7 @@ class CallNextRoutingIntegrationTest extends PostgresIntegrationTest {
     }
 
     private Token createToken(UUID serviceId, Queue queue, String tokenNumber, Instant joinedAt) {
-        Token t = new Token(orgId, locationId, serviceId, queue.getId(), tokenNumber, "Cust " + tokenNumber, null, null);
+        Token t = new Token(orgId, locationId, serviceId, queue.getId(), tokenNumber, "Cust " + tokenNumber, null, null, false);
         org.springframework.test.util.ReflectionTestUtils.setField(t, "joinedAt", joinedAt);
         return tokenRepository.save(t);
     }

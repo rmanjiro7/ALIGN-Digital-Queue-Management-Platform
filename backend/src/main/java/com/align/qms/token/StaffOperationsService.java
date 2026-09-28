@@ -236,7 +236,8 @@ public class StaffOperationsService {
                 targetQueue.getTokenPrefix() + "-" + String.format("%03d", targetQueue.getNextTokenNumber()),
                 oldToken.getCustomerName(),
                 oldToken.getCustomerPhone(),
-                request.getIdempotencyKey()
+                request.getIdempotencyKey(),
+                oldToken.getSmsConsent()
         );
         targetQueue.setNextTokenNumber(targetQueue.getNextTokenNumber() + 1);
         queueRepository.save(targetQueue);

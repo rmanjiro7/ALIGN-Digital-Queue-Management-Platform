@@ -170,7 +170,7 @@ export const apiClient = {
     return res.json();
   },
 
-  joinQueue: async (orgId: string, locationId: string, serviceId: string, customerName?: string, customerPhone?: string): Promise<any> => {
+  joinQueue: async (orgId: string, locationId: string, serviceId: string, customerName?: string, customerPhone?: string, smsConsent?: boolean): Promise<any> => {
     const res = await fetch(`/api/v1/tokens`, {
       method: 'POST',
       headers: {
@@ -181,7 +181,8 @@ export const apiClient = {
         locationId,
         serviceId,
         customerName,
-        customerPhone
+        customerPhone,
+        smsConsent
       })
     });
 

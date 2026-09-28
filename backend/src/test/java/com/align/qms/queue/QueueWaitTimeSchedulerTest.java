@@ -98,7 +98,7 @@ public class QueueWaitTimeSchedulerTest extends com.align.qms.PostgresIntegratio
         organizationRepository.save(org);
 
         // Add a token that joined 4 mins ago (No warning)
-        Token t = new Token(orgId, locationId, serviceId, queueId, "W-1", "Name", "Phone", null);
+        Token t = new Token(orgId, locationId, serviceId, queueId, "W-1", "Name", "Phone", null, false);
         ReflectionTestUtils.setField(t, "joinedAt", Instant.now().minus(4, ChronoUnit.MINUTES));
         tokenRepository.save(t);
 
@@ -108,7 +108,7 @@ public class QueueWaitTimeSchedulerTest extends com.align.qms.PostgresIntegratio
         assertThat(q.isWaitWarningActive()).isFalse();
 
         // Add a new token that is 7 mins old (Trigger warning)
-        Token t2 = new Token(orgId, locationId, serviceId, queueId, "W-2", "Name2", "Phone2", null);
+        Token t2 = new Token(orgId, locationId, serviceId, queueId, "W-2", "Name2", "Phone2", null, false);
         ReflectionTestUtils.setField(t2, "joinedAt", Instant.now().minus(7, ChronoUnit.MINUTES));
         tokenRepository.save(t2);
 

@@ -131,7 +131,8 @@ class TokenTransferIntegrationTest extends com.align.qms.PostgresIntegrationTest
                 queue.getTokenPrefix() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4),
                 "John Doe",
                 "555-1234",
-                null
+                null,
+                false
         );
         return tokenRepository.saveAndFlush(token);
     }
@@ -257,7 +258,8 @@ class TokenTransferIntegrationTest extends com.align.qms.PostgresIntegrationTest
                 "TGT-" + java.util.UUID.randomUUID().toString().substring(0, 4),
                 oldToken.getCustomerName(),
                 oldToken.getCustomerPhone(),
-                null
+                null,
+                false
         );
         newToken = tokenRepository.saveAndFlush(newToken);
 

@@ -102,6 +102,10 @@ public class TokenService {
         long nextNumber = queueRepository.allocateNextTokenNumber(queue.getId());
         String tokenString = String.format("%s%03d", queue.getTokenPrefix(), nextNumber);
 
+        if (Boolean.TRUE.equals(request.getSmsConsent()) && (request.getCustomerPhone() == null || request.getCustomerPhone().isBlank())) {
+            throw new IllegalArgumentException("Cannot provide SMS consent without a phone number.");
+        }
+
         Token token = new Token(
                 queue.getOrgId(),
                 queue.getLocationId(),
@@ -110,7 +114,8 @@ public class TokenService {
                 tokenString,
                 request.getCustomerName(),
                 request.getCustomerPhone(),
-                request.getIdempotencyKey()
+                request.getIdempotencyKey(),
+                request.getSmsConsent()
         );
 
         token = tokenRepository.saveAndFlush(token);
