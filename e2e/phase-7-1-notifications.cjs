@@ -34,6 +34,7 @@ async function run() {
     const staffPage = await staffContext.newPage();
     const displayPage = await displayContext.newPage();
     const customerPage = await customerContext.newPage();
+    customerPage.on('console', msg => console.log('[Browser]', msg.text()));
 
     let staffAccessToken = null;
     let staffLocationId = null;
@@ -147,6 +148,7 @@ async function run() {
       }
       return null;
     });
+    console.log('[E2E] Retrieved Token ID from localStorage:', tokenId);
     customerAccessToken = null; // Unused
     assert.ok(tokenId, 'Customer tokenId is missing');
 
@@ -168,6 +170,9 @@ async function run() {
         tokenNumber: 'E001'
       })
     });
+    if (!res.ok) {
+      console.log('Error:', await res.text());
+    }
     assert.ok(res.ok, 'Create announcement REST request failed');
     const announceData = await res.json();
     assert.ok(announceData.id, 'Announcement missing ID');

@@ -81,6 +81,9 @@ public class Queue {
     @Column(name = "next_token_number", nullable = false)
     private long nextTokenNumber = 1L;
 
+    @Column(name = "default_service_duration_minutes", nullable = false)
+    private int defaultServiceDurationMinutes = 5;
+
     @Column(name = "capacity_warning_active", nullable = false)
     private boolean capacityWarningActive = false;
 
@@ -115,6 +118,7 @@ public class Queue {
         this.status             = QueueStatus.ACTIVE;
         this.autoPauseAtCapacity = false;
         this.nextTokenNumber    = 1L;
+        this.defaultServiceDurationMinutes = 5;
         this.capacityWarningActive = false;
         this.waitWarningActive  = false;
         this.createdAt          = Instant.now();
@@ -137,6 +141,7 @@ public class Queue {
     public boolean     isWaitWarningActive()    { return waitWarningActive; }
     public Instant     getCreatedAt()           { return createdAt; }
     public Instant     getUpdatedAt()           { return updatedAt; }
+    public int         getDefaultServiceDurationMinutes() { return defaultServiceDurationMinutes; }
 
     // ── Setters ──────────────────────────────────────────────────────────────
 
@@ -148,4 +153,5 @@ public class Queue {
     public void setNextTokenNumber(long nextTokenNumber)          { this.nextTokenNumber = nextTokenNumber; }
     public void setCapacityWarningActive(boolean capacityWarningActive) { this.capacityWarningActive = capacityWarningActive; }
     public void setWaitWarningActive(boolean waitWarningActive)   { this.waitWarningActive = waitWarningActive; }
+    public void setDefaultServiceDurationMinutes(int defaultServiceDurationMinutes) { this.defaultServiceDurationMinutes = defaultServiceDurationMinutes; }
 }

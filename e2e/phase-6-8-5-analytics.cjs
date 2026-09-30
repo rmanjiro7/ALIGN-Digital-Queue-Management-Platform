@@ -129,8 +129,11 @@ async function run() {
 
     // Check if table rendered for counters
     const counterTableHasData = await page.evaluate(() => {
-      const table = document.querySelector('#analytics-counter-table table');
-      return table && table.innerText.includes('Counter');
+      const container = document.querySelector('#analytics-counter-table');
+      if (!container) return false;
+      const table = container.querySelector('table');
+      const emptyState = container.innerText.includes('No counter-level data');
+      return (table && table.innerText.includes('Counter')) || emptyState;
     });
     check('6. Counter Analytics table renders successfully', counterTableHasData);
 

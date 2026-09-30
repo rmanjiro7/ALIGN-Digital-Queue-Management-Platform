@@ -81,6 +81,30 @@ export interface ServiceItem {
   preparationGuidance?: string;
 }
 
+export interface PreparationRequirement {
+  id: string;
+  orgId: string;
+  serviceId: string;
+  title: string;
+  description: string;
+  isRequired: boolean;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TokenPositionResponse {
+  tokenNumber: string;
+  state: TokenState;
+  position: number;
+  estimatedWaitTimeMinutes: number;
+  estRangeMin: number;
+  estRangeMax: number;
+  estRangeText: string;
+  confidence: 'High' | 'Medium' | 'Low';
+}
+
 export interface QueueItem {
   id: string;
   orgId: string;
@@ -175,6 +199,19 @@ export interface AnnouncementItem {
   timeLabel: string;
   serviceName: string;
   errorMessage?: string;
+}
+
+export interface AnnouncementTemplate {
+  id: string;
+  orgId: string;
+  locationId?: string;
+  serviceId?: string;
+  languageCode: string;
+  eventType: string;
+  templateText: string;
+  isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GlobalOrgRules {

@@ -101,6 +101,51 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
     };
   }, [token?.id, token?.realtimeToken, token?.locationId]);
 
+  // ETA Hardening: Periodically fetch the latest token position/ETA from backend
+  useEffect(() => {
+    if (!token?.id || token.state !== 'WAITING') return;
+
+    const fetchPosition = async () => {
+      try {
+        const pos = await apiClient.getTokenPosition(token.id);
+        
+        // Update the token directly in the store to reflect backend ETA
+        const storeToken = appState.tokens.find(t => t.id === token.id);
+        if (storeToken) {
+          let hasChanges = false;
+          if (storeToken.peopleAhead !== pos.position) {
+            storeToken.peopleAhead = pos.position;
+            hasChanges = true;
+          }
+          if (storeToken.estWaitMins !== pos.estimatedWaitTimeMinutes) {
+            storeToken.estWaitMins = pos.estimatedWaitTimeMinutes;
+            hasChanges = true;
+          }
+          if (pos.estRangeText && storeToken.estRange !== pos.estRangeText) {
+            storeToken.estRange = pos.estRangeText;
+            hasChanges = true;
+          }
+          if (storeToken.confidence !== pos.confidence && pos.confidence) {
+            storeToken.confidence = pos.confidence;
+            hasChanges = true;
+          }
+          
+          if (hasChanges) {
+            // Trigger store re-render by calling an existing method that calls saveState()
+            queueStore.setActiveCustomerToken(token.id);
+          }
+        }
+      } catch (err) {
+        console.error('[Screen05] Failed to fetch token position:', err);
+      }
+    };
+
+    fetchPosition();
+    const interval = setInterval(fetchPosition, 15000); // 15 seconds
+    
+    return () => clearInterval(interval);
+  }, [token?.id, token?.state, appState.tokens]);
+
   const formatAwayTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -298,10 +343,14 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
                 <Clock className="w-3.5 h-3.5 text-[#00ACC1]" />
                 <span>Est. Wait</span>
               </div>
-              <div className="text-3xl font-black text-[#00ACC1]">
+              <div className="text-3xl font-black text-[#00ACC1] eta-range">
                 {token?.estRange || '15-20 min'}
               </div>
-              <div className="text-[10px] text-emerald-600 font-mono font-semibold">High Confidence</div>
+              <div className={`text-[10px] font-mono font-semibold ${
+                token?.confidence === 'High' ? 'text-emerald-600' :
+                token?.confidence === 'Medium' ? 'text-amber-600' :
+                token?.confidence === 'Low' ? 'text-rose-500' : 'text-emerald-600'
+              }`}>{token?.confidence || 'High'} Confidence</div>
             </div>
           </div>
         )}

@@ -44,4 +44,6 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
 
     @Query("SELECT MIN(t.priorityTimestamp) FROM Token t WHERE t.queueId = :queueId AND t.state = :state")
     Optional<Instant> findOldestTokenPriorityTimestampByQueueIdAndState(@Param("queueId") UUID queueId, @Param("state") TokenState state);
+
+    List<Token> findTop20ByQueueIdAndStateOrderByCompletedAtDesc(UUID queueId, TokenState state);
 }

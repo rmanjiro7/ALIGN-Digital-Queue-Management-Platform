@@ -239,6 +239,7 @@ public class StaffOperationsService {
                 request.getIdempotencyKey(),
                 oldToken.getSmsConsent()
         );
+        newToken.setJourneyStageId(oldToken.getJourneyStageId());
         targetQueue.setNextTokenNumber(targetQueue.getNextTokenNumber() + 1);
         queueRepository.save(targetQueue);
 

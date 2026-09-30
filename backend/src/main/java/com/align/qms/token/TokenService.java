@@ -12,6 +12,7 @@ import com.align.qms.security.UserPrincipal;
 import com.align.qms.token.dto.TokenJoinRequest;
 import com.align.qms.token.dto.TokenPositionResponse;
 import com.align.qms.token.dto.TokenResponse;
+import com.align.qms.counter.CounterRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,6 +34,7 @@ public class TokenService {
     private final TokenRepository tokenRepository;
     private final TokenEventService tokenEventService;
     private final QueueRepository queueRepository;
+    private final CounterRepository counterRepository;
     private final com.align.qms.security.JwtService jwtService;
     private final com.align.qms.location.LocationScheduleService locationScheduleService;
     
@@ -43,11 +45,13 @@ public class TokenService {
     public TokenService(TokenRepository tokenRepository, 
                         TokenEventService tokenEventService, 
                         QueueRepository queueRepository,
+                        CounterRepository counterRepository,
                         com.align.qms.security.JwtService jwtService,
                         com.align.qms.location.LocationScheduleService locationScheduleService) {
         this.tokenRepository = tokenRepository;
         this.tokenEventService = tokenEventService;
         this.queueRepository = queueRepository;
+        this.counterRepository = counterRepository;
         this.jwtService = jwtService;
         this.locationScheduleService = locationScheduleService;
     }
@@ -149,7 +153,7 @@ public class TokenService {
         validateTenantAccess(token);
 
         long tokensAhead = 0;
-        if (token.getState() == TokenState.WAITING) {
+        if (token.getState() == TokenState.WAITING || token.getState() == TokenState.AWAY) {
             tokensAhead = tokenRepository.countTokensAhead(
                     token.getQueueId(),
                     EnumSet.of(TokenState.WAITING, TokenState.AWAY),
@@ -158,9 +162,10 @@ public class TokenService {
             );
         }
 
-        int estimatedWaitTimeMinutes = calculateEstimatedWaitTime(tokensAhead);
+        Queue queue = queueRepository.findById(token.getQueueId())
+                .orElseThrow(() -> new IllegalStateException("Queue not found"));
 
-        return new TokenPositionResponse(token.getTokenNumber(), token.getState(), tokensAhead, estimatedWaitTimeMinutes);
+        return calculateEta(token, tokensAhead, queue);
     }
 
     @Transactional(readOnly = true)
@@ -243,7 +248,92 @@ public class TokenService {
         return TokenResponse.from(token);
     }
 
-    private int calculateEstimatedWaitTime(long tokensAhead) {
-        return (int) (tokensAhead * 5);
+    private TokenPositionResponse calculateEta(Token token, long tokensAhead, Queue queue) {
+        long activeCounters = counterRepository.countOnlineCountersForService(queue.getServiceId());
+        String confidence = "HIGH";
+        int avgDuration = queue.getDefaultServiceDurationMinutes();
+
+        if (activeCounters == 0) {
+            confidence = "NONE";
+            activeCounters = 1; // avoid division by zero
+        } else {
+            java.util.List<Token> recentTokens = tokenRepository.findTop20ByQueueIdAndStateOrderByCompletedAtDesc(queue.getId(), TokenState.COMPLETED);
+            if (recentTokens.size() < 5) {
+                confidence = "LOW";
+            } else {
+                long totalDuration = 0;
+                int validCount = 0;
+                for (Token t : recentTokens) {
+                    if (t.getCompletedAt() != null && t.getServedAt() != null) {
+                        totalDuration += java.time.Duration.between(t.getServedAt(), t.getCompletedAt()).toMinutes();
+                        validCount++;
+                    }
+                }
+                if (validCount >= 5) {
+                    avgDuration = (int) (totalDuration / validCount);
+                    if (avgDuration <= 0) avgDuration = 1;
+                } else {
+                    confidence = "LOW";
+                }
+            }
+        }
+
+        int estWait = (int) ((tokensAhead * avgDuration) / activeCounters);
+        
+        int min = (int) Math.floor(estWait * 0.8);
+        int max = (int) Math.ceil(estWait * 1.2);
+        String text = min + "-" + max + " mins";
+
+        return new TokenPositionResponse(
+            token.getTokenNumber(), 
+            token.getState(), 
+            tokensAhead, 
+            estWait,
+            min,
+            max,
+            text,
+            confidence
+        );
+    }
+
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Optional<Token> createJourneyTokenIfEligible(Token previousToken, com.align.qms.token.JourneyStage nextStage) {
+        Queue queue = queueRepository.findByServiceIdForUpdate(nextStage.getServiceId()).orElse(null);
+        if (queue == null) return Optional.empty();
+
+        if (!locationScheduleService.isLocationOpen(queue.getLocationId(), Instant.now())) {
+            return Optional.empty();
+        }
+
+        if (queue.getStatus() == QueueStatus.PAUSED || queue.getStatus() == QueueStatus.CLOSED) {
+            return Optional.empty();
+        }
+
+        EnumSet<TokenState> activeStates = EnumSet.of(TokenState.WAITING, TokenState.AWAY, TokenState.CALLED, TokenState.IN_SERVICE);
+        long activeCount = tokenRepository.countByQueueIdAndStateIn(queue.getId(), activeStates);
+        if (activeCount >= queue.getMaxCapacity()) {
+            return Optional.empty();
+        }
+
+        long nextNumber = queueRepository.allocateNextTokenNumber(queue.getId());
+        String tokenString = String.format("%s%03d", queue.getTokenPrefix(), nextNumber);
+
+        Token token = new Token(
+                queue.getOrgId(),
+                queue.getLocationId(),
+                queue.getServiceId(),
+                queue.getId(),
+                tokenString,
+                previousToken.getCustomerName(),
+                previousToken.getCustomerPhone(),
+                "journey_transfer_" + previousToken.getId() + "_" + nextStage.getId(),
+                previousToken.getSmsConsent()
+        );
+        token.setJourneyStageId(nextStage.getId());
+        token.setPriorityTimestamp(previousToken.getPriorityTimestamp() != null ? previousToken.getPriorityTimestamp() : previousToken.getJoinedAt());
+
+        token = tokenRepository.save(token);
+        tokenEventService.recordEvent(token, TokenEventType.TOKEN_CREATED, null, null);
+        return Optional.of(token);
     }
 }

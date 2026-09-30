@@ -136,6 +136,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
                 // Public discovery endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/services").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/services/*/preparation-requirements").permitAll()
                 // Phase 3 Token Engine endpoints (public for customers via UUID knowledge)
                 .requestMatchers(HttpMethod.POST, "/api/v1/tokens").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tokens/{id}").permitAll()

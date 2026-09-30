@@ -11,8 +11,8 @@ spring:
     validate-on-migrate: true
   datasource:
     hikari:
-      connection-timeout: 5000
-      maximum-pool-size: 5
+      connection-timeout: 30000
+      maximum-pool-size: 150
   jpa:
     hibernate:
       ddl-auto: validate

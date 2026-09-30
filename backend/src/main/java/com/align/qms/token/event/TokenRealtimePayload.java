@@ -22,6 +22,7 @@ public class TokenRealtimePayload {
     private final Instant timestamp;
     private final String customerPhone;
     private final Boolean smsConsent;
+    private final UUID transferredToTokenId;
 
     public TokenRealtimePayload(TokenEvent event, Token token, Integer counterNumber) {
         this.eventId = event.getId();
@@ -37,6 +38,7 @@ public class TokenRealtimePayload {
         this.counterNumber = counterNumber;
         this.toState = token.getState();
         this.timestamp = Instant.now();
+        this.transferredToTokenId = token.getTransferredToTokenId();
     }
 
     private TokenRealtimePayload(TokenRealtimePayload source, boolean maskPhone) {
@@ -53,6 +55,7 @@ public class TokenRealtimePayload {
         this.timestamp = source.timestamp;
         this.customerPhone = maskPhone ? null : source.customerPhone;
         this.smsConsent = maskPhone ? null : source.smsConsent;
+        this.transferredToTokenId = source.transferredToTokenId;
     }
 
     public TokenRealtimePayload maskedForPublic() {
@@ -73,4 +76,5 @@ public class TokenRealtimePayload {
     public String getCustomerPhone() { return customerPhone; }
     public Boolean getSmsConsent() { return smsConsent; }
     public Instant getTimestamp() { return timestamp; }
+    public UUID getTransferredToTokenId() { return transferredToTokenId; }
 }

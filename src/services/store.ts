@@ -200,7 +200,7 @@ const INITIAL_SERVICES: ServiceItem[] = [
     preparationGuidance: 'Bring government ID, proof of address, and initial deposit if applicable.',
   },
   {
-    id: 'srv-loan',
+    id: 'e2e00000-0000-0000-0000-000000000010',
     orgId: 'e2e00000-0000-0000-0000-000000000001',
     locationId: 'e2e00000-0000-0000-0000-000000000002',
     name: 'Loan Applications',
@@ -304,7 +304,7 @@ const INITIAL_QUEUES: QueueItem[] = [
     id: 'q-specialist',
     orgId: 'e2e00000-0000-0000-0000-000000000001',
     locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'srv-loan',
+    serviceId: 'e2e00000-0000-0000-0000-000000000010',
     name: 'Consultation Desk',
     tokenPrefix: 'C',
     startRange: 1,
@@ -444,7 +444,7 @@ const INITIAL_TOKENS: QueueToken[] = [
     id: 'tok-012',
     orgId: 'e2e00000-0000-0000-0000-000000000001',
     locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'srv-loan',
+    serviceId: 'e2e00000-0000-0000-0000-000000000010',
     queueId: 'q-specialist',
     tokenNumber: 'C-012',
     state: 'WAITING',
@@ -948,8 +948,11 @@ export class QueueStore {
           counter.serviceStartTime = token.servedAt;
         }
       } else if (event.eventType === 'TOKEN_COMPLETED' || event.eventType === 'TOKEN_NO_SHOW' || event.eventType === 'TOKEN_TRANSFERRED') {
-        if (event.eventType === 'TOKEN_TRANSFERRED') {
+        if (event.eventType === 'TOKEN_TRANSFERRED' || (event.eventType === 'TOKEN_COMPLETED' && event.transferredToTokenId)) {
           token.state = 'TRANSFERRED';
+          if (event.transferredToTokenId) {
+            token.transferredToTokenId = event.transferredToTokenId;
+          }
         } else {
           token.state = event.eventType === 'TOKEN_COMPLETED' ? 'COMPLETED' : 'NO_SHOW';
         }
@@ -961,7 +964,7 @@ export class QueueStore {
           counter.currentServingTokenNumber = undefined;
           counter.serviceStartTime = undefined;
         }
-        if (event.eventType === 'TOKEN_TRANSFERRED') {
+        if (token.state === 'TRANSFERRED') {
           // Keep it in tokens so the customer screen can recover it
         } else {
           this.state.historyTokens.unshift({ ...token });

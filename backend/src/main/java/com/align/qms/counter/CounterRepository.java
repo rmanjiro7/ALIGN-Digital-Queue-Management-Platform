@@ -35,4 +35,7 @@ public interface CounterRepository extends JpaRepository<Counter, UUID> {
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("SELECT c FROM Counter c WHERE c.id = :id")
     Optional<Counter> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") UUID id);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Counter c JOIN CounterServiceAssignment csa ON c.id = csa.counterId WHERE csa.serviceId = :serviceId AND c.availability = 'ONLINE' AND c.status = 'ACTIVE'")
+    long countOnlineCountersForService(@org.springframework.data.repository.query.Param("serviceId") UUID serviceId);
 }

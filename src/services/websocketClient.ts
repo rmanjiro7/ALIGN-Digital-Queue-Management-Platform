@@ -110,6 +110,7 @@ export class WebsocketClient {
 
     const subscription = this.client.subscribe(destination, (message) => {
       if (message.body) {
+        console.log(`[STOMP] Received on ${destination}:`, message.body);
         try {
           const parsed = JSON.parse(message.body);
           onMessage(parsed);

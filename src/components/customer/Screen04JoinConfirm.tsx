@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { apiClient } from '../../services/apiClient';
+import { PreparationRequirement } from '../../types';
 
 interface Screen04JoinConfirmProps {
   appState: AppState;
@@ -24,10 +25,22 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
   const [customerPhone, setCustomerPhone] = useState('+1 (555) 234-5678');
   const [smsConsent, setSmsConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requirements, setRequirements] = useState<PreparationRequirement[]>([]);
+  const [loadingReqs, setLoadingReqs] = useState(false);
 
   const selectedService = appState.services.find(s => s.id === appState.selectedServiceId) || appState.services[0];
   const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
   const currentLocation = appState.locations.find(l => l.id === appState.selectedLocationId) || appState.locations[0];
+
+  React.useEffect(() => {
+    if (selectedService) {
+      setLoadingReqs(true);
+      apiClient.getPreparationRequirements(selectedService.id)
+        .then(reqs => setRequirements(reqs.filter((r: PreparationRequirement) => r.isActive).sort((a: PreparationRequirement, b: PreparationRequirement) => a.displayOrder - b.displayOrder)))
+        .catch(console.error)
+        .finally(() => setLoadingReqs(false));
+    }
+  }, [selectedService]);
 
   const handleConfirmJoin = async () => {
     setIsSubmitting(true);
@@ -53,10 +66,10 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
           customerName: customerName || 'Walk-in Guest',
           customerPhone: customerPhone || '',
           joinedAt: res.joinedAt || new Date().toISOString(),
-          peopleAhead: res.peopleAhead || 0,
-          estWaitMins: res.estWaitMins || 10,
-          estRange: res.estRange || '10-15 min',
-          confidence: 'High',
+          peopleAhead: res.position ?? res.peopleAhead ?? 0,
+          estWaitMins: res.estimatedWaitTimeMinutes ?? res.estWaitMins ?? 10,
+          estRange: res.estRangeText ?? res.estRange ?? '10-15 min',
+          confidence: res.confidence || 'High',
           realtimeToken: res.realtimeToken
         };
         queueStore.addJoinedCustomerToken(storeToken);
@@ -143,6 +156,33 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
             <div className="text-[10px] text-emerald-600 font-mono font-semibold">High Confidence</div>
           </div>
         </div>
+
+        {/* Preparation Requirements */}
+        {requirements.length > 0 && (
+          <div className="pt-2">
+            <div className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-3">
+              Preparation Requirements
+            </div>
+            <div className="space-y-3">
+              {requirements.map(req => (
+                <div key={req.id} className="flex gap-3 bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                  <ShieldCheck className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-blue-900 text-sm">
+                      {req.title}
+                      {req.isRequired && <span className="ml-2 text-[10px] uppercase bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold tracking-wider">Required</span>}
+                    </div>
+                    {req.description && (
+                      <div className="text-xs text-blue-800 mt-1 leading-relaxed">
+                        {req.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Customer Information Form */}
         <div className="pt-2 space-y-3">

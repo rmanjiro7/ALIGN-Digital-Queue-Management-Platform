@@ -91,6 +91,9 @@ public class Token {
     @Column(name = "priority_timestamp")
     private Instant priorityTimestamp;
 
+    @Column(name = "journey_stage_id")
+    private UUID journeyStageId;
+
     public Token() {
     }
 
@@ -202,4 +205,7 @@ public class Token {
 
     public Instant getPriorityTimestamp() { return priorityTimestamp; }
     public void setPriorityTimestamp(Instant priorityTimestamp) { this.priorityTimestamp = priorityTimestamp; }
+
+    public UUID getJourneyStageId() { return journeyStageId; }
+    public void setJourneyStageId(UUID journeyStageId) { this.journeyStageId = journeyStageId; }
 }

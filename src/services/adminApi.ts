@@ -116,6 +116,37 @@ export const adminApi = {
     return res.json();
   },
 
+  // ── Preparation Requirements ───────────────────────────────────────────────
+  getPreparationRequirements: async (serviceId: string): Promise<any[]> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/services/${serviceId}/preparation-requirements`);
+    if (!res.ok) throw new Error('Failed to fetch preparation requirements');
+    return res.json();
+  },
+  createPreparationRequirement: async (serviceId: string, data: any): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/services/${serviceId}/preparation-requirements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create preparation requirement');
+    return res.json();
+  },
+  updatePreparationRequirement: async (serviceId: string, id: string, data: any): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/services/${serviceId}/preparation-requirements/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update preparation requirement');
+    return res.json();
+  },
+  deletePreparationRequirement: async (serviceId: string, id: string): Promise<void> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/services/${serviceId}/preparation-requirements/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete preparation requirement');
+  },
+
   // ── Queues ───────────────────────────────────────────────────────────────
   getQueuesByLocation: async (locationId: string): Promise<QueueItem[]> => {
     const res = await apiClient.authenticatedFetch(`${API_BASE}/queues?locationId=${locationId}`);
@@ -153,5 +184,36 @@ export const adminApi = {
     });
     if (!res.ok) throw new Error('Failed to update queue config');
     return res.json();
+  },
+
+  // ── Announcement Templates ───────────────────────────────────────────────
+  getAnnouncementTemplates: async (): Promise<any[]> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/announcement-templates`);
+    if (!res.ok) throw new Error('Failed to fetch announcement templates');
+    return res.json();
+  },
+  createAnnouncementTemplate: async (data: any): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/announcement-templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create announcement template');
+    return res.json();
+  },
+  updateAnnouncementTemplate: async (id: string, data: any): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/announcement-templates/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update announcement template');
+    return res.json();
+  },
+  deleteAnnouncementTemplate: async (id: string): Promise<void> => {
+    const res = await apiClient.authenticatedFetch(`${API_BASE}/announcement-templates/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete announcement template');
   },
 };

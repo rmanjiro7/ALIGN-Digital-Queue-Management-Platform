@@ -13,10 +13,15 @@ import {
   Clock, 
   AlertTriangle,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  ClipboardList,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare
 } from 'lucide-react';
 import { adminApi } from '../../services/adminApi';
 import { queueStore, AppState } from '../../services/store';
+import { PreparationRequirement, AnnouncementTemplate } from '../../types';
 
 interface Screen14ServiceQueueConfigProps {
   appState: AppState;
@@ -70,6 +75,27 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   const [editQueueMaxCapacity, setEditQueueMaxCapacity] = useState<number | ''>(50);
   const [editQueueAutoPause, setEditQueueAutoPause] = useState(false);
 
+  // ── Preparation Requirements State ──
+  const [prepReqs, setPrepReqs] = useState<Record<string, PreparationRequirement[]>>({});
+  const [expandedPrepService, setExpandedPrepService] = useState<string | null>(null);
+  const [showPrepModal, setShowPrepModal] = useState(false);
+  const [editingPrepReq, setEditingPrepReq] = useState<PreparationRequirement | null>(null);
+  const [prepServiceId, setPrepServiceId] = useState('');
+  const [prepTitle, setPrepTitle] = useState('');
+  const [prepDescription, setPrepDescription] = useState('');
+  const [prepIsRequired, setPrepIsRequired] = useState(true);
+  const [prepDisplayOrder, setPrepDisplayOrder] = useState(0);
+  const [prepIsActive, setPrepIsActive] = useState(true);
+
+  // ── Announcement Templates State ──
+  const [announcementTemplates, setAnnouncementTemplates] = useState<AnnouncementTemplate[]>([]);
+  const [showAnnTemplateModal, setShowAnnTemplateModal] = useState(false);
+  const [editingAnnTemplate, setEditingAnnTemplate] = useState<AnnouncementTemplate | null>(null);
+  const [annLangCode, setAnnLangCode] = useState('en');
+  const [annEventType, setAnnEventType] = useState('CALL_NEXT');
+  const [annTemplateText, setAnnTemplateText] = useState('');
+  const [annIsDefault, setAnnIsDefault] = useState(false);
+
 
   React.useEffect(() => {
     fetchData();
@@ -79,12 +105,14 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     try {
       setIsLoading(true);
       setError(null);
-      const [servicesData, queuesData] = await Promise.all([
+      const [servicesData, queuesData, templatesData] = await Promise.all([
         adminApi.getServices(currentLocation.id),
-        adminApi.getQueuesByLocation(currentLocation.id)
+        adminApi.getQueuesByLocation(currentLocation.id),
+        adminApi.getAnnouncementTemplates()
       ]);
       queueStore.setServices(servicesData);
       queueStore.setQueues(queuesData);
+      setAnnouncementTemplates(templatesData.filter((t: AnnouncementTemplate) => t.orgId === currentOrg.id));
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
     } finally {
@@ -260,6 +288,154 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     }
   };
 
+  // ── Preparation Requirements Handlers ──
+  const fetchPrepReqs = async (serviceId: string) => {
+    try {
+      const reqs = await adminApi.getPreparationRequirements(serviceId);
+      setPrepReqs(prev => ({ ...prev, [serviceId]: reqs }));
+    } catch (err) {
+      console.error('[Screen14] Failed to fetch prep requirements:', err);
+    }
+  };
+
+  const togglePrepSection = (serviceId: string) => {
+    if (expandedPrepService === serviceId) {
+      setExpandedPrepService(null);
+    } else {
+      setExpandedPrepService(serviceId);
+      if (!prepReqs[serviceId]) {
+        fetchPrepReqs(serviceId);
+      }
+    }
+  };
+
+  const openAddPrepModal = (serviceId: string) => {
+    setEditingPrepReq(null);
+    setPrepServiceId(serviceId);
+    setPrepTitle('');
+    setPrepDescription('');
+    setPrepIsRequired(true);
+    setPrepDisplayOrder((prepReqs[serviceId]?.length || 0) + 1);
+    setPrepIsActive(true);
+    setShowPrepModal(true);
+  };
+
+  const openEditPrepModal = (serviceId: string, req: PreparationRequirement) => {
+    setEditingPrepReq(req);
+    setPrepServiceId(serviceId);
+    setPrepTitle(req.title);
+    setPrepDescription(req.description);
+    setPrepIsRequired(req.isRequired);
+    setPrepDisplayOrder(req.displayOrder);
+    setPrepIsActive(req.isActive);
+    setShowPrepModal(true);
+  };
+
+  const handleSavePrepReq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prepTitle || !prepServiceId) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = {
+        title: prepTitle,
+        description: prepDescription,
+        isRequired: prepIsRequired,
+        displayOrder: prepDisplayOrder,
+        isActive: prepIsActive,
+      };
+      if (editingPrepReq) {
+        await adminApi.updatePreparationRequirement(prepServiceId, editingPrepReq.id, data);
+      } else {
+        await adminApi.createPreparationRequirement(prepServiceId, data);
+      }
+      await fetchPrepReqs(prepServiceId);
+      setShowPrepModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save preparation requirement');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeletePrepReq = async (serviceId: string, reqId: string) => {
+    if (!confirm('Delete this preparation requirement?')) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.deletePreparationRequirement(serviceId, reqId);
+      await fetchPrepReqs(serviceId);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete preparation requirement');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Announcement Templates Handlers ──
+  const openAddAnnTemplateModal = () => {
+    setEditingAnnTemplate(null);
+    setAnnLangCode('en');
+    setAnnEventType('CALL_NEXT');
+    setAnnTemplateText('');
+    setAnnIsDefault(false);
+    setShowAnnTemplateModal(true);
+  };
+
+  const openEditAnnTemplateModal = (template: AnnouncementTemplate) => {
+    setEditingAnnTemplate(template);
+    setAnnLangCode(template.languageCode);
+    setAnnEventType(template.eventType);
+    setAnnTemplateText(template.templateText);
+    setAnnIsDefault(template.isDefault);
+    setShowAnnTemplateModal(true);
+  };
+
+  const handleSaveAnnTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!annLangCode || !annEventType || !annTemplateText) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      const payload = {
+        orgId: currentOrg.id,
+        languageCode: annLangCode,
+        eventType: annEventType,
+        templateText: annTemplateText,
+        isDefault: annIsDefault
+      };
+      
+      if (editingAnnTemplate) {
+        await adminApi.updateAnnouncementTemplate(editingAnnTemplate.id, payload);
+      } else {
+        await adminApi.createAnnouncementTemplate(payload);
+      }
+      
+      const templatesData = await adminApi.getAnnouncementTemplates();
+      setAnnouncementTemplates(templatesData.filter((t: AnnouncementTemplate) => t.orgId === currentOrg.id));
+      setShowAnnTemplateModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save announcement template');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAnnTemplate = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      await adminApi.deleteAnnouncementTemplate(id);
+      const templatesData = await adminApi.getAnnouncementTemplates();
+      setAnnouncementTemplates(templatesData.filter((t: AnnouncementTemplate) => t.orgId === currentOrg.id));
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete template');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       {/* Header with Create Service Action */}
@@ -420,6 +596,104 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
                     <span>Map additional queue</span>
                   </button>
                 </div>
+
+                {/* Preparation Requirements Section */}
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => togglePrepSection(srv.id)}
+                    className="flex items-center justify-between w-full text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="w-4 h-4 text-[#00ACC1]" />
+                      <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
+                        Preparation Requirements
+                      </span>
+                      {prepReqs[srv.id]?.length > 0 && (
+                        <span className="text-[10px] font-mono font-bold bg-[#00ACC1]/10 text-[#00ACC1] px-2 py-0.5 rounded-full">
+                          {prepReqs[srv.id].length}
+                        </span>
+                      )}
+                    </div>
+                    {expandedPrepService === srv.id
+                      ? <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                      : <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                    }
+                  </button>
+
+                  {expandedPrepService === srv.id && (
+                    <div className="mt-3 space-y-2">
+                      {(prepReqs[srv.id] || []).length > 0 ? (
+                        <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
+                          {(prepReqs[srv.id] || [])
+                            .sort((a, b) => a.displayOrder - b.displayOrder)
+                            .map((req) => (
+                            <div
+                              key={req.id}
+                              className={`p-3 flex items-center justify-between gap-3 transition-colors ${
+                                req.isActive ? 'bg-[#F1F5F9]/50 hover:bg-[#F1F5F9]' : 'bg-slate-50 opacity-60'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold shrink-0 ${
+                                  req.isRequired ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-slate-100 text-slate-500 border border-slate-200'
+                                }`}>
+                                  {req.isRequired ? '!' : '?'}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold text-slate-900 truncate">{req.title}</div>
+                                  {req.description && (
+                                    <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{req.description}</div>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                      req.isRequired ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'
+                                    }`}>
+                                      {req.isRequired ? 'REQUIRED' : 'OPTIONAL'}
+                                    </span>
+                                    {!req.isActive && (
+                                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
+                                        INACTIVE
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => openEditPrepModal(srv.id, req)}
+                                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
+                                  title="Edit Requirement"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePrepReq(srv.id, req.id)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title="Delete Requirement"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-500">
+                          No preparation requirements configured for this service.
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => openAddPrepModal(srv.id)}
+                        className="text-xs font-bold text-[#00ACC1] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add preparation requirement</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -523,6 +797,54 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
                 <span className="text-slate-500">Active Counters</span>
                 <span className="font-bold text-[#0F172A]">{appState.counters.length}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Announcement Templates Summary */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-mono uppercase tracking-wider text-[#0F172A] font-bold flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-[#00ACC1]" />
+                Announcement Templates
+              </h2>
+              <button
+                onClick={openAddAnnTemplateModal}
+                className="text-[#00ACC1] hover:bg-[#00ACC1]/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                title="Add Template"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {announcementTemplates.length > 0 ? (
+                announcementTemplates.map(template => (
+                  <div key={template.id} className="p-3 bg-[#F1F5F9] rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold font-mono text-slate-800 uppercase">{template.eventType}</span>
+                        {template.isDefault && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#00ACC1]/10 text-[#00ACC1] font-bold uppercase">Default</span>
+                        )}
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-bold uppercase">{template.languageCode}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 truncate mt-1">{template.templateText}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => openEditAnnTemplateModal(template)} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-lg cursor-pointer">
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteAnnTemplate(template.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-[11px] text-slate-500 italic p-2 text-center border border-dashed border-slate-200 rounded-xl">
+                  No templates configured. Standard messages will be used.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -757,6 +1079,153 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
                 <button type="button" onClick={() => setShowEditQueueModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
                 <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
                   Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PREPARATION REQUIREMENT ADD/EDIT MODAL */}
+      {showPrepModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingPrepReq ? 'Edit Requirement' : 'Add Preparation Requirement'}
+              </h2>
+              <button onClick={() => setShowPrepModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">×</button>
+            </div>
+            <form onSubmit={handleSavePrepReq} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={prepTitle}
+                  onChange={e => setPrepTitle(e.target.value)}
+                  placeholder="e.g. Valid Photo ID"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <textarea
+                  value={prepDescription}
+                  onChange={e => setPrepDescription(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. Please bring a government-issued photo ID (passport, driver's license)"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="prepRequired"
+                    checked={prepIsRequired}
+                    onChange={e => setPrepIsRequired(e.target.checked)}
+                    className="rounded text-[#00ACC1]"
+                  />
+                  <label htmlFor="prepRequired" className="text-sm text-slate-700 cursor-pointer">Required</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="prepActive"
+                    checked={prepIsActive}
+                    onChange={e => setPrepIsActive(e.target.checked)}
+                    className="rounded text-[#00ACC1]"
+                  />
+                  <label htmlFor="prepActive" className="text-sm text-slate-700 cursor-pointer">Active</label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Display Order</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={prepDisplayOrder}
+                  onChange={e => setPrepDisplayOrder(parseInt(e.target.value) || 0)}
+                  className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowPrepModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Cancel</button>
+                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50 cursor-pointer">
+                  {editingPrepReq ? 'Save Changes' : 'Add Requirement'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement Template Modal */}
+      {showAnnTemplateModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingAnnTemplate ? 'Edit Template' : 'Add Announcement Template'}
+              </h2>
+              <button onClick={() => setShowAnnTemplateModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">×</button>
+            </div>
+            <form onSubmit={handleSaveAnnTemplate} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Event Type</label>
+                  <select
+                    required
+                    value={annEventType}
+                    onChange={e => setAnnEventType(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1] cursor-pointer"
+                  >
+                    <option value="CALL_NEXT">Call Next</option>
+                    <option value="WAIT_REMINDER">Wait Reminder</option>
+                    <option value="QUEUE_CLOSED">Queue Closed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Language Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={annLangCode}
+                    onChange={e => setAnnLangCode(e.target.value)}
+                    placeholder="e.g. en, es, fr"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Template Text</label>
+                <textarea
+                  required
+                  value={annTemplateText}
+                  onChange={e => setAnnTemplateText(e.target.value)}
+                  rows={4}
+                  placeholder="e.g. Token {tokenNumber}, please proceed to Counter {counterNumber}."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Variables available: {'{tokenNumber}'}, {'{counterNumber}'}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isDefaultTemplate"
+                  checked={annIsDefault}
+                  onChange={e => setAnnIsDefault(e.target.checked)}
+                  className="rounded text-[#00ACC1] cursor-pointer"
+                />
+                <label htmlFor="isDefaultTemplate" className="text-sm text-slate-700 cursor-pointer">
+                  Set as Default for Event
+                </label>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowAnnTemplateModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Cancel</button>
+                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50 cursor-pointer">
+                  {editingAnnTemplate ? 'Save Changes' : 'Add Template'}
                 </button>
               </div>
             </form>

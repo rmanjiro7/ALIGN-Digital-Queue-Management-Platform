@@ -170,6 +170,26 @@ export const apiClient = {
     return res.json();
   },
 
+  getPreparationRequirements: async (serviceId: string): Promise<any[]> => {
+    const res = await fetch(`/api/v1/services/${serviceId}/preparation-requirements`, {
+      method: 'GET'
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch preparation requirements');
+    }
+    return res.json();
+  },
+
+  getTokenPosition: async (tokenId: string): Promise<any> => {
+    const res = await fetch(`/api/v1/tokens/${tokenId}/position`, {
+      method: 'GET'
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch token position');
+    }
+    return res.json();
+  },
+
   joinQueue: async (orgId: string, locationId: string, serviceId: string, customerName?: string, customerPhone?: string, smsConsent?: boolean): Promise<any> => {
     const res = await fetch(`/api/v1/tokens`, {
       method: 'POST',

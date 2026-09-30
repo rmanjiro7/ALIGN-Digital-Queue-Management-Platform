@@ -1,3 +1,171 @@
+# ALIGN — LIVING PROJECT ROADMAP
+
+**Version:** 1.5 (Phase 8 Validation Complete)
+**Last Updated:** 2026-09-30
+
+## CURRENT PROJECT STATE
+
+### Completed and Verified
+- **Phase 0 Foundation**
+- **Phase 1 Security**
+- **Phase 2 Organization Domain**
+- **Phase 3 Token Engine**
+- **Phase 4 Staff Operations**
+- **Phase 5 Realtime**
+- **Phase 6 Admin & Analytics**
+- **Phase 7.1 Notification Foundation**
+- **Phase 7.2 Operating Hours**
+- **Phase 7.3 Customer Consent**
+- **Phase 8 MVP Gaps (Backend)**
+- **Phase 8 MVP Gaps (Frontend)**
+
+### Implemented but Validation Pending
+- None. (All tests passed locally).
+
+### In Progress
+- Documentation and Roadmapping tasks.
+
+### Blocked
+- None.
+
+### Future / Optional
+- Twilio SMS Provider Integration
+- Advanced AI/ML wait time modeling
+
+## GIT / REMOTE STATUS
+- **Current Branch:** `main`
+- **Current Local Commit:** `cd2ce25 feat(notification): implement phase 7.3 customer consent`
+- **Upstream Branch:** `origin/main`
+- **Local-ahead count:** 9 commits
+- **Remote-ahead count:** 0 commits
+- **Working Tree Status:** 22 tracked files modified, 26 untracked files. Uncommitted changes present.
+
+## ORIGINAL ROADMAP STATUS
+
+- **Phase 0 (Foundation):** ✅ COMPLETE
+- **Phase 1 (Security):** ✅ COMPLETE
+- **Phase 2 (Organization Domain):** ✅ COMPLETE
+- **Phase 3 (Queue/Token Engine):** ✅ COMPLETE
+- **Phase 4 (Staff Operations):** ✅ COMPLETE
+- **Phase 5 (Realtime):** ✅ COMPLETE
+- **Phase 6 (Admin & Analytics):** ✅ COMPLETE
+- **Phase 7 (Testing):** 🟡 PARTIALLY COMPLETE (Unit/Integration testing robust, but performance profiling and formal JaCoCo constraints pending).
+- **Phase 8 (Documentation):** 🟡 PARTIALLY COMPLETE (Architecture complete. OpenAPI, ERD, and DEPLOYMENT.md pending).
+
+## WORK IMPLEMENTED BEYOND ORIGINAL ROADMAP
+
+- **Feature:** Notification Foundation
+  - **Why it is outside the original roadmap:** Not explicitly outlined in early queue definitions.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (E2E `phase-7-1-notifications.cjs` passes).
+  - **Related phase/current placement:** Phase 7.1
+- **Feature:** Operating Hours
+  - **Why it is outside the original roadmap:** Not in original MVP scope.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (E2E `phase-7-2-operating-hours.cjs` passes).
+  - **Related phase/current placement:** Phase 7.2
+- **Feature:** Customer Consent (SMS)
+  - **Why it is outside the original roadmap:** PII/Consent flow not outlined originally.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (E2E `phase-7-3-customer-consent.cjs` passes).
+  - **Related phase/current placement:** Phase 7.3
+- **Feature:** Journey Functionality
+  - **Why it is outside the original roadmap:** Queues were initially single-stage.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (Backend suite & E2E pass).
+  - **Related phase/current placement:** Phase 8
+- **Feature:** Preparation Requirements
+  - **Why it is outside the original roadmap:** Added to streamline customer onboarding.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (Frontend UI and Backend CRUD working).
+  - **Related phase/current placement:** Phase 8
+- **Feature:** Announcement Templates
+  - **Why it is outside the original roadmap:** Added for staff operational efficiency.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (Frontend CRUD and Backend APIs functional).
+  - **Related phase/current placement:** Phase 8
+- **Feature:** ETA Hardening & Realtime Position Polling
+  - **Why it is outside the original roadmap:** Hardened to handle WebSocket disconnects.
+  - **Current status:** Implemented.
+  - **Validation status:** Verified (Frontend polling mechanisms working).
+  - **Related phase/current placement:** Phase 8
+
+## CURRENT PHASE 8 STATUS
+
+### Journey
+- Journey model: Implemented and Verified
+- Journey progression: Implemented and Verified
+- automatic progression: Implemented and Verified
+- realtime event handling: Implemented and Verified
+- customer recovery flow: Implemented and Verified
+- E2E validation: Implemented and Verified
+
+### Preparation Requirements
+- backend API: Implemented and Verified
+- customer UI: Implemented and Verified
+- admin CRUD: Implemented and Verified
+- validation: Implemented and Verified
+- E2E coverage: Implemented and Verified
+
+### Announcement Templates
+- backend API: Implemented and Verified
+- admin UI: Implemented and Verified
+- CRUD behavior: Implemented and Verified
+- RBAC/security: Implemented and Verified
+- validation/E2E coverage: Implemented and Verified
+
+### ETA Hardening
+- TokenPositionResponse: Implemented and Verified
+- API integration: Implemented and Verified
+- ETA range display: Implemented and Verified
+- confidence display: Implemented and Verified
+- polling/runtime behavior: Implemented and Verified
+- E2E validation: Implemented and Verified
+
+### Phase 8 Final Gate
+- backend regression: Verified PASS (217/217)
+- frontend lint: Verified PASS
+- TypeScript: Verified PASS
+- production build: Verified PASS
+- Phase 8 E2E: Verified PASS (`phase-8.cjs`)
+- regression E2E: Verified PASS
+
+## CURRENTLY BLOCKED / PENDING VALIDATION
+- None.
+
+## ORIGINAL ROADMAP REMAINING
+
+### Phase 7 — TESTING
+- Test infrastructure: ✅ COMPLETE
+- Unit tests: ✅ COMPLETE
+- Integration tests: ✅ COMPLETE
+- Security tests: 🟡 PARTIALLY COMPLETE (Basic tests pass, explicit penetration test scenarios remain)
+- Business rules: ✅ COMPLETE
+- Concurrency testing: 🟡 PARTIALLY COMPLETE (Needs max-load performance run)
+- Performance baseline: ❌ NOT COMPLETE
+- JaCoCo: ❌ NOT COMPLETE
+- Coverage target: ❌ NOT COMPLETE
+- Regression testing: ✅ COMPLETE
+
+### Phase 8 — DOCUMENTATION
+- Springdoc/OpenAPI: ❌ NOT COMPLETE
+- Swagger UI: ❌ NOT COMPLETE
+- ERD: ❌ NOT COMPLETE
+- Data retention policy: ❌ NOT COMPLETE
+- Backup strategy: ❌ NOT COMPLETE
+- DEPLOYMENT.md: ❌ NOT COMPLETE
+- README: ❌ NOT COMPLETE
+- CHANGELOG: ❌ NOT COMPLETE
+- production configuration documentation: ❌ NOT COMPLETE
+
+## FUTURE / OPTIONAL WORK
+- Realtime Webhooks API
+- Multi-language localization
+
+---
+
+# ORIGINAL ROADMAP — HISTORICAL BASELINE
+
 # ALIGN BACKEND — IMPLEMENTATION TODO
 
 **Version:** 1.4 (Phase 1 Validated)  
