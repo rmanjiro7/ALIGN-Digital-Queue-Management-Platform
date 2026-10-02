@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:e2e:rt4": "node e2e/rt4-realtime-verification.cjs"
+    "test:e2e:rt4": "node ../e2e/rt4-realtime-verification.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

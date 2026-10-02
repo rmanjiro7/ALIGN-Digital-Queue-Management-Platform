@@ -134,3 +134,28 @@ ALIGN-UI-REFERENCE-PACKAGE/
 │
 └── README.md
 ```
+
+---
+
+## 5. Execution Instructions
+
+### Frontend
+```bash
+cd frontend
+bun install
+bun run dev
+bun run build
+```
+
+### E2E Tests
+```bash
+cd e2e
+npm install
+node phase-8.cjs
+```
+
+### Backend
+```bash
+cd backend
+mvn spring-boot:run
+```

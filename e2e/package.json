@@ -1,0 +1,9 @@
+{
+  "name": "align-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E2E tests for ALIGN",
+  "dependencies": {
+    "puppeteer": "^25.9.0"
+  }
+}
