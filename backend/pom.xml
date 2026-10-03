@@ -54,6 +54,7 @@
         -->
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.5.0</springdoc.version>
+        <bucket4j.version>8.10.1</bucket4j.version>
     </properties>
 
     <dependencies>
@@ -162,6 +163,13 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-messaging</artifactId>
+        </dependency>
+
+        <!-- ── Rate Limiting ─────────────────────────────────────────── -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>${bucket4j.version}</version>
         </dependency>
 
         <!-- ── PostgreSQL Driver ─────────────────────────────────────── -->

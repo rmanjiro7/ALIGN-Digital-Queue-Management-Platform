@@ -53,6 +53,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthEntryPoint          authEntryPoint;
     private final AccessDeniedHandlerImpl accessDeniedHandler;
+    private final RateLimitFilter         rateLimitFilter;
 
     @Value("${align.cors.allowed-origins}")
     private String allowedOriginsRaw;
@@ -60,11 +61,13 @@ public class SecurityConfig {
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
                           JwtAuthenticationFilter jwtAuthenticationFilter,
                           AuthEntryPoint authEntryPoint,
-                          AccessDeniedHandlerImpl accessDeniedHandler) {
+                          AccessDeniedHandlerImpl accessDeniedHandler,
+                          RateLimitFilter rateLimitFilter) {
         this.userDetailsService      = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authEntryPoint          = authEntryPoint;
         this.accessDeniedHandler     = accessDeniedHandler;
+        this.rateLimitFilter         = rateLimitFilter;
     }
 
     // ── Password Encoder ────────────────────────────────────────────────────
@@ -163,6 +166,10 @@ public class SecurityConfig {
             // Runs before Spring Security's UsernamePasswordAuthenticationFilter
             .addFilterBefore(jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class)
+
+            // ── Rate Limit Filter ────────────────────────────────────────────
+            // Runs after JwtAuthenticationFilter so SecurityContextHolder is populated
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class)
 
             // ── Security Headers ─────────────────────────────────────────────
             // Spring Security default headers are kept (X-Frame-Options,

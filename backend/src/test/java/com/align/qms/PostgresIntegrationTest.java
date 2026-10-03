@@ -5,6 +5,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.align.qms.security.RateLimitFilter;
 
 /**
  * Base class for all ALIGN integration tests that require a real PostgreSQL
@@ -41,6 +44,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public abstract class PostgresIntegrationTest {
+
+    @Autowired(required = false)
+    private RateLimitFilter globalRateLimitFilter;
+
+    @BeforeEach
+    void clearGlobalRateLimiter() {
+        if (globalRateLimitFilter != null) {
+            globalRateLimitFilter.clearBuckets();
+        }
+    }
 
     static final PostgreSQLContainer<?> POSTGRES;
 
