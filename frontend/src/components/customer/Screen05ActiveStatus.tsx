@@ -170,27 +170,29 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
 
   if (!token) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-8 md:py-16 text-center">
-        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-6">
-          <div className="w-16 h-16 bg-[#F1F5F9] rounded-2xl flex items-center justify-center mx-auto text-slate-400">
-            <Clock className="w-8 h-8" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">No Active Queue Token</h2>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              You do not currently have a waiting or serving token in the queue.
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center space-y-8">
+          <div className="space-y-3">
+            <div className="w-12 h-12 border border-border-strong rounded flex items-center justify-center mx-auto text-content-muted">
+              <Clock className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-semibold text-content-primary tracking-tight">
+              No Active Token
+            </h2>
+            <p className="text-sm text-content-secondary max-w-xs mx-auto leading-relaxed">
+              You do not currently have an active queue token.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <div className="flex flex-col gap-3 pt-4">
             <button
               onClick={() => queueStore.setScreen('SCREEN_02_DISCOVERY')}
-              className="px-6 py-3 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full py-4 bg-content-primary text-base font-semibold text-xs uppercase tracking-widest hover:bg-content-secondary transition-colors cursor-pointer"
             >
               Join a Queue
             </button>
             <button
               onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
-              className="px-6 py-3 bg-[#F1F5F9] hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full py-4 bg-surface border border-border-subtle text-content-primary font-semibold text-xs uppercase tracking-widest hover:bg-surface-interactive transition-colors cursor-pointer"
             >
               View History
             </button>
@@ -205,225 +207,217 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
   const isTransferred = token.state === 'TRANSFERRED';
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 md:py-10">
-      {/* Live sync header */}
-      <div className="flex items-center justify-between mb-6 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-xs font-mono font-bold text-slate-800">Live Updates Connected</span>
-        </div>
-
+    <div className={`min-h-[calc(100vh-4rem)] flex flex-col transition-colors ${
+      isCalled ? 'bg-content-primary text-base' : 'bg-base text-content-primary'
+    }`}>
+      {/* Top Context Bar */}
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-border-subtle flex-shrink-0">
         <div className="flex items-center gap-3">
+          <div className={`w-1.5 h-1.5 rounded-full ${isCalled ? 'bg-accent animate-pulse' : 'bg-success'} animate-pulse`}></div>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-content-secondary">
+            Live Updates
+          </span>
           {activeTokens.length > 1 && (
-            <select
-              value={token.id}
-              onChange={(e) => queueStore.setActiveCustomerToken(e.target.value)}
-              className="text-xs font-mono font-bold bg-[#F1F5F9] border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-[#00ACC1]"
-            >
-              {activeTokens.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.tokenNumber} ({t.state})
-                </option>
-              ))}
-            </select>
+            <>
+              <span className="text-border-strong">|</span>
+              <select
+                value={token.id}
+                onChange={(e) => queueStore.setActiveCustomerToken(e.target.value)}
+                className="text-[10px] font-mono uppercase tracking-widest bg-surface border border-border-subtle px-2 py-1 text-content-primary focus:outline-none focus:border-accent cursor-pointer"
+              >
+                {activeTokens.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.tokenNumber} ({t.state})
+                  </option>
+                ))}
+              </select>
+            </>
           )}
-
-          <button
-            id="active-status-history-btn"
-            onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
-            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-[#00ACC1] font-bold transition-colors cursor-pointer"
-          >
-            <History className="w-3.5 h-3.5 text-[#00ACC1]" />
-            <span>Queue History</span>
-          </button>
         </div>
+
+        <button
+          id="active-status-history-btn"
+          onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
+          className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-content-secondary hover:text-accent transition-colors cursor-pointer"
+        >
+          <History className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">History</span>
+        </button>
       </div>
 
-      {/* Main Token Card */}
-      <div className={`rounded-3xl p-6 md:p-8 border shadow-sm relative overflow-hidden transition-all ${
-        isCalled 
-          ? 'bg-[#0F172A] text-white border-[#00ACC1] ring-2 ring-[#00ACC1]/50' 
-          : token?.state === 'AWAY'
-          ? 'bg-amber-50/90 text-amber-950 border-amber-300'
-          : 'bg-white text-slate-900 border-slate-200'
-      }`}>
-        {/* Glow effect if called */}
-        {isCalled && (
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ACC1]/20 rounded-full blur-3xl pointer-events-none" />
-        )}
-
-        {/* State Pill */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-[11px] font-mono uppercase tracking-widest text-slate-400 font-bold">
-            YOUR TOKEN
-          </div>
-
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col px-4 md:px-6 py-8 md:py-12 max-w-2xl mx-auto w-full">
+        {/* State Badge - Small & Restrained */}
+        <div className="flex items-center justify-between mb-8">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-content-muted">
+            Your Token
+          </span>
           <div>
             {isCalled ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#00ACC1] text-white rounded-full text-xs font-mono font-bold animate-pulse">
-                <BellRing className="w-3.5 h-3.5" />
-                NOW SERVING • COUNTER {token.counterNumber || 3}
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border text-[10px] font-mono font-semibold uppercase tracking-widest ${
+                isCalled ? 'bg-accent/10 border-accent text-accent animate-pulse' : 'bg-accent/5 border-border-subtle text-accent'
+              }`}>
+                <BellRing className="w-3 h-3" />
+                Now Serving
               </span>
             ) : token?.state === 'AWAY' ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-200 text-amber-900 rounded-full text-xs font-mono font-bold border border-amber-300">
-                <Coffee className="w-3.5 h-3.5" />
-                STEPPED AWAY ({formatAwayTime(awaySecondsLeft)})
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-warning/10 border border-warning/30 text-warning text-[10px] font-mono font-semibold uppercase tracking-widest">
+                <Coffee className="w-3 h-3" />
+                Away ({formatAwayTime(awaySecondsLeft)})
               </span>
             ) : isCompleted ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-mono font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                COMPLETED
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-success/10 border border-success/30 text-success text-[10px] font-mono font-semibold uppercase tracking-widest">
+                <CheckCircle2 className="w-3 h-3" />
+                Completed
               </span>
             ) : isTransferred ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-mono font-bold">
-                <ArrowRight className="w-3.5 h-3.5" />
-                TRANSFERRING...
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/10 border border-accent/30 text-accent text-[10px] font-mono font-semibold uppercase tracking-widest">
+                <ArrowRight className="w-3 h-3" />
+                Transferring
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#00ACC1]/10 text-[#00ACC1] rounded-full text-xs font-mono font-bold">
-                <span className="w-2 h-2 rounded-full bg-[#00ACC1] animate-ping"></span>
-                WAITING
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/5 border border-border-subtle text-accent text-[10px] font-mono font-semibold uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
+                Waiting
               </span>
             )}
           </div>
         </div>
 
-        {/* Big Token Number Display */}
-        <div className="text-center py-4 my-2">
-          <div className={`text-6xl md:text-7xl font-black font-mono tracking-tight ${
-            isCalled ? 'text-[#00ACC1]' : token?.state === 'AWAY' ? 'text-amber-800' : 'text-[#0F172A]'
+        {/* Hero Token Number */}
+        <div className="text-center mb-12 md:mb-16">
+          <div className={`text-7xl md:text-8xl lg:text-9xl font-bold font-mono tracking-tighter leading-none mb-4 ${
+            isCalled ? 'text-accent' : 'text-content-primary'
           }`}>
             {token?.tokenNumber || 'A-042'}
           </div>
-          <div className={`text-xs mt-2 font-medium ${isCalled ? 'text-slate-300' : 'text-slate-500'}`}>
-            {service?.name || 'General Inquiry'} • {location?.name || 'Main Branch'}
+          <div className="text-sm text-content-secondary tracking-wide">
+            {service?.name || 'General Inquiry'} <span className="text-content-muted mx-2">•</span> {location?.name || 'Main Branch'}
           </div>
         </div>
 
-        {/* Status Breakdown or Counter Call Notice */}
+        {/* Special States: Error, Transfer, Called */}
         {recoveryError ? (
-          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 text-center my-4">
-            <AlertTriangle className="w-6 h-6 text-rose-500 mx-auto mb-2" />
-            <div className="text-sm font-bold text-rose-900 mb-1">Transfer Failed</div>
-            <div className="text-xs text-rose-700">{recoveryError}</div>
+          <div className="mb-8 p-6 border border-error/30 bg-error/5 text-center">
+            <AlertTriangle className="w-6 h-6 text-error mx-auto mb-3" />
+            <div className="text-sm font-semibold text-content-primary mb-1">Transfer Failed</div>
+            <div className="text-xs text-content-secondary">{recoveryError}</div>
           </div>
         ) : isTransferred ? (
-          <div className="p-8 bg-blue-50/50 rounded-2xl border border-blue-100 text-center my-4">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <div className="text-sm font-bold text-blue-900 mb-1">Transferring your token...</div>
-            <div className="text-xs text-blue-700">Please wait while we set up your new queue position.</div>
+          <div className="mb-8 p-8 border border-accent/20 bg-accent/5 text-center">
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm font-semibold text-content-primary mb-1">Transferring your token</div>
+            <div className="text-xs text-content-secondary">Please wait while we process your transfer.</div>
           </div>
         ) : isCalled ? (
-          <div className="p-5 bg-white/10 rounded-2xl border border-[#00ACC1]/40 text-center my-4">
-            <div className="text-xs uppercase font-mono tracking-wider text-[#00ACC1] font-bold mb-1">
+          <div className={`mb-8 p-8 border text-center ${
+            isCalled ? 'bg-accent/10 border-accent/30' : 'bg-surface border-border-strong'
+          }`}>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-content-muted mb-2">
               Please Proceed To
             </div>
-            <div className="text-3xl font-black text-white">
+            <div className={`text-5xl md:text-6xl font-bold tracking-tight mb-2 ${isCalled ? 'text-accent' : 'text-content-primary'}`}>
               COUNTER {token.counterNumber || 3}
             </div>
-            <div className="text-[11px] text-slate-300 mt-1 font-mono">
-              Assigned Staff: Alex Mercer • Station 03
+            <div className="text-[10px] font-mono text-content-secondary tracking-wide">
+              Assigned Staff: Alex Mercer <span className="text-content-muted mx-2">•</span> Station 03
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 my-4">
-            <div className="p-4 bg-[#F1F5F9] rounded-2xl border border-slate-200 text-center">
-              <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-slate-500 mb-1">
-                <Users className="w-3.5 h-3.5 text-[#00ACC1]" />
+          /* Normal Waiting State - Typography-Driven */
+          <div className="space-y-10 mb-12">
+            {/* People Ahead */}
+            <div className="text-center border-b border-border-subtle pb-8">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-content-muted mb-3 flex items-center justify-center gap-1.5">
+                <Users className="w-3 h-3" />
                 <span>People Ahead</span>
               </div>
-              <div className="text-3xl font-black text-[#0F172A]">
+              <div className="text-5xl md:text-6xl font-bold tracking-tight text-content-primary">
                 {token?.peopleAhead ?? 5}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">in this queue</div>
             </div>
 
-            <div className="p-4 bg-[#F1F5F9] rounded-2xl border border-slate-200 text-center">
-              <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-slate-500 mb-1">
-                <Clock className="w-3.5 h-3.5 text-[#00ACC1]" />
-                <span>Est. Wait</span>
+            {/* Estimated Wait */}
+            <div className="text-center">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-content-muted mb-3 flex items-center justify-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                <span>Estimated Wait</span>
               </div>
-              <div className="text-3xl font-black text-[#00ACC1] eta-range">
+              <div className="text-5xl md:text-6xl font-bold tracking-tight text-accent eta-range mb-2">
                 {token?.estRange || '15-20 min'}
               </div>
-              <div className={`text-[10px] font-mono font-semibold ${
-                token?.confidence === 'High' ? 'text-emerald-600' :
-                token?.confidence === 'Medium' ? 'text-amber-600' :
-                token?.confidence === 'Low' ? 'text-rose-500' : 'text-emerald-600'
-              }`}>{token?.confidence || 'High'} Confidence</div>
+              <div className={`text-[10px] font-mono uppercase tracking-widest ${
+                token?.confidence === 'High' ? 'text-success' :
+                token?.confidence === 'Medium' ? 'text-warning' :
+                token?.confidence === 'Low' ? 'text-error' : 'text-success'
+              }`}>
+                {token?.confidence || 'High'} Confidence
+              </div>
             </div>
           </div>
         )}
 
-        {/* Progress Bar */}
-        <div className="space-y-1.5 mt-4">
-          <div className="flex justify-between text-[10px] font-mono text-slate-400">
-            <span>Progress in Queue</span>
-            <span>{isCalled ? '100%' : `${Math.max(15, 100 - (token?.peopleAhead || 5) * 15)}%`}</span>
-          </div>
-          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-[#00ACC1] rounded-full transition-all duration-500"
-              style={{ width: isCalled ? '100%' : `${Math.max(15, 100 - (token?.peopleAhead || 5) * 15)}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Leave Waiting Area / Step Away Module */}
-      {!isCalled && !isCompleted && !isTransferred && !recoveryError && (
-        <div className="mt-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-amber-50 text-amber-700 rounded-xl mt-0.5">
-              <Coffee className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900">
-                {token?.state === 'AWAY' ? 'Step Away Mode Active' : 'Need to step away?'}
+        {/* Step Away Control */}
+        {!isCalled && !isCompleted && !isTransferred && !recoveryError && (
+          <div className="mb-8 p-6 border border-border-subtle bg-surface">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className={`p-2 border rounded flex-shrink-0 ${
+                  token?.state === 'AWAY' ? 'border-warning/30 bg-warning/10 text-warning' : 'border-border-strong bg-surface-elevated text-content-muted'
+                }`}>
+                  <Coffee className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-content-primary mb-1">
+                    {token?.state === 'AWAY' ? 'Step Away Active' : 'Need to step away?'}
+                  </div>
+                  <div className="text-xs text-content-secondary leading-relaxed">
+                    {token?.state === 'AWAY'
+                      ? `Grace window: ${formatAwayTime(awaySecondsLeft)} remaining before skip.`
+                      : 'Hold your spot with a 15-minute grace window.'}
+                  </div>
+                </div>
               </div>
-              <div className="text-[11px] text-slate-500">
-                {token?.state === 'AWAY'
-                  ? `Grace window active: ${formatAwayTime(awaySecondsLeft)} remaining before auto-skip.`
-                  : 'Hold your spot with a 15-minute grace window.'}
-              </div>
+
+              <button
+                id="step-away-toggle-btn"
+                onClick={handleToggleAway}
+                className={`w-full md:w-auto px-6 py-3 text-xs font-semibold uppercase tracking-widest transition-colors cursor-pointer flex-shrink-0 ${
+                  token?.state === 'AWAY'
+                    ? 'bg-success text-base hover:bg-success/90'
+                    : 'bg-surface-interactive border border-border-strong text-content-primary hover:bg-surface-elevated'
+                }`}
+              >
+                {token?.state === 'AWAY' ? "I'm Back" : 'Step Away (15m)'}
+              </button>
             </div>
           </div>
+        )}
 
-          <button
-            id="step-away-toggle-btn"
-            onClick={handleToggleAway}
-            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 ${
-              token?.state === 'AWAY'
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                : 'bg-[#F1F5F9] hover:bg-slate-200 text-slate-800'
-            }`}
-          >
-            {token?.state === 'AWAY' ? "I'm Back at Waiting Area" : 'Step Away (15m)'}
-          </button>
-        </div>
-      )}
+        {/* Guidance Notice */}
+        {!isCompleted && !isTransferred && (
+          <div className="mb-8 p-4 border border-border-subtle bg-surface flex items-start gap-3 text-xs text-content-secondary">
+            <ShieldCheck className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              <span className="font-semibold text-content-primary">Guidance: </span>
+              You can relax in the waiting area. When called, your screen will highlight the assigned counter. Please have your photo ID ready.
+            </p>
+          </div>
+        )}
 
-      {/* Instructions Box */}
-      <div className="mt-4 p-4 bg-white border border-slate-200 rounded-2xl flex items-start gap-3 text-xs text-slate-700 shadow-sm">
-        <ShieldCheck className="w-4 h-4 text-[#00ACC1] shrink-0 mt-0.5" />
-        <div>
-          <span className="font-bold text-slate-900">Guidance for this visit: </span>
-          You can safely relax in the waiting lounge. When your token is called, your screen will chime and highlight the assigned counter. Please have your photo ID ready.
-        </div>
+        {/* Cancel Action */}
+        {!isCompleted && !isTransferred && (
+          <div className="text-center pt-4 border-t border-border-subtle">
+            <button
+              id="cancel-token-btn"
+              onClick={handleCancelToken}
+              className="text-xs text-error hover:text-error/80 font-semibold uppercase tracking-widest cursor-pointer transition-colors"
+            >
+              Cancel Token
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Cancel Action */}
-      {!isCompleted && !isTransferred && (
-        <div className="mt-6 text-center">
-          <button
-            id="cancel-token-btn"
-            onClick={handleCancelToken}
-            className="text-xs text-rose-600 hover:text-rose-700 hover:underline font-bold cursor-pointer"
-          >
-            Cancel My Queue Token
-          </button>
-        </div>
-      )}
     </div>
   );
 };
