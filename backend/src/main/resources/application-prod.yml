@@ -34,3 +34,9 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/plain
     min-response-size: 1024
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

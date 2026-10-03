@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.align.qms.service.dto.ServiceResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +41,7 @@ import java.util.UUID;
  *
  * <p>Path: {@code /api/v1/counters}
  */
+@Tag(name = "Counters", description = "Service counter management")
 @RestController
 @RequestMapping("/api/v1/counters")
 public class CounterController {
@@ -54,6 +58,8 @@ public class CounterController {
      * List all counters at a location.
      * Accessible to STAFF and ORG_ADMIN. Tenant isolation enforced in service.
      */
+    @Operation(summary = "List all counters at a location")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'ORG_ADMIN')")
     public ResponseEntity<List<CounterResponse>> listByLocation(

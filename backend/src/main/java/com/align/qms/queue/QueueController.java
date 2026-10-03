@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.UUID;
 
@@ -33,6 +36,7 @@ import java.util.UUID;
  *
  * <p>Path: {@code /api/v1/queues}
  */
+@Tag(name = "Queues", description = "Queue configuration and management")
 @RestController
 @RequestMapping("/api/v1/queues")
 public class QueueController {
@@ -50,6 +54,8 @@ public class QueueController {
      * ORG_ADMIN (own org) or PLATFORM_ADMIN.
      * Tenant isolation enforced in service.
      */
+    @Operation(summary = "Get queue by ID")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{queueId}")
     @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN')")
     public ResponseEntity<QueueResponse> getById(@PathVariable UUID queueId) {

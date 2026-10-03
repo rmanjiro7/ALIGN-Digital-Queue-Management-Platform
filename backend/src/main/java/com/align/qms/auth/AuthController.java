@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * Authentication REST controller.
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>No authorization business logic lives here — all decisions are in
  * {@link AuthService}. Controllers only validate input and delegate.
  */
+@Tag(name = "Authentication", description = "Authentication and session management")
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -47,6 +51,7 @@ public class AuthController {
      * Disabled account → 401 ACCOUNT_DISABLED.
      * Validation failure → 422 VALIDATION_ERROR.
      */
+    @Operation(summary = "Authenticate with email and password")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
@@ -61,6 +66,7 @@ public class AuthController {
      * Invalid/revoked token → 401 TOKEN_INVALID.
      * Expired token → 401 TOKEN_EXPIRED.
      */
+    @Operation(summary = "Refresh access token", description = "Exchange a valid refresh token for a new access token")
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(
             @Valid @RequestBody RefreshTokenRequest request) {
@@ -75,6 +81,8 @@ public class AuthController {
      * <p>Protected endpoint — valid JWT required (401 if missing/invalid).
      * Always returns 204 No Content (even if no tokens existed).
      */
+    @Operation(summary = "Logout user", description = "Revoke all refresh tokens for the authenticated user")
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@AuthenticationPrincipal UserPrincipal principal) {
         authService.logout(principal.getId());
@@ -88,6 +96,8 @@ public class AuthController {
      *
      * <p>Protected endpoint — valid JWT required.
      */
+    @Operation(summary = "Get current user profile")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserPrincipal principal) {
         // Principal is injected by Spring Security from the validated SecurityContext.

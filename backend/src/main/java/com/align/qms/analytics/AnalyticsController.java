@@ -12,11 +12,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Analytics", description = "Performance and operational analytics")
 @RestController
 @RequestMapping("/api/v1/analytics")
 @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'ORG_ADMIN')")
@@ -28,6 +32,8 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
+    @Operation(summary = "Get overall analytics summary")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/summary")
     public ResponseEntity<AnalyticsSummaryResponse> getSummary(
             @RequestParam UUID orgId,
@@ -39,6 +45,8 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getSummary(orgId, locationId, serviceId, queueId, start, end));
     }
 
+    @Operation(summary = "Get staff service duration metrics")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/staff-service-duration")
     public ResponseEntity<List<StaffServiceDurationResponse>> getStaffServiceDuration(
             @RequestParam UUID orgId,
@@ -49,6 +57,8 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getStaffServiceDuration(orgId, locationId, staffId, start, end));
     }
 
+    @Operation(summary = "Get queue performance metrics")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/queues")
     public ResponseEntity<List<QueueAnalyticsResponse>> getQueues(
             @RequestParam UUID orgId,

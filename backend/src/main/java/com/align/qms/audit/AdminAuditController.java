@@ -6,9 +6,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.UUID;
 
+@Tag(name = "Audit Logs", description = "Administrative audit logs")
 @RestController
 @RequestMapping("/api/v1/audit")
 @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'ORG_ADMIN')")
@@ -21,6 +25,8 @@ public class AdminAuditController {
         this.adminAuditService = adminAuditService;
     }
 
+    @Operation(summary = "List audit logs by organization")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     public Page<AdminAuditResponse> listByOrg(
             @RequestParam(required = false) UUID orgId,
@@ -29,6 +35,8 @@ public class AdminAuditController {
         return adminAuditService.listByOrg(orgId, createPageable(page, size));
     }
 
+    @Operation(summary = "List audit logs by entity")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/entity/{entityType}/{entityId}")
     public Page<AdminAuditResponse> listByEntity(
             @PathVariable String entityType,

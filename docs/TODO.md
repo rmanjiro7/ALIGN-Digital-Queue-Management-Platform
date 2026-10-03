@@ -144,8 +144,8 @@
 - Regression testing: ✅ COMPLETE
 
 ### Phase 8 — DOCUMENTATION
-- Springdoc/OpenAPI: ❌ NOT COMPLETE
-- Swagger UI: ❌ NOT COMPLETE
+- Springdoc/OpenAPI: ✅ COMPLETE
+- Swagger UI: ✅ COMPLETE
 - ERD: ❌ NOT COMPLETE
 - Data retention policy: ❌ NOT COMPLETE
 - Backup strategy: ❌ NOT COMPLETE

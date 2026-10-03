@@ -137,6 +137,8 @@ public class SecurityConfig {
                 // Public discovery endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/services").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/services/*/preparation-requirements").permitAll()
+                // OpenAPI / Swagger endpoints
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Phase 3 Token Engine endpoints (public for customers via UUID knowledge)
                 .requestMatchers(HttpMethod.POST, "/api/v1/tokens").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tokens/{id}").permitAll()

@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +39,7 @@ import java.util.UUID;
  *
  * <p>Path: {@code /api/v1/locations}
  */
+@Tag(name = "Locations", description = "Organization location management")
 @RestController
 @RequestMapping("/api/v1/locations")
 public class LocationController {
@@ -53,6 +57,8 @@ public class LocationController {
      * ORG_ADMIN may only list their own org's locations (enforced in service).
      * PLATFORM_ADMIN may list any org's locations.
      */
+    @Operation(summary = "Get all locations for organization")
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     @PreAuthorize("hasAnyRole('ORG_ADMIN', 'PLATFORM_ADMIN')")
     public ResponseEntity<List<LocationResponse>> listByOrg(

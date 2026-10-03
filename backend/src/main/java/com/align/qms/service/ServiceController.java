@@ -15,7 +15,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +37,7 @@ import java.util.UUID;
  *
  * <p>Path: {@code /api/v1/services}
  */
+@Tag(name = "Services", description = "Services offered at locations")
 @RestController
 @RequestMapping("/api/v1/services")
 public class ServiceController {
