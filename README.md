@@ -144,7 +144,6 @@ ALIGN-UI-REFERENCE-PACKAGE/
 cd frontend
 bun install
 bun run dev
-bun run build
 ```
 
 ### E2E Tests
@@ -157,5 +156,6 @@ node phase-8.cjs
 ### Backend
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
+*(Development profile enables OpenAPI at `/swagger-ui/index.html` and `/v3/api-docs`)*

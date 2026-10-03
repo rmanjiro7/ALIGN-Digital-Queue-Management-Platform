@@ -1,192 +1,229 @@
 # ALIGN BACKEND — DEPLOYMENT
 
-**Version:** 1.2
-**Last Updated:** 2026-09-06
-**Status:** Phase 0 COMPLETE ✅ — runtime validated with Testcontainers
+**Status:** Phase 8 MVP COMPLETE ✅
 
 ---
 
-## Prerequisites
+## 1. System Architecture Overview
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| Java | 17+ | Temurin 17 recommended |
-| Maven | 3.9+ | Maven Wrapper included (`mvnw.cmd`) |
-| PostgreSQL | 15+ | Required for runtime |
-| Docker Engine | 20+ | **Required for tests** (Testcontainers) |
-| WSL 2 (Windows only) | — | **Required** when using Docker Desktop on Windows. Install with `wsl --install`, then restart Docker Desktop. Without WSL 2, the Docker Linux engine pipe does not start and Testcontainers cannot connect. |
+**Academic / Single-Node MVP**
+
+The ALIGN system is currently structured as a single-node application:
+
+React/Vite frontend (Static build)
+        ↓
+Spring Boot backend (REST API + WebSocket)
+        ↓
+PostgreSQL 15+ (Database)
+        ↓
+Flyway migrations (Automatic schema management)
 
 ---
 
-## Environment Variables
+## 2. Directory Structure
 
-Create a `.env` file in the `backend/` directory (never commit this file):
+The repository is organized into distinct isolated projects:
+
+* `/frontend` — React/Vite application. Execution happens inside this directory (`cd frontend`).
+* `/backend` — Spring Boot application. Execution happens inside this directory (`cd backend`).
+* `/e2e` — End-to-end testing suite (Puppeteer). Execution happens inside this directory (`cd e2e`).
+
+---
+
+## 3. Prerequisites
+
+* **Java:** 17+ (Temurin 17 recommended)
+* **Maven:** 3.9+ (Maven Wrapper included via `mvnw.cmd` / `./mvnw`)
+* **Node & Bun:** Required for frontend execution (Bun is the primary package manager in `/frontend`).
+* **Node & npm:** Required for E2E tests (in `/e2e`).
+* **PostgreSQL:** 15+ required for runtime.
+* **Docker Engine:** Required for running test suites (via Testcontainers) and local PostgreSQL.
+
+---
+
+## 4. Required Ports
+
+* **Frontend:** 3000 (Vite Dev Server)
+* **Backend:** 8080 (Spring Boot)
+* **PostgreSQL:** 5432
+
+---
+
+## 5. Environment Variables
+
+* **`backend/.env.example`**: The template file demonstrating required environment variables.
+* **`backend/.env`**: Your local environment file (never commit this).
+
+Key variables include `DB_PASSWORD`, `JWT_SECRET` (must be a minimum 64-character base64 encoded secret for HS512), and `ALLOWED_ORIGINS`.
+
+**Profiles:**
+* `dev`: Development profile (Swagger/OpenAPI enabled).
+* `prod`: Production profile (Swagger disabled, compression enabled, larger connection pools).
+
+---
+
+## 6. Database / Flyway
+
+Flyway automatically manages the database schema and migrations upon backend startup.
+The schema is currently at migration **V16** (`V16__phase8_mvp_gaps.sql`).
+
+Initialization and migration are completely automated by the Spring Boot backend startup process.
+
+---
+
+## 7. Development Startup Guide
+
+1. **Start PostgreSQL:** Ensure a local instance or Docker container is running on port 5432.
+2. **Start Spring Boot Backend:**
+   ```bash
+   cd backend
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+   ```
+3. **Start React/Vite Frontend:**
+   ```bash
+   cd frontend
+   bun install
+   bun run dev
+   ```
+4. **Optionally Run E2E Tests:**
+   ```bash
+   cd e2e
+   npm install
+   npm test
+   ```
+
+---
+
+## 8. Frontend Workflow
+
+The frontend uses Vite and Bun.
 
 ```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=align_qms
-DB_USERNAME=align_user
-DB_PASSWORD=<secure_password>
-
-# JWT
-JWT_SECRET=<base64-encoded-256-bit-secret>
-JWT_ACCESS_TOKEN_EXPIRATION=900000
-JWT_REFRESH_TOKEN_EXPIRATION=604800000
-
-# Server
-SERVER_PORT=8080
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-
-# Logging
-LOG_LEVEL=INFO
+cd frontend
+bun install
+bun run dev
 ```
 
-See `backend/.env.example` for template (created in Phase 0).
+**Production Build:**
+```bash
+bun run build
+```
+This generates the static compiled assets in `frontend/dist/`.
+*Note: The Vite dev server (`bun run dev`) is not a production deployment strategy. The `dist/` folder must be served by a static web server or reverse proxy.*
 
 ---
 
-## Local PostgreSQL Setup
+## 9. Backend Workflow
 
-```sql
-CREATE DATABASE align_qms;
-CREATE USER align_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE align_qms TO align_user;
-```
+The backend uses the Maven Wrapper.
 
----
-
-## Build
-
+**Build:**
 ```bash
 cd backend
-./mvnw clean install
-```
-
-Or skip tests (development only):
-```bash
 ./mvnw clean install -DskipTests
 ```
 
----
-
-## Run (Development)
-
+**Run (Production JAR):**
 ```bash
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+java -jar target/align-qms-backend-0.1.0-SNAPSHOT.jar --spring.profiles.active=prod
 ```
-
-Application starts on `http://localhost:8080`.
-Health endpoint: `http://localhost:8080/actuator/health`
+*(Verify the exact filename in `backend/target/` if the version changes in `pom.xml`)*
 
 ---
 
-## Run (Production JAR)
+## 10. E2E Testing
 
+End-to-End tests are completely isolated in the `/e2e` directory with their own `package.json` and `package-lock.json`.
+
+**Execution:**
 ```bash
-cd backend
-java -jar target/align-qms-backend-1.0.0.jar --spring.profiles.active=prod
+cd e2e
+npm install
+npm test
 ```
+(Or run specific scripts like `node phase-8.cjs`).
 
 ---
 
-## Docker Compose (Development)
+## 11. OpenAPI / Swagger
 
-```yaml
-# docker-compose.yml (to be created in Phase 0)
-version: '3.8'
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: align_qms
-      POSTGRES_USER: align_user
-      POSTGRES_PASSWORD: dev_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+**Development (`dev` profile):**
+* OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+* Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
-  backend:
-    build: ./backend
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: align_qms
-      DB_USERNAME: align_user
-      DB_PASSWORD: dev_password
-      JWT_SECRET: dev-only-secret-change-for-production
-      ALLOWED_ORIGINS: http://localhost:5173
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
+*Note: OpenAPI does not bypass Spring Security. Protected API endpoints remain protected. Valid JWT tokens are required for authenticated operations.*
 
-volumes:
-  postgres-data:
-```
+**Production (`prod` profile):**
+* OpenAPI and Swagger UI are **disabled** for security.
 
 ---
 
-## Running Tests
+## 12. Rate Limiting (MVP Hardening)
 
-```bash
-# All tests (requires Docker for Testcontainers)
-./mvnw test
+ALIGN implements a single-node, in-memory rate limiting strategy using Bucket4j via `RateLimitFilter`.
 
-# Integration tests only
-./mvnw test -Dtest="*IntegrationTest,*ConcurrencyTest"
+**Limits:**
+* Authentication: 10 requests / minute / IP
+* Token Creation: 30 requests / minute / IP
+* Authenticated Users: 120 requests / minute / User
+* Generic Public: 100 requests / minute / IP
 
-# With coverage report
-./mvnw clean verify jacoco:report
-```
+**Architecture:**
+* Storage: In-memory bounded LRU cache.
+* Maximum Bucket Count: 1000 buckets per category.
+* Behavior: Returns HTTP 429 Too Many Requests when exceeded.
 
-Coverage report: `backend/target/site/jacoco/index.html`
-
-**Phase 0 Test Results (Validated 2026-09-06):**
-- Docker Server: 29.7.2
-- Testcontainers: 1.21.4
-- PostgreSQL: 15-alpine (containerized)
-- Tests: 4 passed, 0 failed
-- Build: SUCCESS
-- Migration V1__foundation.sql: Executed successfully
-- Health endpoint: HTTP 200 verified
+*Note: This is single-node MVP/demo hardening. It is not distributed production rate limiting. Multi-node production deployments would require centralized coordination (e.g., Redis).*
 
 ---
 
-## Flyway Migrations
+## 13. WebSocket & Reverse Proxy
 
-Flyway runs automatically on application startup.
-Migration files: `backend/src/main/resources/db/migration/V*.sql`
+ALIGN uses WebSocket connections at `/ws-align` for real-time queue updates.
 
-To repair Flyway checksum (if needed in development):
-```bash
-./mvnw flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/align_qms \
-  -Dflyway.user=align_user -Dflyway.password=your_password
-```
+**Reverse Proxy Requirements:**
+Production reverse proxies (like Nginx, Traefik) must be explicitly configured to preserve `Upgrade` and `Connection` headers to allow WebSocket traffic to pass through to the backend. HTTPS/TLS termination should also occur at the proxy, with `wss://` used for secure WebSockets.
 
 ---
 
-## Health Checks
+## 14. Production Deployment Flow
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /actuator/health` | Overall health (DB + app) |
-| `GET /actuator/info` | Application info |
-
----
-
-## Production Notes
-
-- Use HTTPS (TLS termination at reverse proxy)
-- Use WebSocket Secure (`wss://`) in production
-- Set `LOG_LEVEL=WARN` or `INFO` in production
-- Tune HikariCP `maximum-pool-size` based on PostgreSQL `max_connections`
-- Use environment secrets manager (not `.env` file) in production
+1. **Build Frontend:** Run `bun run build` in `/frontend`.
+2. **Serve Frontend:** Host `frontend/dist/` through a static web server / reverse proxy (e.g., Nginx).
+3. **Build Backend:** Run `./mvnw clean package -DskipTests` in `/backend`.
+4. **Run Backend:** Execute the generated JAR with `--spring.profiles.active=prod`.
+5. **Database:** Ensure PostgreSQL is securely accessible to the backend.
+6. **Reverse Proxy:** Configure TLS termination, route `/api/*` and `/ws-align/*` to the backend (port 8080), and support WebSocket upgrades.
 
 ---
 
-**Last Updated:** 2026-09-06
-**Next Review:** After runtime validation (Docker + WSL 2 installed on dev machine)
+## 15. Docker Compose
+
+**docker-compose.yml** is provided for infrastructure, but currently only supports PostgreSQL correctly.
+
+**⚠️ Known Repository Limitation:**
+The `docker-compose.yml` file contains a `backend` service definition that expects a `Dockerfile` in `/backend` (`build: ./backend`). **There is currently no Dockerfile in the repository.** Attempting to run `docker-compose up` including the backend will fail.
+*Workaround:* Only use `docker-compose up postgres` to start the database, and run the backend locally via Maven.
+
+---
+
+## 16. Security
+
+Current MVP Security features:
+* Stateless JWT Authentication
+* Role-Based Access Control (RBAC)
+* Strict Tenant Isolation
+* In-memory Rate Limiting
+* Production Swagger/OpenAPI disabled
+
+*Note: HTTPS/TLS is not handled by the Spring Boot application and must terminate at the production reverse proxy.*
+
+---
+
+## 17. Known Limitations
+
+* **Single-node rate limiting:** Rate limits are stored in-memory (no Redis), so they are not shared across multiple nodes.
+* **No formal backups:** Database backup and retention automation is not included.
+* **No APM:** No formal monitoring or application performance management is configured.
+* **No load-testing baseline:** System capacity under extreme concurrency is unverified.
+* **Docker Limitation:** Docker-based backend deployment currently requires a custom `Dockerfile` which is not provided.
