@@ -131,7 +131,7 @@ export default function App() {
   const showSideNav = !isPublicDisplay && !isSplash && !isCustomer && !isStaffLogin;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F1F5F9] font-sans text-slate-800">
+    <div className="min-h-screen flex flex-col bg-base text-content-primary font-sans antialiased">
       {/* Main Top Header (hidden in TV and Splash mode) */}
       {!isPublicDisplay && !isSplash && (
         <TopBar appState={appState} />

@@ -43,19 +43,19 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
             key={item.id}
             id={`staff-nav-${item.id.toLowerCase()}`}
             onClick={() => queueStore.setScreen(item.id)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 mb-1 rounded text-sm font-medium transition-colors cursor-pointer border border-transparent ${
               isActive 
-                ? 'bg-[#1E293B] text-[#00ACC1] border-l-4 border-[#00ACC1] shadow-sm' 
-                : 'text-slate-400 hover:bg-[#1E293B] hover:text-white'
+                ? 'bg-surface-elevated text-content-primary border-border-subtle shadow-sm' 
+                : 'text-content-secondary hover:text-content-primary hover:bg-surface-interactive'
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className={isActive ? 'text-[#00ACC1]' : 'text-slate-400'}>{item.icon}</span>
+              <span className={isActive ? 'text-accent' : 'text-content-muted'}>{item.icon}</span>
               <span>{item.label}</span>
             </div>
             {item.badge && (
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                isActive ? 'bg-[#00ACC1]/20 text-[#00ACC1]' : 'bg-emerald-500/20 text-emerald-400'
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wide uppercase ${
+                isActive ? 'bg-accent/15 text-accent' : 'bg-success/15 text-success'
               }`}>
                 {item.badge}
               </span>
@@ -81,17 +81,17 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
             key={item.id}
             id={`org-nav-${item.id.toLowerCase()}`}
             onClick={() => queueStore.setScreen(item.id)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 mb-1 rounded text-sm font-medium transition-colors cursor-pointer border border-transparent ${
               isActive 
-                ? 'bg-[#1E293B] text-[#00ACC1] border-l-4 border-[#00ACC1] shadow-sm' 
-                : 'text-slate-400 hover:bg-[#1E293B] hover:text-white'
+                ? 'bg-surface-elevated text-content-primary border-border-subtle shadow-sm' 
+                : 'text-content-secondary hover:text-content-primary hover:bg-surface-interactive'
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className={isActive ? 'text-[#00ACC1]' : 'text-slate-400'}>{item.icon}</span>
+              <span className={isActive ? 'text-accent' : 'text-content-muted'}>{item.icon}</span>
               <span>{item.label}</span>
             </div>
-            {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#00ACC1]" />}
+            {isActive && <ChevronRight className="w-3.5 h-3.5 text-content-muted" />}
           </button>
         );
       });
@@ -111,17 +111,17 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
             key={item.id}
             id={`platform-nav-${item.id.toLowerCase()}`}
             onClick={() => queueStore.setScreen(item.id)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 mb-1 rounded text-sm font-medium transition-colors cursor-pointer border border-transparent ${
               isActive 
-                ? 'bg-[#1E293B] text-[#00ACC1] border-l-4 border-[#00ACC1] shadow-sm' 
-                : 'text-slate-400 hover:bg-[#1E293B] hover:text-white'
+                ? 'bg-surface-elevated text-content-primary border-border-subtle shadow-sm' 
+                : 'text-content-secondary hover:text-content-primary hover:bg-surface-interactive'
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className={isActive ? 'text-[#00ACC1]' : 'text-slate-400'}>{item.icon}</span>
+              <span className={isActive ? 'text-accent' : 'text-content-muted'}>{item.icon}</span>
               <span>{item.label}</span>
             </div>
-            {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#00ACC1]" />}
+            {isActive && <ChevronRight className="w-3.5 h-3.5 text-content-muted" />}
           </button>
         );
       });
@@ -131,35 +131,35 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
   };
 
   return (
-    <aside className="w-64 bg-[#0F172A] flex flex-col flex-shrink-0 justify-between text-white min-h-[calc(100vh-80px)] border-r border-slate-800 select-none">
+    <aside className="w-64 bg-surface flex flex-col flex-shrink-0 justify-between text-content-primary min-h-[calc(100vh-64px)] border-r border-border-subtle select-none">
       <div>
         {/* Brand Header */}
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#00ACC1] rounded-lg flex items-center justify-center font-bold text-white italic shadow-sm">
+        <div className="px-6 py-8 flex items-center gap-3 border-b border-border-subtle mb-6">
+          <div className="w-8 h-8 border border-border-strong rounded flex items-center justify-center font-semibold text-content-primary italic">
             A
           </div>
           <div>
-            <span className="text-lg font-bold tracking-tight text-white leading-none block">ALIGN</span>
-            <span className="text-[10px] text-slate-400 font-mono">Operations Hub</span>
+            <span className="text-sm font-semibold tracking-wide text-content-primary leading-none block uppercase">ALIGN</span>
+            <span className="text-[10px] text-content-muted font-mono tracking-widest uppercase mt-1 block">Console</span>
           </div>
         </div>
 
         {/* Branch Context Profile Banner */}
-        <div className="mx-4 mb-4 p-3 bg-[#1E293B] rounded-2xl border border-slate-800">
+        <div className="mx-4 mb-8 px-4 py-3 bg-surface-elevated border border-border-subtle rounded">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#00ACC1]/20 text-[#00ACC1] flex items-center justify-center font-bold text-xs border border-[#00ACC1]/30">
+            <div className="w-7 h-7 rounded border border-border-strong bg-base text-content-secondary flex items-center justify-center font-mono text-xs">
               {currentOrg.name.substring(0, 2).toUpperCase()}
             </div>
             <div className="overflow-hidden">
-              <div className="font-bold text-xs text-white truncate">{currentLocation.name}</div>
-              <div className="text-[10px] text-slate-400 truncate">{currentLocation.subtitle}</div>
+              <div className="font-medium text-xs text-content-primary truncate">{currentLocation.name}</div>
+              <div className="text-[10px] text-content-muted truncate">{currentLocation.subtitle}</div>
             </div>
           </div>
         </div>
 
         {/* Navigation Sections */}
-        <nav className="px-4 py-2 space-y-1.5">
-          <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
+        <nav className="px-4">
+          <div className="text-[10px] font-mono font-medium text-content-muted uppercase tracking-widest px-1 mb-4">
             Navigation
           </div>
           {renderNavLinks()}
@@ -167,28 +167,28 @@ export const SideNav: React.FC<SideNavProps> = ({ appState }) => {
       </div>
 
       {/* System Status and Support Footer */}
-      <div className="p-6 border-t border-slate-800 space-y-3">
+      <div className="p-4 border-t border-border-subtle">
         {/* System Status Pill */}
-        <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-full text-xs font-semibold">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-          <span className="font-mono tracking-wider text-[11px]">SYSTEM ONLINE</span>
+        <div className="flex items-center gap-2.5 px-3 py-2 bg-base border border-border-subtle rounded mb-4">
+          <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+          <span className="font-mono tracking-widest text-[10px] text-content-secondary uppercase">System Online</span>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between text-xs text-slate-400 px-1 pt-1">
+        <div className="flex items-center justify-between text-xs text-content-muted px-1">
           <button 
             onClick={() => alert('ALIGN Queue Management Platform Help & Documentation')}
-            className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 hover:text-content-primary transition-colors cursor-pointer"
           >
             <HelpCircle className="w-3.5 h-3.5" />
-            <span>Help Center</span>
+            <span>Support</span>
           </button>
           <button 
             onClick={() => queueStore.setRole('CUSTOMER')}
-            className="flex items-center gap-1.5 text-rose-400 hover:text-rose-300 font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-content-secondary hover:text-content-primary transition-colors cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Exit Console</span>
+            <LogOut className="w-3 h-3" />
+            <span>Exit</span>
           </button>
         </div>
       </div>
