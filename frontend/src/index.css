@@ -64,10 +64,10 @@
     @apply text-4xl md:text-5xl font-semibold tracking-tight text-content-primary;
   }
   .text-page-title {
-    @apply text-2xl md:text-3xl font-medium tracking-tight text-content-primary;
+    @apply text-2xl md:text-3xl font-semibold tracking-tight text-content-primary;
   }
   .text-section-title {
-    @apply text-lg font-medium tracking-wide text-content-primary;
+    @apply text-lg font-semibold tracking-wide text-content-primary;
   }
   .text-body {
     @apply text-sm text-content-secondary leading-relaxed;
@@ -79,11 +79,25 @@
     @apply text-5xl md:text-7xl font-mono font-bold tracking-tighter text-content-primary;
   }
   
+  /* Text color utilities for dark background context */
+  .text-primary {
+    @apply text-content-primary;
+  }
+  .text-secondary {
+    @apply text-content-secondary;
+  }
+  .text-muted {
+    @apply text-content-muted;
+  }
+  
   .surface-base {
     @apply bg-base border border-border-subtle;
   }
   .surface-elevated {
     @apply bg-surface-elevated border border-border-strong;
+  }
+  .surface-interactive-light {
+    @apply bg-surface-interactive border border-border-subtle;
   }
 }
 

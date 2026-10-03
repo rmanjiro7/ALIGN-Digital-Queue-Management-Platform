@@ -84,25 +84,25 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-[#00ACC1]">
-            <Compass className="w-5 h-5 text-[#00ACC1]" />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider">Queue Discovery</span>
+          <div className="flex items-center gap-2 text-accent">
+            <Compass className="w-5 h-5 text-accent" />
+            <span className="text-xs font-mono font-semibold uppercase tracking-widest text-content-muted">Queue Discovery</span>
           </div>
 
           <button
             id="view-history-shortcut-btn"
             onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
-            className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-[#00ACC1] bg-white px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm transition-colors cursor-pointer font-bold"
+            className="flex items-center gap-1.5 text-xs text-content-primary hover:text-accent bg-surface-interactive px-3.5 py-1.5 rounded-lg border border-border-subtle transition-colors cursor-pointer font-semibold"
           >
-            <History className="w-3.5 h-3.5 text-[#00ACC1]" />
+            <History className="w-3.5 h-3.5 text-accent" />
             <span>My Tokens</span>
           </button>
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-semibold text-content-primary tracking-tight">
           Find your location
         </h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <p className="text-sm text-content-secondary mt-1">
           Search for an organization to join their virtual queue.
         </p>
       </div>
@@ -110,13 +110,13 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
       {/* Search & QR Scan Box */}
       <div className="relative flex items-center mb-6">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-content-muted" />
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, address, or service..." 
-            className="w-full pl-10 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#00ACC1] shadow-sm"
+            className="w-full pl-10 pr-12 py-3 bg-surface border border-border-subtle rounded-lg text-sm text-content-primary placeholder-content-muted focus:outline-none focus:border-accent shadow-sm"
           />
         </div>
 
@@ -124,7 +124,7 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
           id="qr-scan-btn"
           onClick={() => setShowScannerModal(true)}
           title="Scan location QR code"
-          className="ml-2 p-3 bg-white hover:bg-slate-50 border border-slate-200 text-[#00ACC1] rounded-2xl shadow-sm transition-colors cursor-pointer"
+          className="ml-2 p-3 bg-surface hover:bg-surface-interactive border border-border-subtle text-accent rounded-lg transition-colors cursor-pointer"
         >
           <QrCode className="w-5 h-5" />
         </button>
@@ -132,12 +132,12 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
 
       {/* Location Section Heading */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
+        <h2 className="text-xs font-mono uppercase tracking-widest text-content-muted font-semibold">
           Nearby Organizations
         </h2>
         <button 
           onClick={() => alert('Location GPS detected: Metro Central District (Accuracy: 12m)')}
-          className="flex items-center gap-1 text-xs text-[#00ACC1] hover:underline font-bold cursor-pointer"
+          className="flex items-center gap-1 text-xs text-accent hover:text-accent-hover font-semibold cursor-pointer transition-colors"
         >
           <Navigation className="w-3 h-3" />
           <span>Use my location</span>
@@ -151,39 +151,39 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
             key={org.id}
             id={`org-card-${org.id}`}
             onClick={() => handleSelectOrg(org.id, org.locationId)}
-            className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-[#00ACC1] hover:shadow-md transition-all cursor-pointer group relative"
+            className="bg-surface p-5 rounded-lg border border-border-subtle hover:border-accent hover:bg-surface-interactive transition-all cursor-pointer group relative"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-[#F1F5F9] text-[#0F172A] flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200">
-                  <Building2 className="w-5 h-5 text-[#00ACC1]" />
+                <div className="w-11 h-11 rounded-lg bg-surface-elevated text-content-primary flex items-center justify-center font-semibold text-sm shrink-0 border border-border-strong">
+                  <Building2 className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#00ACC1] transition-colors">
+                  <h3 className="text-sm font-semibold text-content-primary group-hover:text-accent transition-colors">
                     {org.name}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-content-secondary mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-content-muted shrink-0" />
                     <span className="truncate">{org.address}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                  <div className="text-[11px] text-content-muted mt-1 font-mono">
                     {org.activeServices}
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${org.badgeColor}`}>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold border ${org.badgeColor.replace('bg-emerald-50 text-emerald-700 border-emerald-200', 'bg-success/10 text-success border-success/30').replace('bg-rose-50 text-rose-700 border-rose-200', 'bg-error/10 text-error border-error/30').replace('bg-amber-50 text-amber-700 border-amber-200', 'bg-warning/10 text-warning border-warning/30').replace('bg-blue-50 text-blue-700 border-blue-200', 'bg-accent/10 text-accent border-accent/30')}`}>
                   {org.badgeText}
                 </span>
-                <div className="flex items-center gap-1 text-xs text-slate-600 font-bold font-mono">
-                  <Clock className="w-3 h-3 text-slate-400" />
+                <div className="flex items-center gap-1 text-xs text-content-secondary font-semibold font-mono">
+                  <Clock className="w-3 h-3 text-content-muted" />
                   <span>{org.avgWait}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#00ACC1] font-bold">
+            <div className="mt-3 pt-3 border-t border-border-subtle flex items-center justify-between text-xs text-accent font-semibold">
               <span>View Services & Queues</span>
               <ChevronRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
             </div>
@@ -193,23 +193,23 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
 
       {/* Scanner Simulation Modal */}
       {showScannerModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center border border-slate-200 shadow-2xl">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-[#F1F5F9] flex items-center justify-center text-[#00ACC1] mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-surface rounded-lg p-6 max-w-sm w-full text-center border border-border-subtle shadow-2xl">
+            <div className="w-16 h-16 mx-auto rounded-lg bg-surface-elevated flex items-center justify-center text-accent mb-4">
               <QrCode className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Simulated QR Code Scanner</h3>
-            <p className="text-xs text-slate-600 mb-6">
+            <h3 className="text-lg font-semibold text-content-primary mb-1">Simulated QR Code Scanner</h3>
+            <p className="text-xs text-content-secondary mb-6">
               In production, scanning a desk QR code instantly loads the organization and branch token queue.
             </p>
-            <div className="p-4 bg-[#F1F5F9] rounded-2xl border border-slate-200 mb-6 text-left font-mono text-xs space-y-1">
-              <div className="text-slate-500">Target QR URL:</div>
-              <div className="text-[#00ACC1] font-bold break-all">https://align.app/q/abc-services/main-branch</div>
+            <div className="p-4 bg-surface-elevated rounded-lg border border-border-subtle mb-6 text-left font-mono text-xs space-y-1">
+              <div className="text-content-muted">Target QR URL:</div>
+              <div className="text-accent font-semibold break-all">https://align.app/q/abc-services/main-branch</div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowScannerModal(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer uppercase tracking-wider"
+                className="flex-1 py-3 rounded-lg border border-border-strong text-xs font-semibold text-content-primary hover:bg-surface-interactive cursor-pointer uppercase tracking-widest transition-colors"
               >
                 Cancel
               </button>
@@ -218,7 +218,7 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
                   setShowScannerModal(false);
                   handleSelectOrg('e2e00000-0000-0000-0000-000000000001', 'e2e00000-0000-0000-0000-000000000002');
                 }}
-                className="flex-1 py-3 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold cursor-pointer uppercase tracking-wider"
+                className="flex-1 py-3 rounded-lg bg-accent hover:bg-accent-hover text-base text-xs font-semibold cursor-pointer uppercase tracking-widest transition-colors"
               >
                 Simulate Scan
               </button>
