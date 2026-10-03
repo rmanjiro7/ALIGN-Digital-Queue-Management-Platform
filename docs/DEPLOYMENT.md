@@ -199,12 +199,17 @@ Production reverse proxies (like Nginx, Traefik) must be explicitly configured t
 
 ## 15. Docker Compose
 
-**docker-compose.yml** is provided for infrastructure, but currently only supports PostgreSQL correctly.
+**docker-compose.yml** is provided for infrastructure and backend containerization.
 
-**⚠️ Known Repository Limitation:**
-The `docker-compose.yml` file contains a `backend` service definition that expects a `Dockerfile` in `/backend` (`build: ./backend`). **There is currently no Dockerfile in the repository.** Attempting to run `docker-compose up` including the backend will fail.
-*Workaround:* Only use `docker-compose up postgres` to start the database, and run the backend locally via Maven.
+```bash
+docker compose up -d
+```
 
+This will start:
+1. PostgreSQL container (Port 5432)
+2. Spring Boot backend container (Port 8080)
+
+*Note: The frontend remains outside Docker for now.*
 ---
 
 ## 16. Security
@@ -226,4 +231,3 @@ Current MVP Security features:
 * **No formal backups:** Database backup and retention automation is not included.
 * **No APM:** No formal monitoring or application performance management is configured.
 * **No load-testing baseline:** System capacity under extreme concurrency is unverified.
-* **Docker Limitation:** Docker-based backend deployment currently requires a custom `Dockerfile` which is not provided.

@@ -19,5 +19,24 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    container_name: align_backend
+    environment:
+      DB_HOST: align_postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-align_qms}
+      DB_USERNAME: ${DB_USERNAME:-align_user}
+      DB_PASSWORD: ${DB_PASSWORD:-development_password}
+      JWT_SECRET: ${JWT_SECRET:-a_very_long_fallback_development_secret_for_hs512_that_must_be_overridden_in_production_environment_with_a_secure_value}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
