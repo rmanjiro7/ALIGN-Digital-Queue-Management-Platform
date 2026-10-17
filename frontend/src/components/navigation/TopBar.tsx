@@ -14,8 +14,8 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ appState, onMenuClick }) => {
   const { info } = useToast();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
-  const currentLocation = appState.locations.find(l => l.id === appState.selectedLocationId) || appState.locations[0];
+  const currentOrg = appState.selectedOrgId ? appState.tenants.find(t => t.id === appState.selectedOrgId) : null;
+  const currentLocation = appState.selectedLocationId ? appState.locations.find(l => l.id === appState.selectedLocationId) : null;
   
   const authRole = appState.currentUser?.role;
   const isAuthenticated = appState.authStatus === 'AUTHENTICATED';
@@ -100,55 +100,32 @@ export const TopBar: React.FC<TopBarProps> = ({ appState, onMenuClick }) => {
           <div className="w-8 h-8 rounded-md bg-[#26251e] text-[#f7f7f4] flex items-center justify-center font-semibold text-xs tracking-wider transition-opacity group-hover:opacity-90">
             A
           </div>
-          <div>
-            <div className="flex items-center gap-2 leading-none">
-              <span className="font-normal text-base tracking-[-0.02em] text-[#26251e] uppercase">ALIGN</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#f54e00]" />
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#e6e5e0] text-[#26251e] font-mono tracking-wider uppercase">QMS</span>
-            </div>
-            <span className="text-[10px] text-[#807d72] font-mono tracking-widest uppercase mt-0.5 block">Digital Queue</span>
+          <div className="flex flex-col justify-center">
+            <span className="font-semibold text-sm tracking-tight text-[#26251e]">ALIGN</span>
+            <span className="text-[10px] text-[#807d72] font-mono tracking-wider uppercase leading-tight">Digital Queue</span>
           </div>
         </div>
 
-        {/* Location / Tenant Selector Pill */}
-        {!isStaffLogin && (
+        {/* Location / Tenant Selector Pill - Only shown when an organization is selected */}
+        {!isStaffLogin && currentOrg && appState.currentScreen !== 'SCREEN_02_DISCOVERY' && (
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-white border border-[#e6e5e0] rounded-md text-xs">
             <Icon icon="lucide:building-2" className="w-3.5 h-3.5 text-[#807d72]" />
-            <span className="font-medium text-[#26251e]">{currentOrg?.name}</span>
-            <span className="text-[#cfcdc4] mx-1">/</span>
-            <Icon icon="lucide:map-pin" className="w-3.5 h-3.5 text-[#807d72]" />
-            <span className="text-[#5a5852]">{currentLocation?.name} <span className="text-[#807d72] ml-1">({currentLocation?.subtitle})</span></span>
+            <span className="font-medium text-[#26251e]">{currentOrg.name}</span>
+            {currentLocation && (
+              <>
+                <span className="text-[#cfcdc4] mx-1">/</span>
+                <Icon icon="lucide:map-pin" className="w-3.5 h-3.5 text-[#807d72]" />
+                <span className="text-[#5a5852]">{currentLocation.name} {currentLocation.subtitle && <span className="text-[#807d72] ml-1">({currentLocation.subtitle})</span>}</span>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Center Search Bar */}
-      {!isStaffLogin && (
-        <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
-          <div className="relative w-full group">
-            <Icon icon="lucide:search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#807d72] group-focus-within:text-[#26251e] transition-colors" />
-            <input 
-              type="text" 
-              placeholder={
-                appState.currentRole === 'CUSTOMER'
-                  ? "Search organizations, locations, or services..."
-                  : "Search queues, services, counters, or actions..."
-              }
-              className="w-full pl-9 pr-12 py-2 bg-white border border-[#e6e5e0] rounded-md text-sm text-[#26251e] placeholder:text-[#a09c92] focus:outline-none focus:border-[#26251e] transition-colors"
-            />
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-[#fafaf7] border border-[#e6e5e0] text-[#807d72] rounded font-mono">⌘K</kbd>
-          </div>
-        </div>
-      )}
 
       {/* Right Controls */}
       {!isStaffLogin && (
         <div className="flex items-center gap-3">
-          {/* Real-time sync badge */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white border border-[#e6e5e0]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1f8a65] animate-pulse" />
-            <span className="font-mono text-[10px] font-semibold tracking-wider text-[#1f8a65] uppercase">LIVE</span>
-          </div>
 
           {/* Public TV Display Quick Link */}
           <button

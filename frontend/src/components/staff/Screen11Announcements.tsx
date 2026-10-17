@@ -12,9 +12,12 @@ interface Screen11AnnouncementsProps {
 }
 
 export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ appState }) => {
-  const [tokenInput, setTokenInput] = useState('A-042');
-  const [counterInput, setCounterInput] = useState(3);
-  const [customMessage, setCustomMessage] = useState('Token A-042, please proceed to Counter 3.');
+  const lastCalledToken = appState.tokens.find(t => t.id === appState.lastCalledTokenId);
+  const [tokenInput, setTokenInput] = useState(lastCalledToken?.tokenNumber || '');
+  const [counterInput, setCounterInput] = useState(lastCalledToken?.counterNumber || 1);
+  const [customMessage, setCustomMessage] = useState(
+    lastCalledToken ? `Token ${lastCalledToken.tokenNumber}, please proceed to Counter ${lastCalledToken.counterNumber || 1}.` : ''
+  );
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastStatus, setLastStatus] = useState<'idle' | 'speaking' | 'completed' | 'failed'>('idle');
 

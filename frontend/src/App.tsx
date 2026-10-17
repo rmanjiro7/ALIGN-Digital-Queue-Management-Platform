@@ -107,17 +107,22 @@ function AppInner() {
               if (user.role) {
                 queueStore.setRole(user.role);
               }
-            } else {
-              queueStore.setAuthStatus('UNAUTHENTICATED');
+              return;
             }
           } catch {
-            queueStore.setAuthStatus('UNAUTHENTICATED');
+            // session restore failed
           }
-        } else {
-          queueStore.setAuthStatus('UNAUTHENTICATED');
         }
-      } else {
-        queueStore.setAuthStatus('UNAUTHENTICATED');
+      }
+      
+      // If unauthenticated, place user on Customer Portal by default
+      queueStore.setAuthStatus('UNAUTHENTICATED');
+      const state = queueStore.getState();
+      if (state.currentRole !== 'PUBLIC_DISPLAY') {
+        if (state.currentRole !== 'CUSTOMER' || state.currentScreen === 'SCREEN_08_STAFF_LOGIN' || state.currentScreen.startsWith('SCREEN_09') || state.currentScreen.startsWith('SCREEN_1')) {
+          queueStore.setRole('CUSTOMER');
+          queueStore.setScreen(state.activeCustomerTokenId ? 'SCREEN_05_ACTIVE_STATUS' : 'SCREEN_02_DISCOVERY');
+        }
       }
     };
     initAuth();
@@ -128,6 +133,11 @@ function AppInner() {
   const renderActiveScreen = () => {
     const authRole = appState.currentUser?.role;
     const isAuthenticated = appState.authStatus === 'AUTHENTICATED';
+
+    // If unauthenticated visitor hits an admin/staff route without explicit login, show Customer Portal
+    if (!isAuthenticated && appState.currentScreen !== 'SCREEN_08_STAFF_LOGIN' && appState.currentScreen !== 'SCREEN_22_PUBLIC_DISPLAY' && (appState.currentScreen.startsWith('SCREEN_09') || appState.currentScreen.startsWith('SCREEN_1'))) {
+      return <Screen02Discovery appState={appState} />;
+    }
 
     switch (appState.currentScreen) {
       // Customer Flow (Public)

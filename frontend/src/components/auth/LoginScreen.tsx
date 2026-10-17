@@ -70,7 +70,7 @@ export const LoginScreen: React.FC = () => {
                 <Icon icon="lucide:mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8c8b85]" />
                 <Input
                   type="email"
-                  placeholder="operator@align.local"
+                  placeholder="name@organization.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9 text-xs"
@@ -115,9 +115,18 @@ export const LoginScreen: React.FC = () => {
           </Button>
         </form>
 
-        <div className="mt-6 pt-4 border-t border-[#e6e5e0] flex items-center justify-center gap-1.5 text-xs text-[#8c8b85] font-mono">
-          <Icon icon="lucide:building-2" className="w-3.5 h-3.5" />
-          <span>ALIGN Queue Management Platform</span>
+        <div className="mt-6 pt-4 border-t border-[#e6e5e0] flex flex-col items-center justify-center gap-2 text-xs text-[#8c8b85] font-mono">
+          <button
+            type="button"
+            onClick={() => queueStore.setScreen('SCREEN_08_STAFF_LOGIN')}
+            className="text-[#f54e00] hover:underline font-semibold cursor-pointer"
+          >
+            Need a Staff / Admin account? Create one here →
+          </button>
+          <div className="flex items-center gap-1.5 mt-1">
+            <Icon icon="lucide:building-2" className="w-3.5 h-3.5" />
+            <span>ALIGN Queue Management Platform</span>
+          </div>
         </div>
       </Card>
     </div>

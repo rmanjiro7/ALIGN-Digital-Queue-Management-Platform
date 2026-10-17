@@ -244,7 +244,7 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
 
           {/* Large Mono Token Number */}
           <div className="text-7xl md:text-8xl font-mono font-medium tracking-tight text-[#26251e] leading-none mb-4 select-all">
-            {token?.tokenNumber || 'A-042'}
+            {token?.tokenNumber || '---'}
           </div>
 
           {/* Timeline Pastel Pill Status */}
@@ -291,10 +291,12 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
               Please Proceed Immediately To
             </div>
             <div className="text-5xl md:text-6xl font-mono font-medium tracking-tight text-[#26251e] mb-3">
-              COUNTER {token.counterNumber || 3}
+              COUNTER {token.counterNumber || 1}
             </div>
             <div className="text-xs font-mono text-[#5a5852]">
-              Assigned Staff: Alex Mercer <span className="text-[#cfcdc4] mx-2">/</span> Station 03
+              {appState.counters.find(c => c.number === token.counterNumber)?.assignedStaffName 
+                ? `Assigned Staff: ${appState.counters.find(c => c.number === token.counterNumber)?.assignedStaffName} / Station ${String(token.counterNumber || 1).padStart(2, '0')}`
+                : `Station ${String(token.counterNumber || 1).padStart(2, '0')}`}
             </div>
           </Card>
         ) : !isCompleted && !isTransferred && (

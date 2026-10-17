@@ -15,56 +15,24 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
   const [searchQuery, setSearchQuery] = useState('');
   const [showScannerModal, setShowScannerModal] = useState(false);
 
-  const organizations = [
-    {
-      id: 'e2e00000-0000-0000-0000-000000000001',
-      locationId: 'e2e00000-0000-0000-0000-000000000002',
-      name: 'ABC Bank - Main Branch',
-      sector: 'Financial Services',
-      icon: 'lucide:landmark',
-      address: '123 Financial District, Suite 100',
-      avgWait: '8 min wait',
-      activeServices: '4 services available',
-      badgeVariant: 'grep' as const, // Mint
-      badgeText: 'Low Wait',
-    },
-    {
-      id: 'org-hospital',
-      locationId: 'loc-hospital-main',
-      name: 'City General Hospital',
-      sector: 'Emergency & Outpatient',
-      icon: 'lucide:hospital',
-      address: '456 Health Way, Metro City',
-      avgWait: '45+ min wait',
-      activeServices: '6 services available',
-      badgeVariant: 'thinking' as const, // Peach
-      badgeText: 'High Demand',
-    },
-    {
-      id: 'org-rmv',
-      locationId: 'loc-rmv-central',
-      name: 'Metro RMV Services',
-      sector: 'Licensing & Registration',
-      icon: 'lucide:car-front',
-      address: '789 Civic Center Blvd',
-      avgWait: '12 min wait',
-      activeServices: '5 services available',
-      badgeVariant: 'done' as const, // Gold
-      badgeText: 'Moderate Wait',
-    },
-    {
-      id: 'org-tech',
-      locationId: 'loc-main',
-      name: 'Global Tech Campus',
-      sector: 'Corporate IT & Badging',
-      icon: 'lucide:cpu',
-      address: '100 Silicon Way, Tech Park',
-      avgWait: '5 min wait',
-      activeServices: '2 services available',
-      badgeVariant: 'read' as const, // Pastel blue
-      badgeText: 'Fast Service',
-    }
-  ];
+  const organizations = appState.tenants.map(t => {
+    const loc = appState.locations.find(l => l.orgId === t.id) || appState.locations[0];
+    const locServices = appState.services.filter(s => s.orgId === t.id && (s.enabled ?? true));
+    const totalWaiting = locServices.reduce((acc, s) => acc + (s.waitingCount || 0), 0);
+    const avgWait = totalWaiting === 0 ? 'No wait' : `${Math.round(totalWaiting * 3)} min wait`;
+    return {
+      id: t.id,
+      locationId: loc?.id || 'e2e00000-0000-0000-0000-000000000002',
+      name: t.name,
+      sector: t.sector,
+      icon: 'lucide:building-2',
+      address: loc?.address || `${loc?.city || 'Metro City'}`,
+      avgWait,
+      activeServices: `${locServices.length || loc?.activeServicesCount || 0} services available`,
+      badgeVariant: totalWaiting === 0 ? ('grep' as const) : totalWaiting > 20 ? ('thinking' as const) : ('done' as const),
+      badgeText: totalWaiting === 0 ? 'Available Now' : totalWaiting > 20 ? 'High Demand' : 'Moderate Wait',
+    };
+  });
 
   const filteredOrgs = organizations.filter(org => 
     org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,12 +50,7 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
     <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Icon icon="lucide:compass" className="w-4 h-4 text-[#f54e00]" />
-            <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-[#807d72]">Virtual Queue Directory</span>
-          </div>
-
+        <div className="flex items-center justify-end mb-3">
           <button
             id="view-history-shortcut-btn"
             onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
@@ -99,7 +62,7 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
         </div>
 
         <h1 className="text-display-md text-[#26251e]">
-          Find your location
+          Find your queue
         </h1>
         <p className="text-sm text-[#5a5852] mt-1.5">
           Select an organization to check estimated wait times and join their digital queue.
@@ -129,30 +92,31 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
         </button>
       </div>
 
-      {/* Location Section Heading */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#807d72] font-semibold">
-          Available Locations ({filteredOrgs.length})
-        </h2>
-        <button 
-          onClick={() => info('Location detected: Metro Central District (Accuracy: 12m)', 'Location Services')}
-          className="flex items-center gap-1.5 text-xs text-[#f54e00] hover:text-[#d04200] font-medium cursor-pointer transition-colors"
-        >
-          <Icon icon="lucide:navigation" className="w-3.5 h-3.5" />
-          <span>Near me</span>
-        </button>
-      </div>
+      {/* Location Section Heading & List (only when organizations exist) */}
+      {filteredOrgs.length > 0 && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#807d72] font-semibold">
+              Available Locations ({filteredOrgs.length})
+            </h2>
+            <button 
+              onClick={() => info('Location detected: Metro Central District (Accuracy: 12m)', 'Location Services')}
+              className="flex items-center gap-1.5 text-xs text-[#f54e00] hover:text-[#d04200] font-medium cursor-pointer transition-colors"
+            >
+              <Icon icon="lucide:navigation" className="w-3.5 h-3.5" />
+              <span>Near me</span>
+            </button>
+          </div>
 
-      {/* Organization Cards List */}
-      <div className="space-y-3.5">
-        {filteredOrgs.map((org) => (
-          <Card
-            key={org.id}
-            id={`org-card-${org.id}`}
-            onClick={() => handleSelectOrg(org.id, org.locationId)}
-            variant="interactive"
-            className="p-5 group"
-          >
+          <div className="space-y-3.5">
+            {filteredOrgs.map((org) => (
+              <Card
+                key={org.id}
+                id={`org-card-${org.id}`}
+                onClick={() => handleSelectOrg(org.id, org.locationId)}
+                variant="interactive"
+                className="p-5 group"
+              >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="w-11 h-11 rounded-md bg-[#fafaf7] text-[#26251e] flex items-center justify-center shrink-0 border border-[#e6e5e0]">
@@ -190,6 +154,8 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
           </Card>
         ))}
       </div>
+    </>
+  )}
 
       {/* Scanner Simulation Modal */}
       {showScannerModal && (

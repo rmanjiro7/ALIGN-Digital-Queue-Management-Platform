@@ -18,7 +18,7 @@ import {
   QueueWarningState
 } from '../types';
 
-const STORAGE_KEY = 'align_qms_state_v1';
+const STORAGE_KEY = 'align_qms_state_v4';
 
 export interface AppState {
   currentRole: UserRole;
@@ -52,602 +52,47 @@ export interface AppState {
   syncStatus: 'DISCONNECTED' | 'CONNECTING' | 'SUBSCRIBING' | 'SNAPSHOT_SYNC' | 'LIVE' | 'RECONNECTING' | 'ERROR';
 }
 
-const INITIAL_TENANTS: Tenant[] = [
-  {
-    id: 'e2e00000-0000-0000-0000-000000000001',
-    code: 'T-8492',
-    name: 'ABC Services',
-    sector: 'Enterprise Retail',
-    status: 'ACTIVE',
-    locationCount: 24,
-    activeQueueCount: 156,
-    contactEmail: 'ops@abcservices.com',
-    joinedDate: '2023-01-15',
-  },
-  {
-    id: 'org-hospital',
-    code: 'T-9931',
-    name: 'City Hospital',
-    sector: 'Healthcare',
-    status: 'ACTIVE',
-    locationCount: 8,
-    activeQueueCount: 42,
-    contactEmail: 'admin@cityhospital.org',
-    joinedDate: '2023-03-20',
-  },
-  {
-    id: 'org-rmv',
-    code: 'T-1024',
-    name: 'Metro RMV',
-    sector: 'Government',
-    status: 'ACTIVE',
-    locationCount: 45,
-    activeQueueCount: 312,
-    contactEmail: 'support@metrormv.gov',
-    joinedDate: '2023-05-10',
-  },
-  {
-    id: 'org-tech',
-    code: 'T-4451',
-    name: 'Global Tech Campus',
-    sector: 'Corporate',
-    status: 'SUSPENDED',
-    locationCount: 3,
-    activeQueueCount: 12,
-    contactEmail: 'facilities@globaltech.io',
-    joinedDate: '2023-08-01',
-  },
-  {
-    id: 'org-univ',
-    code: 'T-2289',
-    name: 'State University',
-    sector: 'Education',
-    status: 'ACTIVE',
-    locationCount: 12,
-    activeQueueCount: 88,
-    contactEmail: 'services@stateuniv.edu',
-    joinedDate: '2023-09-12',
-  },
-];
+const INITIAL_TENANTS: Tenant[] = [];
 
-const INITIAL_LOCATIONS: LocationBranch[] = [
-  {
-    id: 'e2e00000-0000-0000-0000-000000000002',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    name: 'Main Branch',
-    subtitle: 'Downtown HQ',
-    address: '123 Business Parkway, Suite 100',
-    city: 'Metro City',
-    status: 'Active',
-    activeServicesCount: 4,
-    staffAssignedCount: 12,
-    operatingHours: '08:00 AM - 06:00 PM',
-    isHQ: true,
-  },
-  {
-    id: 'loc-north',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    name: 'North Branch',
-    subtitle: 'Commerce Hub',
-    address: '8850 North Commerce Dr',
-    city: 'Suburbia',
-    status: 'Inactive',
-    activeServicesCount: 0,
-    staffAssignedCount: 0,
-    operatingHours: '09:00 AM - 05:00 PM',
-  },
-  {
-    id: 'loc-hospital-main',
-    orgId: 'org-hospital',
-    name: 'City General Central',
-    subtitle: 'Emergency & Outpatient',
-    address: '456 Health Way',
-    city: 'Metro City',
-    status: 'Active',
-    activeServicesCount: 6,
-    staffAssignedCount: 28,
-    operatingHours: '24/7 Service',
-    isHQ: true,
-  },
-  {
-    id: 'loc-rmv-central',
-    orgId: 'org-rmv',
-    name: 'Metro Civic Center',
-    subtitle: 'Licensing & Registration',
-    address: '789 Civic Center Blvd',
-    city: 'Metro City',
-    status: 'Active',
-    activeServicesCount: 5,
-    staffAssignedCount: 18,
-    operatingHours: '08:30 AM - 04:30 PM',
-    isHQ: true,
-  }
-];
+const INITIAL_LOCATIONS: LocationBranch[] = [];
 
-const INITIAL_SERVICES: ServiceItem[] = [
-  {
-    id: 'e2e00000-0000-0000-0000-000000000003',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'General Inquiry',
-    description: 'Default service for walk-ins requiring basic information or directional assistance.',
-    icon: 'forum',
-    enabled: true,
-    isFastTrack: false,
-    isHighVolume: false,
-    waitingCount: 5,
-    estWaitMins: 18,
-    estWaitRange: '15-20 min',
-    confidence: 'High',
-    associatedQueues: ['e2e00000-0000-0000-0000-000000000004', 'q-info'],
-    preparationGuidance: 'Please have your photo ID ready for verification.',
-  },
-  {
-    id: 'srv-account',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Account Services',
-    description: 'Open new accounts, update information, and manage existing profiles.',
-    icon: 'account_balance',
-    enabled: true,
-    isFastTrack: false,
-    isHighVolume: false,
-    waitingCount: 14,
-    estWaitMins: 25,
-    estWaitRange: '20-30 min',
-    confidence: 'High',
-    associatedQueues: ['e2e00000-0000-0000-0000-000000000004'],
-    preparationGuidance: 'Bring government ID, proof of address, and initial deposit if applicable.',
-  },
-  {
-    id: 'e2e00000-0000-0000-0000-000000000010',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Loan Applications',
-    description: 'Speak with a specialist about personal, auto, or home loans. Comprehensive consultation included.',
-    icon: 'description',
-    enabled: true,
-    isFastTrack: false,
-    isHighVolume: false,
-    waitingCount: 3,
-    estWaitMins: 12,
-    estWaitRange: '10-15 min',
-    confidence: 'High',
-    associatedQueues: ['q-specialist'],
-    preparationGuidance: 'Have income documentation and recent tax returns ready.',
-  },
-  {
-    id: 'srv-cashier',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Cashier',
-    description: 'Deposits, withdrawals, money orders, and general teller transactions.',
-    icon: 'payments',
-    enabled: true,
-    isFastTrack: false,
-    isHighVolume: true,
-    waitingCount: 28,
-    estWaitMins: 45,
-    estWaitRange: '40-50 min',
-    confidence: 'Medium',
-    associatedQueues: ['e2e00000-0000-0000-0000-000000000004'],
-    preparationGuidance: 'Endorse all checks prior to approaching the teller window.',
-  },
-  {
-    id: 'srv-express',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Express Drop-off',
-    description: 'Quick document drop-off or simple pickups taking less than 2 minutes.',
-    icon: 'bolt',
-    enabled: true,
-    isFastTrack: true,
-    isHighVolume: false,
-    waitingCount: 1,
-    estWaitMins: 4,
-    estWaitRange: '< 5 min',
-    confidence: 'High',
-    associatedQueues: ['q-info'],
-    preparationGuidance: 'Ensure all package labels are clearly marked with your customer ID.',
-  },
-  {
-    id: 'srv-specialist',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Specialist Consult',
-    description: 'Requires pre-booking or referral. Higher duration expected per token.',
-    icon: 'assignment_ind',
-    enabled: true,
-    isFastTrack: false,
-    isHighVolume: false,
-    waitingCount: 0,
-    estWaitMins: 0,
-    estWaitRange: 'No wait',
-    confidence: 'High',
-    associatedQueues: [],
-    preparationGuidance: 'Please bring your specialist referral code.',
-  },
-];
+const INITIAL_SERVICES: ServiceItem[] = [];
 
-const INITIAL_QUEUES: QueueItem[] = [
-  {
-    id: 'e2e00000-0000-0000-0000-000000000004',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    name: 'Walk-In Triage',
-    tokenPrefix: 'A',
-    startRange: 1,
-    endRange: 999,
-    status: 'Active',
-    currentCount: 45,
-    maxCapacity: 50,
-    avgWaitMins: 12,
-    autoPauseAtCapacity: true,
-  },
-  {
-    id: 'q-info',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    name: 'Information Desk',
-    tokenPrefix: 'I',
-    startRange: 1,
-    endRange: 999,
-    status: 'Paused',
-    currentCount: 0,
-    maxCapacity: 30,
-    avgWaitMins: 0,
-    autoPauseAtCapacity: false,
-  },
-  {
-    id: 'q-specialist',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000010',
-    name: 'Consultation Desk',
-    tokenPrefix: 'C',
-    startRange: 1,
-    endRange: 999,
-    status: 'Active',
-    currentCount: 8,
-    maxCapacity: 25,
-    avgWaitMins: 15,
-    autoPauseAtCapacity: true,
-  },
-];
+const INITIAL_QUEUES: QueueItem[] = [];
 
-const INITIAL_COUNTERS: CounterItem[] = [
-  {
-    id: 'e2e00000-0000-0000-0000-000000000005',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    number: 1,
-    name: 'Counter 1',
-    status: 'Active',
-    availability: 'ONLINE',
-    assignedStaffName: 'Sarah Jenkins',
-    supportedServiceNames: ['General Inquiry', 'Account Services'],
-  },
-  {
-    id: 'e2e00000-0000-0000-0000-000000000012',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    number: 2,
-    name: 'Counter 2',
-    status: 'Active',
-    availability: 'ONLINE',
-    assignedStaffName: 'Marcus Vance',
-    supportedServiceNames: ['Account Services', 'Loan Applications'],
-  },
-  {
-    id: 'e2e00000-0000-0000-0000-000000000013',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    number: 3,
-    name: 'Counter 3',
-    status: 'Active',
-    availability: 'ON_BREAK',
-    assignedStaffId: 'staff-admin',
-    assignedStaffName: 'Alex Mercer (You)',
-    supportedServiceNames: ['General Inquiry', 'Fast-Track Triage'],
-  },
-  {
-    id: 'e2e00000-0000-0000-0000-000000000014',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    number: 4,
-    name: 'Counter 4',
-    status: 'Active',
-    availability: 'AWAY',
-    assignedStaffName: 'Elena Rostova',
-    supportedServiceNames: ['Specialist Advisory', 'General Inquiry'],
-  },
-];
+const INITIAL_COUNTERS: CounterItem[] = [];
 
-const INITIAL_STAFF: StaffUser[] = [
-  {
-    id: 'staff-admin',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Alex Mercer',
-    email: 'admin@organization.com',
-    role: 'STAFF',
-    assignedCounterNumber: 3,
-  },
-  {
-    id: 'staff-org-lead',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'Rachel Zane',
-    email: 'rachel@abcservices.com',
-    role: 'ORG_ADMIN',
-    assignedCounterNumber: 1,
-  },
-  {
-    id: 'staff-super',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    name: 'System Platform Admin',
-    email: 'super@alignplatform.io',
-    role: 'PLATFORM_ADMIN',
-    assignedCounterNumber: 0,
-  }
-];
+const INITIAL_STAFF: StaffUser[] = [];
 
-const INITIAL_TOKENS: QueueToken[] = [
-  {
-    id: 'tok-042',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'A-042',
-    state: 'WAITING',
-    customerName: 'Current Customer',
-    customerPhone: '+1 (555) 019-2834',
-    joinedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    peopleAhead: 0,
-    estWaitMins: 5,
-    estRange: '4-7 min',
-    confidence: 'High',
-  },
-  {
-    id: 'tok-105',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'srv-account',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'B-105',
-    state: 'WAITING',
-    joinedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    peopleAhead: 1,
-    estWaitMins: 8,
-    estRange: '7-10 min',
-    confidence: 'High',
-  },
-  {
-    id: 'tok-043',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'A-043',
-    state: 'WAITING',
-    joinedAt: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
-    peopleAhead: 2,
-    estWaitMins: 12,
-    estRange: '10-15 min',
-    confidence: 'Medium',
-  },
-  {
-    id: 'tok-012',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000010',
-    queueId: 'q-specialist',
-    tokenNumber: 'C-012',
-    state: 'WAITING',
-    joinedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    peopleAhead: 3,
-    estWaitMins: 16,
-    estRange: '14-18 min',
-    confidence: 'Medium',
-  },
-  {
-    id: 'tok-044',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'A-044',
-    state: 'WAITING',
-    joinedAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
-    peopleAhead: 4,
-    estWaitMins: 20,
-    estRange: '18-24 min',
-    confidence: 'Medium',
-  },
-  {
-    id: 'tok-045',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'A-045',
-    state: 'WAITING',
-    joinedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    peopleAhead: 5,
-    estWaitMins: 24,
-    estRange: '22-28 min',
-    confidence: 'Low',
-  }
-];
+const INITIAL_TOKENS: QueueToken[] = [];
 
-const INITIAL_HISTORY: QueueToken[] = [
-  {
-    id: 'hist-1',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'srv-account',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'A-042',
-    state: 'COMPLETED',
-    counterNumber: 3,
-    joinedAt: '2023-10-24T10:15:00.000Z',
-    completedAt: '2023-10-24T10:32:00.000Z',
-    peopleAhead: 0,
-    estWaitMins: 0,
-    estRange: 'Completed',
-    confidence: 'High',
-  },
-  {
-    id: 'hist-2',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'loc-north',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    queueId: 'q-info',
-    tokenNumber: 'B-105',
-    state: 'CANCELLED',
-    joinedAt: '2023-10-20T14:30:00.000Z',
-    completedAt: '2023-10-20T14:45:00.000Z',
-    peopleAhead: 0,
-    estWaitMins: 0,
-    estRange: 'Cancelled',
-    confidence: 'High',
-  },
-  {
-    id: 'hist-3',
-    orgId: 'org-tech',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    serviceId: 'e2e00000-0000-0000-0000-000000000003',
-    queueId: 'e2e00000-0000-0000-0000-000000000004',
-    tokenNumber: 'C-098',
-    state: 'NO_SHOW',
-    joinedAt: '2023-10-15T09:45:00.000Z',
-    completedAt: '2023-10-15T10:05:00.000Z',
-    peopleAhead: 0,
-    estWaitMins: 0,
-    estRange: 'Skipped',
-    confidence: 'High',
-  }
-];
+const INITIAL_HISTORY: QueueToken[] = [];
 
-const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
-  {
-    id: 'ann-1',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    tokenNumber: 'A-041',
-    counterNumber: 3,
-    text: 'Token A-041, please proceed to Counter 3.',
-    status: 'Sent',
-    timestamp: '10:42 AM',
-    timeLabel: '10:42 AM',
-    serviceName: 'General Inquiry',
-  },
-  {
-    id: 'ann-2',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    tokenNumber: 'B-012',
-    counterNumber: 1,
-    text: 'Token B-012, please proceed to Counter 1.',
-    status: 'Sent',
-    timestamp: '10:35 AM',
-    timeLabel: '10:35 AM',
-    serviceName: 'Account Services',
-  },
-  {
-    id: 'ann-3',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    tokenNumber: 'INFO',
-    counterNumber: 2,
-    text: 'Attention all waiting customers, Counter 2 is temporarily closed.',
-    status: 'Failed',
-    timestamp: '10:28 AM',
-    timeLabel: '10:28 AM',
-    serviceName: 'Operations',
-    errorMessage: 'Error: PA System connection timeout.',
-  },
-  {
-    id: 'ann-4',
-    orgId: 'e2e00000-0000-0000-0000-000000000001',
-    locationId: 'e2e00000-0000-0000-0000-000000000002',
-    tokenNumber: 'A-040',
-    counterNumber: 3,
-    text: 'Token A-040, please proceed to Counter 3.',
-    status: 'Sent',
-    timestamp: '09:15 AM',
-    timeLabel: '09:15 AM',
-    serviceName: 'General Inquiry',
-  },
-];
+const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [];
 
-const INITIAL_ALERTS: SystemAlert[] = [
-  {
-    id: 'alert-1',
-    title: 'High Latency - US East',
-    description: 'API response times exceeding 500ms threshold for 3 organizations.',
-    severity: 'critical',
-    timestamp: '10 mins ago',
-  },
-  {
-    id: 'alert-2',
-    title: 'DB Connection Pool',
-    description: "Cluster 'Alpha' reaching 85% capacity limits.",
-    severity: 'warning',
-    timestamp: '45 mins ago',
-  },
-  {
-    id: 'alert-3',
-    title: 'Scheduled Maintenance',
-    description: 'Routine update planned for upcoming Sunday at 02:00 UTC.',
-    severity: 'info',
-    timestamp: 'Yesterday',
-  }
-];
+const INITIAL_ALERTS: SystemAlert[] = [];
 
 const createInitialState = (): AppState => ({
   currentRole: 'CUSTOMER',
-  currentScreen: 'SCREEN_01_SPLASH',
-  selectedOrgId: 'e2e00000-0000-0000-0000-000000000001',
-  selectedLocationId: 'e2e00000-0000-0000-0000-000000000002',
-  selectedServiceId: 'e2e00000-0000-0000-0000-000000000003',
-  activeCustomerTokenId: 'tok-042',
+  currentScreen: 'SCREEN_02_DISCOVERY',
+  selectedOrgId: '',
+  selectedLocationId: '',
+  selectedServiceId: null,
+  activeCustomerTokenId: null,
   lastCalledTokenId: null,
-  currentStaffUser: { ...INITIAL_STAFF[0] },
-  tenants: [...INITIAL_TENANTS],
-  locations: [...INITIAL_LOCATIONS],
-  services: [...INITIAL_SERVICES],
-  queues: INITIAL_QUEUES.map(q => ({ ...q })),
-  tokens: INITIAL_TOKENS.map(t => ({ ...t })),
-  counters: INITIAL_COUNTERS.map(c => ({ ...c })),
-  staffUsers: INITIAL_STAFF.map(s => ({ ...s })),
-  announcements: INITIAL_ANNOUNCEMENTS.map(a => ({ ...a })),
-  globalRules: {
-    'e2e00000-0000-0000-0000-000000000001': {
-      autoPauseAtCapacity: true,
-      capacityThresholdPercent: 90,
-      maxWaitThresholdMins: 45,
-    }
-  },
-  alerts: INITIAL_ALERTS.map(a => ({ ...a })),
-  auditLogs: [
-    {
-      id: 'log-1',
-      orgId: 'e2e00000-0000-0000-0000-000000000001',
-      actor: 'Alex Mercer',
-      action: 'CALL_NEXT',
-      aggregateId: 'tok-041',
-      beforeState: 'WAITING',
-      afterState: 'CALLED',
-      timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
-      details: 'Assigned to Counter 3',
-    }
-  ],
-  historyTokens: INITIAL_HISTORY.map(h => ({ ...h })),
+  currentStaffUser: null,
+  tenants: [],
+  locations: [],
+  services: [],
+  queues: [],
+  tokens: [],
+  counters: [],
+  staffUsers: [],
+  announcements: [],
+  globalRules: {},
+  alerts: [],
+  auditLogs: [],
+  historyTokens: [],
   queueWarnings: [],
   authStatus: 'UNAUTHENTICATED',
   currentUser: null,
@@ -674,38 +119,113 @@ export class QueueStore {
 
   private loadState(): AppState {
     try {
+      // Purge legacy storage keys
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('align_qms_state_v1');
+        localStorage.removeItem('align_qms_state_v2');
+        localStorage.removeItem('align_qms_state_v3');
+      }
+
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         const isRestoring = !!sessionStorage.getItem('refresh_token');
-        const isDemo = !isRestoring && parsed.authStatus !== 'AUTHENTICATED' && parsed.selectedLocationId === 'e2e00000-0000-0000-0000-000000000002';
 
-        let effectiveCounters: CounterItem[];
-        if (isDemo) {
-          effectiveCounters = INITIAL_COUNTERS.map(defaultCounter => {
-            const savedCounter = parsed.counters?.find((c: CounterItem) => c.number === defaultCounter.number);
-            if (!savedCounter) return { ...defaultCounter };
-            return {
-              ...defaultCounter,
-              ...savedCounter,
-              availability: savedCounter.availability || defaultCounter.availability || 'ONLINE',
-            };
-          });
-        } else {
-          effectiveCounters = Array.isArray(parsed.counters) ? parsed.counters : [];
+        // Filter out legacy dummy tokens
+        const validTokens = Array.isArray(parsed.tokens) 
+          ? parsed.tokens.filter((t: any) => t && !t.id?.startsWith('tok-04') && !t.id?.startsWith('tok-10') && !t.id?.startsWith('tok-01'))
+          : [];
+
+        let activeTokenId = parsed.activeCustomerTokenId;
+        if (activeTokenId && (activeTokenId === 'tok-042' || activeTokenId.startsWith('tok-04'))) {
+          activeTokenId = null;
         }
 
-        const effectiveServices = (Array.isArray(parsed.services) ? parsed.services : INITIAL_SERVICES).map((s: ServiceItem) => ({
+        // Filter out dummy/mock tenants completely
+        const dummyTenantNames = new Set(['ABC Services', 'City Hospital', 'Metro RMV', 'Global Tech Campus', 'State University', 'ALIGN E2E Demo']);
+        const validTenants = Array.isArray(parsed.tenants)
+          ? parsed.tenants
+              .filter((t: any) => t && !dummyTenantNames.has(t.name) && !t.name?.includes('E2E') && t.id !== 'org-hospital' && t.id !== 'org-rmv' && t.id !== 'org-tech' && t.id !== 'org-univ' && t.id !== 'e2e00000-0000-0000-0000-000000000001')
+          : [];
+        const effectiveTenants = validTenants;
+
+        // Filter out dummy/mock locations completely
+        const dummyLocationIds = new Set(['loc-north', 'loc-hospital-main', 'loc-rmv-central', 'e2e00000-0000-0000-0000-000000000002']);
+        const validLocations = Array.isArray(parsed.locations)
+          ? parsed.locations
+              .filter((l: any) => l && !dummyLocationIds.has(l.id) && !l.name?.includes('E2E') && !l.address?.includes('123 Localhost Ave') && !l.address?.includes('123 Business Parkway'))
+          : [];
+        const effectiveLocations = validLocations;
+
+        // Filter out dummy/mock services completely
+        const validServices = Array.isArray(parsed.services)
+          ? parsed.services.filter((s: any) => s && !s.id?.startsWith('srv-') && !s.name?.includes('E2E'))
+          : [];
+        const effectiveServices = validServices.map((s: ServiceItem) => ({
           ...s,
           associatedQueues: Array.isArray(s?.associatedQueues) ? s.associatedQueues : []
         }));
 
+        // Filter out dummy/mock queues completely
+        const validQueues = Array.isArray(parsed.queues)
+          ? parsed.queues.filter((q: any) => q && !q.id?.startsWith('q-') && !q.name?.includes('E2E'))
+          : [];
+        const effectiveQueues = validQueues;
+
+        // Clean counters of dummy staff names
+        const effectiveCounters = Array.isArray(parsed.counters)
+          ? parsed.counters
+              .filter((c: any) => c && !c.name?.includes('E2E') && !c.id?.startsWith('e2e'))
+              .map((c: CounterItem) => ({
+                ...c,
+                assignedStaffName: (c.assignedStaffName?.includes('Alex Mercer') || c.assignedStaffName?.includes('Sarah Jenkins') || c.assignedStaffName?.includes('Marcus Vance') || c.assignedStaffName?.includes('Elena Rostova'))
+                  ? undefined
+                  : c.assignedStaffName,
+                assignedStaffId: c.assignedStaffId === 'staff-admin' ? undefined : c.assignedStaffId,
+              }))
+          : [];
+
+        const cleanAuditLogs = Array.isArray(parsed.auditLogs)
+          ? parsed.auditLogs.filter((l: any) => l.actor !== 'Alex Mercer')
+          : [];
+
+        const effectiveAuthStatus = isRestoring ? 'AUTH_RESTORING' : (parsed.authStatus === 'AUTHENTICATED' ? 'UNAUTHENTICATED' : parsed.authStatus);
+
+        let effectiveRole = parsed.currentRole || 'CUSTOMER';
+        let effectiveScreen = parsed.currentScreen || 'SCREEN_02_DISCOVERY';
+
+        // When unauthenticated, ensure the customer portal is displayed first
+        if (effectiveAuthStatus !== 'AUTHENTICATED' && effectiveAuthStatus !== 'AUTH_RESTORING') {
+          if (effectiveRole !== 'CUSTOMER' && effectiveRole !== 'PUBLIC_DISPLAY') {
+            effectiveRole = 'CUSTOMER';
+          }
+          if (!effectiveScreen || effectiveScreen === 'SCREEN_01_SPLASH' || effectiveScreen === 'SCREEN_08_STAFF_LOGIN' || effectiveScreen.startsWith('SCREEN_09') || effectiveScreen.startsWith('SCREEN_1')) {
+            effectiveScreen = activeTokenId ? 'SCREEN_05_ACTIVE_STATUS' : 'SCREEN_02_DISCOVERY';
+          }
+        }
+
+        const selectedOrgValid = effectiveTenants.some(t => t.id === parsed.selectedOrgId);
+
         return {
           ...createInitialState(),
           ...parsed,
-          authStatus: isRestoring ? 'AUTH_RESTORING' : (parsed.authStatus === 'AUTHENTICATED' ? 'UNAUTHENTICATED' : parsed.authStatus),
-          counters: effectiveCounters,
+          selectedOrgId: selectedOrgValid ? parsed.selectedOrgId : '',
+          selectedLocationId: selectedOrgValid ? (parsed.selectedLocationId || '') : '',
+          tenants: effectiveTenants,
+          locations: effectiveLocations,
           services: effectiveServices,
+          queues: effectiveQueues,
+          counters: effectiveCounters,
+          currentRole: effectiveRole,
+          currentScreen: effectiveScreen,
+          activeCustomerTokenId: activeTokenId,
+          tokens: validTokens,
+          auditLogs: cleanAuditLogs,
+          historyTokens: Array.isArray(parsed.historyTokens) ? parsed.historyTokens.filter((h: any) => !h.id?.startsWith('hist-')) : [],
+          alerts: Array.isArray(parsed.alerts) ? parsed.alerts.filter((a: any) => !a.id?.startsWith('alert-')) : [],
+          announcements: Array.isArray(parsed.announcements) ? parsed.announcements.filter((an: any) => !an.id?.startsWith('ann-')) : [],
+          currentStaffUser: (parsed.currentStaffUser?.id === 'staff-admin' || parsed.currentStaffUser?.name?.includes('Alex Mercer')) ? null : parsed.currentStaffUser,
+          authStatus: effectiveAuthStatus,
         };
       }
     } catch {
@@ -775,6 +295,50 @@ export class QueueStore {
       }
     }
     this.saveState();
+  }
+
+  public registerStaffUser(userData: {
+    name: string;
+    email: string;
+    role: 'STAFF' | 'ORG_ADMIN' | 'PLATFORM_ADMIN';
+    orgId?: string;
+    newOrgName?: string;
+    newOrgSector?: string;
+    locationId?: string;
+  }): StaffUser {
+    let effectiveOrgId = userData.orgId;
+
+    if (userData.newOrgName && userData.role === 'ORG_ADMIN') {
+      const newOrg: Tenant = {
+        id: `org-${Date.now()}`,
+        code: `T-${Math.floor(1000 + Math.random() * 9000)}`,
+        name: userData.newOrgName,
+        sector: userData.newOrgSector || 'Enterprise',
+        status: 'ACTIVE',
+        locationCount: 1,
+        activeQueueCount: 0,
+        contactEmail: userData.email,
+        joinedDate: new Date().toISOString().split('T')[0],
+      };
+      this.state.tenants = [newOrg, ...this.state.tenants];
+      effectiveOrgId = newOrg.id;
+    } else if (!effectiveOrgId && this.state.tenants.length > 0) {
+      effectiveOrgId = this.state.tenants[0].id;
+    }
+
+    const newUser: StaffUser = {
+      id: `staff-${Date.now()}`,
+      orgId: effectiveOrgId || '',
+      locationId: userData.locationId || (this.state.locations.find(l => l.orgId === effectiveOrgId)?.id || this.state.locations[0]?.id || ''),
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      assignedCounterNumber: 1,
+    };
+
+    this.state.staffUsers = [newUser, ...this.state.staffUsers];
+    this.saveState();
+    return newUser;
   }
 
   // --- API DATA SETTERS ---
@@ -1254,7 +818,7 @@ export class QueueStore {
     this.saveState();
   }
 
-  public callNext(counterNumber: number = 3, staffId: string = 'staff-admin'): QueueToken | null {
+  public callNext(counterNumber: number = 1, staffId?: string): QueueToken | null {
     const counterCheck = this.canCounterCallNext(counterNumber);
     if (!counterCheck.allowed) {
       return null;
@@ -1273,13 +837,15 @@ export class QueueStore {
     }
 
     const counter = this.state.counters.find(c => c.number === counterNumber);
+    const effectiveStaffId = staffId || this.state.currentUser?.id || this.state.currentStaffUser?.id || counter?.assignedStaffId;
+    const effectiveStaffName = this.state.currentUser?.name || this.state.currentStaffUser?.name || counter?.assignedStaffName || 'Staff Operator';
 
     // Advance eligible token: WAITING -> CALLED
     eligibleToken.state = 'CALLED';
     eligibleToken.calledAt = new Date().toISOString();
     eligibleToken.counterNumber = counterNumber;
     eligibleToken.counterId = counter?.id || `counter-${counterNumber}`;
-    eligibleToken.calledByStaffId = staffId;
+    if (effectiveStaffId) eligibleToken.calledByStaffId = effectiveStaffId;
     eligibleToken.estRange = 'Now Serving';
     eligibleToken.peopleAhead = 0;
 
@@ -1287,7 +853,8 @@ export class QueueStore {
     if (counter) {
       counter.currentServingTokenId = eligibleToken.id;
       counter.currentServingTokenNumber = eligibleToken.tokenNumber;
-      counter.assignedStaffId = staffId;
+      if (effectiveStaffId) counter.assignedStaffId = effectiveStaffId;
+      if (effectiveStaffName && !counter.assignedStaffName) counter.assignedStaffName = effectiveStaffName;
     }
 
     // Decrement service waiting count
@@ -1332,7 +899,7 @@ export class QueueStore {
     this.state.auditLogs.unshift({
       id: 'log-' + Date.now(),
       orgId,
-      actor: 'Staff Operator',
+      actor: effectiveStaffName,
       action: 'CALL_NEXT',
       aggregateId: eligibleToken.id,
       beforeState: 'WAITING',
@@ -1644,6 +1211,10 @@ export class QueueStore {
   public resetDemoData() {
     this.state = createInitialState();
     this.saveState();
+  }
+
+  public clearAllDemoData() {
+    this.resetDemoData();
   }
 }
 

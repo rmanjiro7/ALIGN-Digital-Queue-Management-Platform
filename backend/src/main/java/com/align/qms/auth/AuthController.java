@@ -51,6 +51,29 @@ public class AuthController {
      * Disabled account → 401 ACCOUNT_DISABLED.
      * Validation failure → 422 VALIDATION_ERROR.
      */
+    /**
+     * Register a new operator, organization admin, or platform admin account.
+     * Returns access token, refresh token, expiry, and user profile.
+     *
+     * <p>Public endpoint — no JWT required.
+     * End-users / customers do not register (they queue anonymously).
+     */
+    @Operation(summary = "Register new staff/admin user")
+    @PostMapping("/register")
+    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+        LoginResponse response = authService.register(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Authenticate with email + password.
+     * Returns access token, refresh token, expiry, and user profile.
+     *
+     * <p>Public endpoint — no JWT required.
+     * Invalid credentials → 401 INVALID_CREDENTIALS (generic, no enumeration).
+     * Disabled account → 401 ACCOUNT_DISABLED.
+     * Validation failure → 422 VALIDATION_ERROR.
+     */
     @Operation(summary = "Authenticate with email and password")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {

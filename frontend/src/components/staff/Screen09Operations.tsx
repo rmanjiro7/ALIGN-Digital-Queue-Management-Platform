@@ -286,7 +286,7 @@ export const Screen09Operations: React.FC<Screen09OperationsProps> = ({ appState
         <div className="flex items-center gap-3 text-xs font-mono">
           <span className="text-[#807d72]">STAFF OPERATOR:</span>
           <span className="text-[#26251e] font-semibold">
-            {currentCounter?.assignedStaffName || 'Alex Mercer'}
+            {currentCounter?.assignedStaffName || appState.currentUser?.name || appState.currentStaffUser?.name || 'Staff Operator'}
           </span>
         </div>
       </div>

@@ -187,6 +187,17 @@ export interface StaffUser {
   assignedCounterNumber: number;
 }
 
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: 'STAFF' | 'ORG_ADMIN' | 'PLATFORM_ADMIN';
+  orgId?: string;
+  newOrgName?: string;
+  newOrgSector?: string;
+  locationId?: string;
+}
+
 export interface AnnouncementItem {
   id: string;
   orgId: string;

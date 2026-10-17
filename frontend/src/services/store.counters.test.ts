@@ -23,9 +23,9 @@ describe('QueueStore — Live Counter State Hydration (Phase 4 Defect Correction
     store = new QueueStore();
   });
 
-  it('1. Four initial mock counters followed by live snapshot containing one counter: only one remains', () => {
-    // Before snapshot: 4 initial mock counters
-    expect(store.getState().counters.length).toBe(4);
+  it('1. Initial counters followed by live snapshot containing one counter: only one remains', () => {
+    // Before snapshot: 0 initial counters
+    expect(store.getState().counters.length).toBe(0);
 
     const genId = store.startSyncCycle(locId);
     store.applySnapshot({
@@ -47,10 +47,8 @@ describe('QueueStore — Live Counter State Hydration (Phase 4 Defect Correction
     expect(state.counters[0].number).toBe(1);
     expect(state.counters[0].name).toBe('[SYNC-SBEP] Counter 1');
 
-    // Confirm mock Counters 2, 3, 4 are completely pruned
+    // Confirm Counter 2 is pruned
     expect(state.counters.find(c => c.number === 2)).toBeUndefined();
-    expect(state.counters.find(c => c.number === 3)).toBeUndefined();
-    expect(state.counters.find(c => c.number === 4)).toBeUndefined();
   });
 
   it('2. Live snapshot containing zero counters: zero live counters and no crash', () => {
@@ -150,12 +148,7 @@ describe('QueueStore — Live Counter State Hydration (Phase 4 Defect Correction
 
     const state = store.getState();
     expect(state.authStatus).toBe('UNAUTHENTICATED');
-    expect(state.counters.length).toBe(4);
-    expect(state.counters.map(c => c.number)).toEqual([1, 2, 3, 4]);
-    expect(state.counters[0].name).toBe('Counter 1');
-    expect(state.counters[1].name).toBe('Counter 2');
-    expect(state.counters[2].name).toBe('Counter 3');
-    expect(state.counters[3].name).toBe('Counter 4');
+    expect(state.counters.length).toBe(0);
   });
 
   it('7. A selected counter removed by a new snapshot does not cause invalid staff actions', () => {

@@ -78,7 +78,7 @@ export const Screen07History: React.FC<Screen07HistoryProps> = ({ appState }) =>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-[#26251e]">
-                          {service?.name || 'Account Renewal'}
+                          {service?.name || 'General Service'}
                         </span>
                         {item.counterNumber && (
                           <Badge variant="read" size="sm">
@@ -89,7 +89,7 @@ export const Screen07History: React.FC<Screen07HistoryProps> = ({ appState }) =>
 
                       <div className="flex items-center gap-1.5 text-xs text-[#5a5852] mt-1">
                         <Icon icon="lucide:building-2" className="w-3.5 h-3.5 text-[#807d72]" />
-                        <span>{location?.name || 'Main Branch'} <span className="text-[#807d72]">({location?.subtitle || 'Downtown HQ'})</span></span>
+                        <span>{location?.name || 'Main Location'} {location?.subtitle && <span className="text-[#807d72]">({location.subtitle})</span>}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-[11px] text-[#807d72] mt-1 font-mono">

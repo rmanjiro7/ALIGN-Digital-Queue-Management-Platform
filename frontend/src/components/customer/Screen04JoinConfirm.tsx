@@ -13,8 +13,8 @@ interface Screen04JoinConfirmProps {
 }
 
 export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appState }) => {
-  const [customerName, setCustomerName] = useState('Jane Doe');
-  const [customerPhone, setCustomerPhone] = useState('+1 (555) 234-5678');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [smsConsent, setSmsConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);

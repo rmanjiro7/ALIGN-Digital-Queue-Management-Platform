@@ -7,6 +7,9 @@ import com.align.qms.security.UserPrincipal;
 import com.align.qms.user.User;
 import com.align.qms.user.UserRepository;
 import com.align.qms.user.UserStatus;
+import com.align.qms.organization.Organization;
+import com.align.qms.organization.OrganizationRepository;
+import com.align.qms.user.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,13 +18,15 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Authentication service — login, token refresh, logout, and current user lookup.
+ * Authentication service — login, registration, token refresh, logout, and current user lookup.
  *
  * <p>Security guarantees:
  * <ul>
@@ -43,15 +48,83 @@ public class AuthService {
     private final JwtService            jwtService;
     private final RefreshTokenService   refreshTokenService;
     private final UserRepository        userRepository;
+    private final PasswordEncoder       passwordEncoder;
+    private final OrganizationRepository organizationRepository;
 
     public AuthService(AuthenticationManager authenticationManager,
                        JwtService jwtService,
                        RefreshTokenService refreshTokenService,
-                       UserRepository userRepository) {
+                       UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       OrganizationRepository organizationRepository) {
         this.authenticationManager = authenticationManager;
         this.jwtService            = jwtService;
         this.refreshTokenService   = refreshTokenService;
         this.userRepository        = userRepository;
+        this.passwordEncoder       = passwordEncoder;
+        this.organizationRepository = organizationRepository;
+    }
+
+    // ── Register ────────────────────────────────────────────────────────────
+
+    /**
+     * Register a new operator, organization admin, or platform admin account.
+     * End-users / customers do not register (anonymous token issuance).
+     *
+     * @param request registration details
+     * @return login response containing access & refresh tokens and user profile
+     */
+    @Transactional
+    public LoginResponse register(RegisterRequest request) {
+        String normalizedEmail = request.getEmail().toLowerCase().trim();
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new IllegalArgumentException("Email is already registered: " + normalizedEmail);
+        }
+
+        UUID resolvedOrgId = request.getOrgId();
+
+        // If role is PLATFORM_ADMIN, orgId must be null
+        if (request.getRole() == UserRole.PLATFORM_ADMIN) {
+            resolvedOrgId = null;
+        } else if (resolvedOrgId == null) {
+            // Check if user requested a new organization
+            if (request.getNewOrgName() != null && !request.getNewOrgName().isBlank()) {
+                String code = "T-" + (int)(1000 + Math.random() * 9000);
+                String sector = request.getNewOrgSector() != null && !request.getNewOrgSector().isBlank()
+                    ? request.getNewOrgSector() : "Enterprise";
+                Organization newOrg = new Organization(code, request.getNewOrgName().trim(), sector, normalizedEmail);
+                Organization savedOrg = organizationRepository.save(newOrg);
+                resolvedOrgId = savedOrg.getId();
+            } else {
+                // Default to first active organization in DB if available
+                List<Organization> orgs = organizationRepository.findAll();
+                if (!orgs.isEmpty()) {
+                    resolvedOrgId = orgs.get(0).getId();
+                }
+            }
+        }
+
+        User newUser = new User(
+            resolvedOrgId,
+            normalizedEmail,
+            passwordEncoder.encode(request.getPassword()),
+            request.getName().trim(),
+            request.getRole(),
+            request.getLocationId()
+        );
+
+        User savedUser = userRepository.save(newUser);
+        log.info("Registered new user id={} email={} role={}", savedUser.getId(), maskEmail(savedUser.getEmail()), savedUser.getRole());
+
+        String accessToken = jwtService.generateAccessToken(savedUser);
+        String refreshToken = refreshTokenService.createRefreshToken(savedUser);
+
+        return new LoginResponse(
+            accessToken,
+            refreshToken,
+            jwtService.getAccessTokenExpirationSeconds(),
+            new UserResponse(savedUser)
+        );
     }
 
     // ── Login ───────────────────────────────────────────────────────────────
