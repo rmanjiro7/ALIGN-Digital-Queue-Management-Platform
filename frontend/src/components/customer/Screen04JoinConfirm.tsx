@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  MapPin, 
-  Layers, 
-  Clock, 
-  Users, 
-  ShieldCheck, 
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  User,
-  Phone
-} from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { apiClient } from '../../services/apiClient';
 import { PreparationRequirement } from '../../types';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 
 interface Screen04JoinConfirmProps {
   appState: AppState;
@@ -25,12 +17,26 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
   const [customerPhone, setCustomerPhone] = useState('+1 (555) 234-5678');
   const [smsConsent, setSmsConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [requirements, setRequirements] = useState<PreparationRequirement[]>([]);
   const [loadingReqs, setLoadingReqs] = useState(false);
 
-  const selectedService = appState.services.find(s => s.id === appState.selectedServiceId) || appState.services[0];
-  const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0];
-  const currentLocation = appState.locations.find(l => l.id === appState.selectedLocationId) || appState.locations[0];
+  const selectedService = appState.services.find(s => s.id === appState.selectedServiceId) || appState.services[0] || {
+    id: 'default',
+    orgId: '',
+    locationId: '',
+    name: 'General Service',
+    description: '',
+    icon: 'info',
+    enabled: true,
+    waitingCount: 0,
+    estWaitMins: 10,
+    estWaitRange: '10-15 min',
+    confidence: 'High' as const,
+    associatedQueues: []
+  };
+  const currentOrg = appState.tenants.find(t => t.id === appState.selectedOrgId) || appState.tenants[0] || { name: 'Main Organization', id: '' };
+  const currentLocation = appState.locations.find(l => l.id === appState.selectedLocationId) || appState.locations[0] || { name: 'Main Location', id: '' };
 
   React.useEffect(() => {
     if (selectedService) {
@@ -44,6 +50,7 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
 
   const handleConfirmJoin = async () => {
     setIsSubmitting(true);
+    setJoinError(null);
     try {
       const res = await apiClient.joinQueue(
         currentOrg.id,
@@ -53,18 +60,18 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
         customerPhone || undefined,
         smsConsent
       );
-      if (res && res.id) {
-        // We add the backend token to the local store so UI can render it
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (res && res.id && UUID_REGEX.test(res.id)) {
         const storeToken: any = {
           id: res.id,
-          orgId: currentOrg.id,
-          locationId: currentLocation.id,
-          serviceId: selectedService.id,
+          orgId: res.orgId || currentOrg.id,
+          locationId: res.locationId || currentLocation.id,
+          serviceId: res.serviceId || selectedService.id,
           queueId: res.queueId || 'q-triage',
           tokenNumber: res.tokenNumber,
-          state: res.status || res.state || 'WAITING',
-          customerName: customerName || 'Walk-in Guest',
-          customerPhone: customerPhone || '',
+          state: res.state || res.status || 'WAITING',
+          customerName: res.customerName || customerName || 'Walk-in Guest',
+          customerPhone: res.customerPhone || customerPhone || '',
           joinedAt: res.joinedAt || new Date().toISOString(),
           peopleAhead: res.position ?? res.peopleAhead ?? 0,
           estWaitMins: res.estimatedWaitTimeMinutes ?? res.estWaitMins ?? 10,
@@ -75,105 +82,116 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
         queueStore.addJoinedCustomerToken(storeToken);
         queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
       } else {
-        // Fallback
-        queueStore.joinQueue(selectedService.id, customerName, customerPhone);
-        // Note: queueStore doesn't store consent yet in frontend mockup
-        queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
+        throw new Error('Backend did not return a valid token identifier.');
       }
-    } catch (e) {
-      console.error(e);
-      queueStore.joinQueue(selectedService.id, customerName, customerPhone);
-      queueStore.setScreen('SCREEN_05_ACTIVE_STATUS');
+    } catch (e: any) {
+      console.error('[Screen04JoinConfirm] Queue join failed:', e);
+      setJoinError(e?.message || 'Failed to join queue. Please check service availability and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 md:py-8">
+    <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
       {/* Back link */}
-      <button
-        onClick={() => queueStore.setScreen('SCREEN_03_SERVICES')}
-        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 mb-4 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Back to Services</span>
-      </button>
+      <div className="mb-6 pb-4 border-b border-[#e6e5e0] flex items-center">
+        <button
+          onClick={() => queueStore.setScreen('SCREEN_03_SERVICES')}
+          className="flex items-center gap-2 p-1.5 rounded-md text-[#5a5852] hover:text-[#26251e] hover:bg-white border border-transparent hover:border-[#e6e5e0] transition-colors cursor-pointer"
+        >
+          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <span className="text-xs font-semibold">Back to Services</span>
+        </button>
+      </div>
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] tracking-tight">
-          Review & Join
+        <h1 className="text-display-md text-[#26251e]">
+          Review &amp; Join
         </h1>
-        <p className="text-xs text-slate-600 mt-1">
-          Confirm your service details before generating your live queue token.
+        <p className="text-sm text-[#5a5852] mt-1.5">
+          Verify your details and estimated wait before generating your official queue token.
         </p>
       </div>
 
-      {/* Bento Summary Card */}
-      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6 mb-6">
+      {/* Summary Card */}
+      <Card className="p-6 md:p-8 space-y-6 mb-6">
         {/* Service Details Matrix */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Organization</span>
-            <span className="text-xs font-bold text-slate-900">{currentOrg.name}</span>
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between pb-3 border-b border-[#efeee8]">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[#807d72]">Organization</span>
+            <span className="text-sm font-semibold text-[#26251e]">{currentOrg?.name}</span>
           </div>
 
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Location</span>
-            <span className="text-xs font-bold text-slate-900">{currentLocation.name}</span>
+          <div className="flex items-center justify-between pb-3 border-b border-[#efeee8]">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[#807d72]">Branch Location</span>
+            <span className="text-sm font-semibold text-[#26251e]">{currentLocation?.name}</span>
           </div>
 
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Service</span>
-            <span className="text-xs font-bold text-[#00ACC1]">{selectedService.name}</span>
+          <div className="flex items-center justify-between pb-3 border-b border-[#efeee8]">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[#807d72]">Selected Service</span>
+            <span className="text-sm font-semibold text-[#f54e00]">{selectedService.name}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">Queue Type</span>
-            <span className="text-xs font-mono font-bold px-2.5 py-1 bg-[#F1F5F9] text-[#0F172A] rounded-lg border border-slate-200">
-              General Queue ({selectedService.associatedQueues[0] || 'Walk-in Triage'})
-            </span>
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[#807d72]">Queue Track</span>
+            <Badge variant="outline" size="sm">
+              General Queue ({selectedService?.associatedQueues?.[0] || 'Walk-in Triage'})
+            </Badge>
           </div>
         </div>
 
         {/* Real-time KPIs */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-[#F1F5F9] p-4 rounded-2xl border border-slate-200 text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-slate-500 mb-1 font-semibold">
-              <Users className="w-3.5 h-3.5 text-[#00ACC1]" />
-              <span>Currently Waiting</span>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-[#fafaf7] p-5 rounded-md border border-[#e6e5e0] flex flex-col items-center justify-center">
+            <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-[#807d72] mb-1 font-semibold">
+              <Icon icon="lucide:users" className="w-3.5 h-3.5 text-[#f54e00]" />
+              <span>In Line Ahead</span>
             </div>
-            <div className="text-2xl font-black text-[#0F172A]">{selectedService.waitingCount}</div>
-            <div className="text-[10px] text-slate-500 font-mono">people ahead</div>
+            {typeof selectedService.waitingCount !== 'number' || isNaN(selectedService.waitingCount) ? (
+              <div className="text-sm font-semibold text-[#807d72] mt-1 font-mono">0 queued</div>
+            ) : (
+              <>
+                <div className="text-3xl font-medium font-mono text-[#26251e]">{selectedService.waitingCount}</div>
+                <div className="text-[10px] text-[#807d72] font-mono tracking-widest uppercase mt-0.5">people ahead</div>
+              </>
+            )}
           </div>
 
-          <div className="bg-[#F1F5F9] p-4 rounded-2xl border border-slate-200 text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-slate-500 mb-1 font-semibold">
-              <Clock className="w-3.5 h-3.5 text-[#00ACC1]" />
-              <span>Estimated Wait</span>
+          <div className="bg-[#fafaf7] p-5 rounded-md border border-[#e6e5e0] flex flex-col items-center justify-center">
+            <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-[#807d72] mb-1 font-semibold">
+              <Icon icon="lucide:clock" className="w-3.5 h-3.5 text-[#f54e00]" />
+              <span>Est. Turnaround</span>
             </div>
-            <div className="text-2xl font-black text-[#00ACC1]">{selectedService.estWaitRange}</div>
-            <div className="text-[10px] text-emerald-600 font-mono font-semibold">High Confidence</div>
+            {!selectedService.estWaitRange || selectedService.estWaitRange.trim() === '' ? (
+              <div className="text-sm font-semibold text-[#807d72] mt-1 font-mono">Available Now</div>
+            ) : (
+              <>
+                <div className="text-3xl font-medium font-mono text-[#f54e00]">{selectedService.estWaitRange}</div>
+                <div className="text-[10px] text-[#1f8a65] font-mono font-semibold tracking-wider uppercase mt-0.5">High Confidence</div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Preparation Requirements */}
         {requirements.length > 0 && (
           <div className="pt-2">
-            <div className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-3">
+            <div className="text-[11px] font-mono uppercase tracking-widest text-[#807d72] font-semibold mb-3">
               Preparation Requirements
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {requirements.map(req => (
-                <div key={req.id} className="flex gap-3 bg-blue-50 border border-blue-100 p-4 rounded-xl">
-                  <ShieldCheck className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                <div key={req.id} className="flex gap-3 bg-[#fafaf7] border border-[#e6e5e0] p-4 rounded-md">
+                  <Icon icon="lucide:shield-check" className="w-4 h-4 text-[#1f8a65] shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-blue-900 text-sm">
+                    <div className="font-medium text-[#26251e] text-xs flex items-center">
                       {req.title}
-                      {req.isRequired && <span className="ml-2 text-[10px] uppercase bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold tracking-wider">Required</span>}
+                      {req.isRequired && <Badge variant="error" size="sm" className="ml-2">Required</Badge>}
                     </div>
                     {req.description && (
-                      <div className="text-xs text-blue-800 mt-1 leading-relaxed">
+                      <div className="text-xs text-[#5a5852] mt-1 leading-relaxed">
                         {req.description}
                       </div>
                     )}
@@ -185,46 +203,46 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
         )}
 
         {/* Customer Information Form */}
-        <div className="pt-2 space-y-3">
-          <div className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
-            Customer Details (Optional)
+        <div className="pt-2 space-y-4">
+          <div className="text-[11px] font-mono uppercase tracking-widest text-[#807d72] font-semibold">
+            Customer Identification (Optional)
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] text-slate-600 mb-1 block font-semibold">Full Name</label>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] mb-1.5 block font-semibold">Full Name</label>
               <div className="relative">
-                <User className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
+                <Icon icon="lucide:user" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#807d72]" />
+                <Input 
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#F1F5F9] border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1] focus:bg-white"
+                  className="pl-9"
+                  placeholder="Enter your name"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-600 mb-1 block font-semibold">Mobile Phone</label>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] mb-1.5 block font-semibold">Mobile Number</label>
               <div className="relative">
-                <Phone className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
+                <Icon icon="lucide:phone" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#807d72]" />
+                <Input 
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#F1F5F9] border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1] focus:bg-white"
+                  className="pl-9"
+                  placeholder="Enter phone number"
                 />
               </div>
               {customerPhone && (
-                <div className="mt-2 flex items-start gap-2">
+                <div className="mt-2.5 flex items-start gap-2">
                   <input
                     type="checkbox"
                     id="smsConsent"
                     checked={smsConsent}
                     onChange={(e) => setSmsConsent(e.target.checked)}
-                    className="mt-0.5 rounded text-[#00ACC1] focus:ring-[#00ACC1] w-3 h-3"
+                    className="mt-0.5 rounded border-[#cfcdc4] text-[#f54e00] focus:ring-[#f54e00] w-3.5 h-3.5 cursor-pointer"
                   />
-                  <label htmlFor="smsConsent" className="text-[10px] text-slate-600 leading-tight">
-                    I consent to receive SMS notifications about my queue status.
+                  <label htmlFor="smsConsent" className="text-xs text-[#5a5852] leading-tight cursor-pointer">
+                    I consent to receive SMS notifications about my turn.
                   </label>
                 </div>
               )}
@@ -232,40 +250,57 @@ export const Screen04JoinConfirm: React.FC<Screen04JoinConfirmProps> = ({ appSta
           </div>
         </div>
 
-        {/* Important Instructions Box */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl flex items-start gap-3 text-xs text-slate-700 shadow-sm">
-          <AlertCircle className="w-4 h-4 text-[#00ACC1] shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold text-slate-900">Important Instructions: </span>
-            Keep this page open to track your queue position in real-time. Audio announcements will chime when your token is called.
+        {/* Notice */}
+        <div className="p-3.5 bg-[#fafaf7] border border-[#e6e5e0] rounded-md flex items-start gap-2.5">
+          <Icon icon="lucide:alert-circle" className="w-4 h-4 text-[#f54e00] shrink-0 mt-0.5" />
+          <div className="text-xs text-[#5a5852] leading-relaxed">
+            <span className="font-semibold text-[#26251e]">Live Sync: </span>
+            Keep this window open to receive real-time queue position adjustments and auditory chimes when called.
           </div>
         </div>
-      </div>
+
+        {/* Join Error Banner */}
+        {joinError && (
+          <div id="join-queue-error-banner" className="p-3.5 bg-[#cf2d56]/10 border border-[#cf2d56]/30 rounded-md flex items-start gap-2.5 text-[#cf2d56]">
+            <Icon icon="lucide:alert-circle" className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="flex-1 text-xs leading-relaxed">
+              <span className="font-semibold">Unable to join queue: </span>
+              <span>{joinError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setJoinError(null)}
+              className="text-xs underline hover:no-underline cursor-pointer ml-2"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </Card>
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button
+        <Button
+          variant="outline"
+          size="lg"
           onClick={() => queueStore.setScreen('SCREEN_03_SERVICES')}
-          className="flex-1 py-3.5 px-4 rounded-2xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+          className="flex-1"
         >
           Cancel
-        </button>
+        </Button>
 
-        <button
+        <Button
           id="confirm-join-queue-btn"
-          disabled={isSubmitting || (!!customerPhone && !smsConsent && false)}
+          variant="primary"
+          size="lg"
+          disabled={isSubmitting}
+          isLoading={isSubmitting}
           onClick={handleConfirmJoin}
-          className="flex-2 py-3.5 px-6 rounded-2xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold shadow-lg shadow-[#00ACC1]/25 uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="flex-[2] text-xs font-semibold uppercase tracking-wider"
         >
-          {isSubmitting ? (
-            <span>Generating Token...</span>
-          ) : (
-            <>
-              <Check className="w-4 h-4 text-white" />
-              <span>Confirm & Join Queue</span>
-            </>
-          )}
-        </button>
+          <Icon icon="lucide:check" className="w-4 h-4 mr-1.5" />
+          <span>Confirm &amp; Join Queue</span>
+        </Button>
       </div>
     </div>
   );

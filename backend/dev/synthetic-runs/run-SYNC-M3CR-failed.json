@@ -1,0 +1,62 @@
+{
+  "runId": "SYNC-M3CR",
+  "timestamp": "2026-10-12T15:53:32.648Z",
+  "status": "FAILED",
+  "config": {
+    "pilot": false,
+    "sample": true,
+    "backdate": false,
+    "dryRun": false
+  },
+  "generated": {
+    "organizations": [
+      "f898af8e-abc6-4edc-a5f1-46a3bb58d157"
+    ],
+    "locations": [
+      "ef6f756c-93b6-4895-bf0f-3e519ce2c28c",
+      "345b834f-8901-4db9-b563-2b1577217aff"
+    ],
+    "services": [
+      "c4803cc1-83d4-40d6-bf38-aaecf5e7f4e9",
+      "7d46b93e-0435-46e8-9dd6-47a3438e5adf",
+      "8c2f80c6-2643-49ed-a0e4-0847cdbe18c5",
+      "271d175e-05da-447c-b938-ab2e230d7bad"
+    ],
+    "queues": [
+      "39558e78-b3ce-4e28-a8a9-1b4bb1a127d7",
+      "24b36fb1-013d-4a10-842e-33e4209a8799",
+      "5f381574-f011-4492-8ef5-ed29e323dea0",
+      "c22dc3be-75f8-4e9f-bc47-3370fbb9df58"
+    ],
+    "counters": [
+      "ee4e2b96-e550-4710-80ad-30249b5a5f7e",
+      "d5d92ec9-9d8c-4c01-8b7b-97547ecdc5e5",
+      "9a7b8450-8041-413b-af74-dd63e081b690",
+      "bdb01f21-cc4c-42ca-b7fe-01c6f3f9bc69",
+      "613cbcf5-d5d0-473b-85eb-40f70bdfe9d6",
+      "0a202b2a-8019-4904-bea9-b1a21db313b2",
+      "dcec2825-2fbc-479c-ac48-2b82b7126660",
+      "4b155bd2-8f94-420e-ab30-6e522b983cfa"
+    ],
+    "users": [
+      "fc38229c-23fb-4326-8636-162bbb86e20d",
+      "232f6170-5bef-40b2-b36b-52b9545ce009",
+      "1ad8ba09-19e7-422b-8bfe-5c86ed40c81f",
+      "0958f555-7eff-492a-8b33-df7870d34acf",
+      "5fbd1ec2-7d56-4cfc-8fea-f2773aae97d6",
+      "99f90552-2cf8-4237-873a-291baec2593f",
+      "adb0d21a-0705-464a-af06-1219404f5c1a",
+      "2a20ec86-1e37-40ac-b835-b5e7fea994fe",
+      "f76ecb16-9ad2-48f4-b720-0d575367aeeb",
+      "c31ca332-9620-49f0-9795-04a5991a42ed"
+    ],
+    "tokens": []
+  },
+  "validation": {
+    "status": "FAILED",
+    "mode": "SAMPLE",
+    "backdated": false,
+    "checks": []
+  },
+  "error": "API Error 429 on POST /auth/login: {\"success\":false,\"timestamp\":\"2026-10-12T15:53:38.397232091Z\",\"status\":429,\"message\":\"Too many requests\",\"code\":\"RATE_LIMIT_EXCEEDED\",\"errors\":[]}"
+}

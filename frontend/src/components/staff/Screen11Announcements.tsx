@@ -1,19 +1,11 @@
 import React, { useState } from 'react';
-import {
-  Volume2,
-  Radio,
-  Play,
-  CheckCircle2,
-  AlertCircle,
-  Mic,
-  RefreshCw,
-  Clock,
-  Sparkles,
-  Sliders,
-  ArrowLeft
-} from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { apiClient } from '../../services/apiClient';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 
 interface Screen11AnnouncementsProps {
   appState: AppState;
@@ -38,8 +30,6 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
         text: customMessage
       });
 
-      // Still call local synthesize for immediate feedback if desired, or skip it
-      // Let's just keep the local one as well for now so it still works if no STOMP client is connected
       queueStore.speakAnnouncementText(
         customMessage,
         () => {
@@ -69,184 +59,170 @@ export const Screen11Announcements: React.FC<Screen11AnnouncementsProps> = ({ ap
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS')}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-[#F1F5F9] transition-colors cursor-pointer"
+    <div className="flex-1 bg-[#f7f7f4] overflow-y-auto p-4 md:p-8 text-[#26251e]">
+      <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-[#e6e5e0]">
+          <div className="flex items-start gap-4">
+            <button
+              onClick={() => queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS')}
+              className="mt-1 p-2 rounded-md text-[#5a5852] hover:text-[#26251e] hover:bg-white border border-transparent hover:border-[#e6e5e0] transition-colors cursor-pointer"
+            >
+              <Icon icon="lucide:arrow-left" className="w-5 h-5" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-[#1f8a65] animate-pulse" />
+                <span className="text-[10px] font-mono tracking-wider text-[#1f8a65] uppercase font-semibold">
+                  Auditory PA System Active
+                </span>
+              </div>
+              <h1 className="text-display-md text-[#26251e]">
+                Announcement Control
+              </h1>
+              <p className="text-sm text-[#5a5852] mt-1">
+                Broadcast synthesized speech and visual alerts across all public display kiosks and terminals.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => queueStore.setScreen('SCREEN_22_PUBLIC_DISPLAY')}
           >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#00ACC1]">
-                Output: PA System A • Audio Active
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] tracking-tight mt-1">
-              Announcement Control
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Manage and broadcast speech-based queue announcements to public waiting monitors.
-            </p>
-          </div>
+            Preview Public TV
+          </Button>
         </div>
 
-        <button
-          onClick={() => queueStore.setScreen('SCREEN_22_PUBLIC_DISPLAY')}
-          className="text-xs font-bold text-white bg-[#0F172A] hover:bg-slate-800 px-5 py-3 rounded-2xl shadow-lg shadow-slate-900/20 transition-all uppercase tracking-wider cursor-pointer"
-        >
-          View Public Monitor (TV)
-        </button>
-      </div>
+        {/* Main Workspace */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          
+          {/* Left Column: Compose & Broadcast */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="p-6 md:p-8">
+              <h2 className="text-[11px] font-mono tracking-widest text-[#807d72] uppercase font-semibold mb-6">
+                Compose Live Broadcast
+              </h2>
 
-      {/* Main Broadcast Hub */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Live Teleprompter & Giant Speak Button */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
-            <h2 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-4">
-              Preview Broadcast Message
-            </h2>
-
-            {/* Editable Script Card */}
-            <div className="bg-[#F1F5F9] p-5 rounded-2xl border border-slate-200 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">Target Token</label>
-                  <input
-                    type="text"
-                    value={tokenInput}
-                    onChange={(e) => handleUpdateTokenNumber(e.target.value, counterInput)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:outline-none focus:border-[#00ACC1]"
-                  />
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] font-semibold block">
+                      Target Token ID
+                    </label>
+                    <Input
+                      type="text"
+                      value={tokenInput}
+                      onChange={(e) => handleUpdateTokenNumber(e.target.value, counterInput)}
+                      className="font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] font-semibold block">
+                      Assigned Counter
+                    </label>
+                    <Input
+                      type="number"
+                      value={counterInput}
+                      onChange={(e) => handleUpdateTokenNumber(tokenInput, parseInt(e.target.value) || 1)}
+                      className="font-mono"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">Target Counter</label>
-                  <input
-                    type="number"
-                    value={counterInput}
-                    onChange={(e) => handleUpdateTokenNumber(tokenInput, parseInt(e.target.value) || 1)}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] font-semibold block">
+                    Speech Synthesizer Message
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    className="w-full bg-white border border-[#e6e5e0] rounded-md p-3.5 text-sm text-[#26251e] placeholder:text-[#a09c92] focus:outline-none focus:border-[#26251e] resize-none transition-colors"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Speech Teleprompter</label>
-                <textarea
-                  rows={2}
-                  value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                  className="w-full p-3.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 font-medium focus:outline-none focus:border-[#00ACC1] resize-none"
-                />
-              </div>
-            </div>
+              {/* Action Area */}
+              <div className="mt-8 flex flex-col items-center justify-center pt-6 border-t border-[#efeee8]">
+                <Button
+                  id="broadcast-speak-btn"
+                  variant="primary"
+                  size="lg"
+                  disabled={isSpeaking}
+                  isLoading={isSpeaking}
+                  onClick={handleSpeakNow}
+                  className="px-8 h-12 text-xs font-semibold uppercase tracking-wider rounded-full"
+                >
+                  <Icon icon="lucide:volume-2" className="w-5 h-5 mr-2" />
+                  <span>{isSpeaking ? 'Transmitting Audio...' : 'Broadcast Announcement'}</span>
+                </Button>
 
-            {/* Giant Circular SPEAK Action Button */}
-            <div className="py-8 flex flex-col items-center justify-center">
-              <button
-                id="broadcast-speak-btn"
-                disabled={isSpeaking}
-                onClick={handleSpeakNow}
-                className={`relative w-28 h-28 rounded-full flex flex-col items-center justify-center text-white font-black transition-all transform cursor-pointer ${
-                  isSpeaking
-                    ? 'bg-[#00ACC1] scale-105 shadow-2xl animate-pulse-ring'
-                    : 'bg-[#0F172A] hover:bg-[#00ACC1] hover:scale-105 shadow-xl shadow-slate-900/20 active:scale-95'
-                }`}
-              >
-                <Volume2 className="w-8 h-8 mb-1 text-white" />
-                <span className="text-xs tracking-wider">{isSpeaking ? 'BROADCASTING' : 'SPEAK'}</span>
-              </button>
-
-              <div className="mt-4 text-center">
-                {isSpeaking ? (
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#00ACC1]">
-                    <div className="flex items-center gap-0.5 h-4">
-                      <span className="w-1 bg-[#00ACC1] rounded-full animate-wave-1"></span>
-                      <span className="w-1 bg-[#00ACC1] rounded-full animate-wave-2"></span>
-                      <span className="w-1 bg-[#00ACC1] rounded-full animate-wave-3"></span>
-                      <span className="w-1 bg-[#00ACC1] rounded-full animate-wave-4"></span>
+                <div className="mt-4 h-6 flex items-center justify-center">
+                  {isSpeaking ? (
+                    <div className="flex items-center gap-2 text-xs font-mono text-[#1f8a65]">
+                      <div className="flex items-center gap-0.5 h-3">
+                        <span className="w-1 bg-[#1f8a65] rounded-full animate-wave-1 h-3" />
+                        <span className="w-1 bg-[#1f8a65] rounded-full animate-wave-2 h-1.5" />
+                        <span className="w-1 bg-[#1f8a65] rounded-full animate-wave-3 h-2.5" />
+                        <span className="w-1 bg-[#1f8a65] rounded-full animate-wave-4 h-1" />
+                      </div>
+                      <span>Synthesizing audio signal</span>
                     </div>
-                    <span>Broadcasting audio to lobby speakers...</span>
-                  </div>
-                ) : lastStatus === 'completed' ? (
-                  <div className="flex items-center gap-1 text-xs font-mono text-emerald-600 font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Announcement broadcast completed successfully</span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-slate-400 font-mono">
-                    Click to trigger public speech chime and announcement
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right 1 Col: Status Indicators & Recent Broadcast History */}
-        <div className="space-y-6">
-          {/* Status Indicator Legend */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
-            <h2 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-3">
-              Status Indicator Reference
-            </h2>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#F1F5F9] border border-slate-200">
-                <span className="text-slate-700 font-medium">Speaking</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00ACC1]/20 text-[#00ACC1] font-bold">
-                  Sound waves
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#F1F5F9] border border-slate-200">
-                <span className="text-slate-700 font-medium">Completed</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                  Sent / Ack
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#F1F5F9] border border-slate-200">
-                <span className="text-slate-700 font-medium">Failed</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">
-                  Red Alert
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent History */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
-            <h2 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-3">
-              Recent Broadcast Log
-            </h2>
-            <div className="space-y-3 max-h-[280px] overflow-y-auto">
-              {appState.announcements.slice(0, 5).map((ann) => (
-                <div key={ann.id} className="p-3.5 bg-[#F1F5F9] rounded-2xl border border-slate-200 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">
-                      Token {ann.tokenNumber} &rarr; Counter {ann.counterNumber}
+                  ) : lastStatus === 'completed' ? (
+                    <div className="flex items-center gap-2 text-xs font-mono text-[#1f8a65]">
+                      <Icon icon="lucide:check-circle-2" className="w-3.5 h-3.5 text-[#1f8a65]" />
+                      <span>Announcement transmitted successfully</span>
+                    </div>
+                  ) : lastStatus === 'failed' ? (
+                    <div className="flex items-center gap-2 text-xs font-mono text-[#cf2d56]">
+                      <Icon icon="lucide:alert-circle" className="w-3.5 h-3.5" />
+                      <span>Audio broadcast transmission failed</span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] font-mono tracking-widest uppercase text-[#807d72]">
+                      System standby • Ready to broadcast
                     </span>
-                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                      ann.status === 'Sent'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {ann.status}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-500 line-clamp-1">
-                    {ann.text}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5" />
-                    <span>{ann.timeLabel} • {ann.serviceName}</span>
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column: Status & History */}
+          <div className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#efeee8]">
+                <h2 className="text-[11px] font-mono tracking-widest text-[#807d72] uppercase font-semibold">
+                  Recent Broadcasts
+                </h2>
+                <Icon icon="lucide:radio" className="w-4 h-4 text-[#807d72]" />
+              </div>
+              
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                {appState.announcements.slice(0, 5).map((ann) => (
+                  <div key={ann.id} className="p-3.5 bg-[#fafaf7] border border-[#e6e5e0] rounded-md flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-semibold text-[#26251e]">
+                        {ann.tokenNumber} &rarr; Counter {ann.counterNumber}
+                      </span>
+                      <Badge variant={ann.status === 'Sent' ? 'done' : 'error'} size="sm">
+                        {ann.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-[#5a5852] line-clamp-2 leading-relaxed">
+                      "{ann.text}"
+                    </div>
+                    <div className="text-[10px] text-[#807d72] font-mono flex items-center gap-1.5 mt-1">
+                      <Icon icon="lucide:clock" className="w-3 h-3" />
+                      <span>{ann.timeLabel} • {ann.serviceName}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </div>
         </div>
       </div>

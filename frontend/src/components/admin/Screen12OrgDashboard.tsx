@@ -1,25 +1,4 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  Clock, 
-  Zap, 
-  TrendingUp, 
-  AlertTriangle, 
-  Download, 
-  Calendar, 
-  ChevronRight, 
-  CheckCircle2, 
-  X,
-  Building2,
-  Layers,
-  ArrowUpRight,
-  Monitor,
-  Coffee,
-  Pause,
-  Power,
-  RefreshCw,
-  UserCheck
-} from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { CounterAvailability } from '../../types';
 import { DateRangeFilter, DateRangePreset } from '../analytics/DateRangeFilter';
@@ -27,6 +6,12 @@ import { analyticsApi, AnalyticsOverviewResponse, LegacyAnalyticsTrafficResponse
 import { getDateRange, formatDuration } from '../../utils/dateUtils';
 import { AnalyticsBarChart } from '../analytics/AnalyticsBarChart';
 import { AnalyticsServiceProgress } from '../analytics/AnalyticsServiceProgress';
+import { AuthGuard } from '../common/AuthGuard';
+import { useToast } from '../common/Toast';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
 
 interface Screen12OrgDashboardProps {
   appState: AppState;
@@ -41,13 +26,17 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
   const [traffic, setTraffic] = useState<LegacyAnalyticsTrafficResponse | null>(null);
   const [services, setServices] = useState<LegacyServiceAnalyticsResponse[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { info } = useToast();
 
   React.useEffect(() => {
+    if (appState.authStatus !== 'AUTHENTICATED' && appState.authStatus !== 'AUTH_READY') {
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
         const { start, end } = getDateRange(dateRange);
-        
         const locId = selectedLocationId === 'loc-main' ? undefined : selectedLocationId;
 
         const [overviewData, trafficData, servicesData] = await Promise.all([
@@ -67,7 +56,7 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
     };
 
     fetchData();
-  }, [dateRange, appState.selectedOrgId, selectedLocationId]);
+  }, [dateRange, appState.selectedOrgId, selectedLocationId, appState.authStatus]);
 
   const branchCounters = appState.counters.filter(
     c => c.orgId === appState.selectedOrgId && (c.locationId === selectedLocationId || !c.locationId)
@@ -77,366 +66,377 @@ export const Screen12OrgDashboard: React.FC<Screen12OrgDashboardProps> = ({ appS
     switch (availability) {
       case 'ONLINE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-mono font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <Badge variant="grep" size="sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1f8a65] animate-pulse mr-1" />
             ONLINE
-          </span>
+          </Badge>
         );
       case 'ON_BREAK':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-mono font-bold">
-            <Coffee className="w-3.5 h-3.5 text-amber-600" />
-            ON BREAK
-          </span>
+          <Badge variant="done" size="sm">
+            <Icon icon="lucide:coffee" className="w-3 h-3 mr-1" />
+            BREAK
+          </Badge>
         );
       case 'AWAY':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg text-xs font-mono font-bold">
-            <Pause className="w-3.5 h-3.5 text-yellow-600" />
+          <Badge variant="thinking" size="sm">
+            <Icon icon="lucide:pause" className="w-3 h-3 mr-1" />
             AWAY
-          </span>
+          </Badge>
         );
       case 'OFFLINE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-mono font-bold">
-            <Power className="w-3.5 h-3.5 text-slate-500" />
+          <Badge variant="outline" size="sm">
+            <Icon icon="lucide:power" className="w-3 h-3 mr-1" />
             OFFLINE
-          </span>
+          </Badge>
         );
     }
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
-      {/* Header with Export Action */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#00ACC1]">
-            {currentOrg.name} • Executive Overview
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] tracking-tight mt-0.5">
-            Organization Dashboard
-          </h1>
-          <p className="text-xs text-slate-500">
-            Administrative oversight, real-time throughput, and branch service metrics.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+    <AuthGuard appState={appState}>
+      <div className="flex-1 bg-[#f7f7f4] overflow-y-auto p-4 md:p-6 lg:p-8 text-[#26251e]">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           
-          <button
-            onClick={() => alert('Exporting PDF/CSV operations report for ' + currentOrg.name)}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-xl shadow-sm transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export Analytics</span>
-          </button>
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 pb-6 border-b border-[#e6e5e0]">
+            <div>
+              <div className="text-[11px] font-mono font-medium uppercase tracking-wider text-[#807d72] mb-1">
+                {currentOrg?.name} <span className="text-[#cfcdc4]">/</span> Executive Overview
+              </div>
+              <h1 className="text-display-md text-[#26251e]">
+                Organization Dashboard
+              </h1>
+              <p className="text-sm text-[#5a5852] mt-1">
+                Administrative oversight, live throughput counters, and branch service benchmarks.
+              </p>
+            </div>
 
-          <button
-            onClick={() => queueStore.setScreen('SCREEN_13_LOCATION_MANAGEMENT')}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md shadow-slate-900/10 uppercase tracking-wider transition-colors cursor-pointer"
-          >
-            <span>Manage Locations</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#00ACC1]" />
-          </button>
-        </div>
-      </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <DateRangeFilter value={dateRange} onChange={setDateRange} />
+              
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => info(`Exporting PDF/CSV operations report for ${currentOrg?.name}`, 'Exporting')}
+                className="gap-2"
+              >
+                <Icon icon="lucide:download" className="w-3.5 h-3.5" />
+                <span>Export Report</span>
+              </Button>
 
-      {/* Active Alerts Banner */}
-      {appState.queueWarnings && appState.queueWarnings.filter(w => w.capacityWarningActive || w.waitWarningActive).map(warning => {
-        const queueName = appState.queues.find(q => q.id === warning.queueId)?.name || 'Unknown Queue';
-        // Check if this warning belongs to the currently selected location, or if we want to show all warnings across org
-        // (Queue warnings from API are fetched per location based on application flow, but for Screen12 we might have them all or just for the current location).
-        // Let's filter by current selected location if we can.
-        const queue = appState.queues.find(q => q.id === warning.queueId);
-        if (queue && queue.locationId !== selectedLocationId && selectedLocationId !== 'loc-main') return null;
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => queueStore.setScreen('SCREEN_13_LOCATION_MANAGEMENT')}
+                className="gap-2"
+              >
+                <span>Locations</span>
+                <Icon icon="lucide:chevron-right" className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
 
-        return (
-          <div key={`alert-${warning.queueId}`} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+          {/* Active Alerts Banner */}
+          {appState.queueWarnings && appState.queueWarnings.filter(w => w.capacityWarningActive || w.waitWarningActive).map(warning => {
+            const queueName = appState.queues.find(q => q.id === warning.queueId)?.name || 'Unknown Queue';
+            const queue = appState.queues.find(q => q.id === warning.queueId);
+            if (queue && queue.locationId !== selectedLocationId && selectedLocationId !== 'loc-main') return null;
+
+            return (
+              <div key={`alert-${warning.queueId}`} className="bg-[#cf2d56]/10 border border-[#cf2d56]/30 rounded-md p-4 flex items-start gap-3">
+                <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-[#cf2d56] shrink-0" />
+                <div className="text-sm">
+                  <span className="font-semibold text-[#cf2d56] uppercase tracking-wider text-xs mr-2 font-mono">Operational Alert: {queueName}</span>
+                  <span className="text-[#26251e]">
+                    {warning.capacityWarningActive && warning.waitWarningActive
+                      ? 'is currently experiencing both high capacity and excessive wait times.'
+                      : warning.capacityWarningActive
+                      ? 'has reached its configured capacity threshold limit.'
+                      : 'is currently experiencing excessive wait times beyond the configured threshold limit.'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 4 Core KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
+            {isLoading && (
+               <div className="absolute inset-0 bg-[#f7f7f4]/60 backdrop-blur-xs z-10 flex items-center justify-center">
+                 <Icon icon="lucide:refresh-cw" className="w-6 h-6 text-[#f54e00] animate-spin" />
+               </div>
+            )}
+            <Card className="p-5 flex flex-col justify-between">
               <div>
-                <span className="font-bold text-amber-900">Operational Alert: {queueName} </span>
-                <span className="text-amber-800">
-                  {warning.capacityWarningActive && warning.waitWarningActive
-                    ? 'is currently experiencing both high capacity and excessive wait times.'
-                    : warning.capacityWarningActive
-                    ? 'has reached its configured capacity threshold limit.'
-                    : 'is currently experiencing excessive wait times beyond the configured threshold limit.'}
-                </span>
+                <div className="flex items-center justify-between text-[#807d72] mb-3">
+                  <span className="font-mono uppercase text-[10px] tracking-wider font-semibold">Total Issued</span>
+                  <Icon icon="lucide:users" className="w-4 h-4 text-[#807d72]" />
+                </div>
+                <div className="text-3xl font-medium font-mono text-[#26251e]">
+                  {overview?.totalTokensIssued || 0}
+                </div>
+              </div>
+              <div className="text-[10px] text-[#5a5852] font-semibold mt-4 font-mono uppercase tracking-wider">
+                Served: {overview?.tokensCompleted || 0}
+              </div>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-[#807d72] mb-3">
+                  <span className="font-mono uppercase text-[10px] tracking-wider font-semibold">Avg Wait</span>
+                  <Icon icon="lucide:clock" className="w-4 h-4 text-[#807d72]" />
+                </div>
+                <div className="text-3xl font-medium font-mono text-[#26251e]">
+                  {formatDuration(overview?.avgWaitTimeSeconds || null)}
+                </div>
+              </div>
+              <div className="text-[10px] text-[#5a5852] font-semibold mt-4 font-mono uppercase tracking-wider">
+                Avg Svc: {formatDuration(overview?.avgServiceTimeSeconds || null)}
+              </div>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-[#807d72] mb-3">
+                  <span className="font-mono uppercase text-[10px] tracking-wider font-semibold">Peak Demand</span>
+                  <Icon icon="lucide:zap" className="w-4 h-4 text-[#f54e00]" />
+                </div>
+                <div className="text-3xl font-medium font-mono text-[#26251e]">
+                  {overview?.peakHour !== null && overview?.peakHour !== undefined ? `${overview.peakHour}:00` : '--:--'}
+                </div>
+              </div>
+              <div className="text-[10px] text-[#5a5852] font-semibold mt-4 font-mono uppercase tracking-wider">
+                {overview?.peakHourTokenCount || 0} tokens/hr
+              </div>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-[#807d72] mb-3">
+                  <span className="font-mono uppercase text-[10px] tracking-wider font-semibold">Completion</span>
+                  <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-[#1f8a65]" />
+                </div>
+                <div className="text-3xl font-medium font-mono text-[#1f8a65]">
+                  {overview?.totalTokensIssued 
+                    ? Math.round((overview.tokensCompleted / overview.totalTokensIssued) * 100) 
+                    : 0}%
+                </div>
+              </div>
+              <div className="text-[10px] text-[#5a5852] font-semibold mt-4 font-mono uppercase tracking-wider">
+                No-show: {overview?.noShowRate ? Math.round(overview.noShowRate * 100) : 0}%
+              </div>
+            </Card>
+          </div>
+
+          {/* Analytics Bento: Throughput Chart Left, Service Breakdown Right */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+            <Card className="xl:col-span-2 p-6 flex flex-col space-y-4">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-xs font-mono uppercase tracking-wider text-[#807d72] font-semibold">Throughput vs Completion</h2>
+                  <p className="text-xs text-[#5a5852] mt-1">Hourly token issuance compared against service completion rate</p>
+                </div>
+                <div className="flex items-center gap-4 text-[10px] font-mono tracking-wider text-[#807d72] uppercase">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#807d72]" /> Issued
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#f54e00]" /> Served
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-64 w-full relative flex-1 min-h-[250px]">
+                {isLoading && (
+                  <div className="absolute inset-0 bg-[#f7f7f4]/60 backdrop-blur-xs z-10 flex items-center justify-center">
+                    <Icon icon="lucide:refresh-cw" className="w-6 h-6 text-[#f54e00] animate-spin" />
+                  </div>
+                )}
+                <AnalyticsBarChart data={
+                  traffic?.hourlyBuckets?.map(b => ({
+                    time: `${b.hour.toString().padStart(2, '0')}:00`,
+                    issued: b.tokensJoined,
+                    served: b.tokensCompleted
+                  })) || []
+                } />
+              </div>
+            </Card>
+
+            <Card className="p-6 flex flex-col justify-between">
+              <div>
+                <h2 className="text-xs font-mono uppercase tracking-wider text-[#807d72] font-semibold mb-1">Service Allocation</h2>
+                <p className="text-xs text-[#5a5852] mb-6">Volume distribution across service queues</p>
+
+                <div className="relative flex-grow min-h-[200px]">
+                  {isLoading && (
+                    <div className="absolute inset-0 bg-[#f7f7f4]/60 backdrop-blur-xs z-10 flex items-center justify-center">
+                      <Icon icon="lucide:refresh-cw" className="w-6 h-6 text-[#f54e00] animate-spin" />
+                    </div>
+                  )}
+                  <AnalyticsServiceProgress data={
+                    (() => {
+                      if (!services || services.length === 0) return [];
+                      const total = services.reduce((sum, s) => sum + s.totalTokens, 0);
+                      if (total === 0) return [];
+                      const colors = ['#f54e00', '#26251e', '#1f8a65', '#9fbbe0', '#c08532'];
+                      return services.slice(0, 5).map((s, i) => ({
+                        serviceName: s.serviceName,
+                        percentage: (s.totalTokens / total) * 100,
+                        color: colors[i % colors.length]
+                      }));
+                    })()
+                  } />
+                </div>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-[#efeee8]">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => queueStore.setScreen('SCREEN_14_SERVICE_QUEUE_CONFIG')}
+                  className="w-full text-xs uppercase tracking-wider font-semibold"
+                >
+                  <span>Configure Services &amp; Queues</span>
+                  <Icon icon="lucide:arrow-up-right" className="w-3.5 h-3.5 ml-1 text-[#f54e00]" />
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Branch-Level Counter Monitoring Table */}
+          <Card className="p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#efeee8]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-md border border-[#e6e5e0] bg-[#fafaf7] flex items-center justify-center text-[#26251e]">
+                  <Icon icon="lucide:monitor" className="w-5 h-5 text-[#f54e00]" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-mono uppercase tracking-wider text-[#807d72] font-semibold">Live Counter Telemetry</h2>
+                  <p className="text-xs text-[#5a5852] mt-0.5">Real-time status, availability, and active token assignments</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#807d72]">Branch:</span>
+                <select
+                  value={selectedLocationId}
+                  onChange={(e) => setSelectedLocationId(e.target.value)}
+                  className="bg-white border border-[#e6e5e0] text-xs font-mono font-medium rounded-md px-3 py-1.5 text-[#26251e] focus:outline-none focus:border-[#26251e] cursor-pointer"
+                >
+                  {appState.locations.filter(l => l.orgId === appState.selectedOrgId).map(loc => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name} ({loc.city})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          </div>
-        );
-      })}
 
-      {/* Branch-Level Counter Monitoring Table (Requirement 3) */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#00ACC1]/10 flex items-center justify-center text-[#00ACC1]">
-              <Monitor className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[#0F172A]">Branch Counter & Operator Monitoring</h2>
-              <p className="text-xs text-slate-500">Live operational status, availability state, and active queue assignments</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Location:</span>
-            <select
-              value={selectedLocationId}
-              onChange={(e) => setSelectedLocationId(e.target.value)}
-              className="bg-[#F1F5F9] border border-slate-200 text-xs font-mono font-bold rounded-xl px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-            >
-              {appState.locations.filter(l => l.orgId === appState.selectedOrgId).map(loc => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name} ({loc.city})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Counter Monitoring Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Counter Number / Name</th>
-                <th className="py-3 px-4">Assigned Operator</th>
-                <th className="py-3 px-4">Availability</th>
-                <th className="py-3 px-4">Queue State</th>
-                <th className="py-3 px-4">Current Token</th>
-                <th className="py-3 px-4">Supported Service(s)</th>
-                <th className="py-3 px-4 text-right">Admin Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {branchCounters.map((counter) => {
-                const queueState = queueStore.getCounterQueueState(counter.number);
-                const activeToken = counter.currentServingTokenId
-                  ? appState.tokens.find(t => t.id === counter.currentServingTokenId && ['CALLED', 'IN_SERVICE'].includes(t.state))
-                  : appState.tokens.find(t => t.counterNumber === counter.number && ['CALLED', 'IN_SERVICE'].includes(t.state));
-                
-                const supportedServices = counter.supportedServiceNames || ['General Inquiry'];
-
-                return (
-                  <tr key={counter.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-7 h-7 rounded-lg bg-[#0F172A] text-[#00ACC1] font-mono font-black text-xs flex items-center justify-center">
-                          {counter.number}
-                        </span>
-                        <div>
-                          <div className="font-bold text-slate-900">{counter.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">ID: {counter.id}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{counter.assignedStaffName || 'Unassigned'}</span>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      {getAvailabilityBadge(counter.availability)}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase inline-flex items-center gap-1 ${
-                        queueState === 'SERVING'
-                          ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                          : 'bg-blue-50 text-blue-800 border border-blue-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${queueState === 'SERVING' ? 'bg-purple-600' : 'bg-blue-500'}`} />
-                        {queueState}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      {activeToken ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#00ACC1]/10 text-[#00838F] rounded-lg font-mono font-bold">
-                          <span>{activeToken.tokenNumber}</span>
-                          <span className="text-[10px] text-slate-500 font-sans">({activeToken.customerName || 'Guest'})</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 font-mono italic">None (Ready)</span>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap gap-1">
-                        {supportedServices.map((srv, sIdx) => (
-                          <span key={sIdx} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-medium">
-                            {srv}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <select
-                        value={counter.availability}
-                        onChange={(e) => queueStore.setCounterAvailability(counter.number, e.target.value as CounterAvailability)}
-                        className="text-[11px] font-mono font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 hover:border-slate-400 focus:outline-none cursor-pointer"
-                      >
-                        <option value="ONLINE">Set ONLINE</option>
-                        <option value="ON_BREAK">Set ON BREAK</option>
-                        <option value="AWAY">Set AWAY</option>
-                        <option value="OFFLINE">Set OFFLINE</option>
-                      </select>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#efeee8] text-[10px] font-mono uppercase tracking-wider text-[#807d72] font-semibold">
+                    <th className="py-3 px-4 whitespace-nowrap">Counter</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Operator</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Status</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Queue State</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Active Token</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Supported Services</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Admin Action</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-[#efeee8] text-xs">
+                  {branchCounters.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-[#807d72] text-sm italic">
+                        No counters found for this location.
+                      </td>
+                    </tr>
+                  ) : branchCounters.map((counter) => {
+                    const queueState = queueStore.getCounterQueueState(counter.number);
+                    const activeToken = counter.currentServingTokenId
+                      ? appState.tokens.find(t => t.id === counter.currentServingTokenId && ['CALLED', 'IN_SERVICE'].includes(t.state))
+                      : appState.tokens.find(t => t.counterNumber === counter.number && ['CALLED', 'IN_SERVICE'].includes(t.state));
+                    
+                    const supportedServices = counter.supportedServiceNames || ['General Inquiry'];
 
-      {/* 4 Core KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
-        {isLoading && (
-           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-             <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
-           </div>
-        )}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-mono uppercase text-[10px] font-bold">Total Tokens Issued</span>
-            <Users className="w-4 h-4 text-[#00ACC1]" />
-          </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
-            {overview?.totalTokensIssued || 0}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-1 font-mono">
-            <span>Served: {overview?.tokensCompleted || 0}</span>
-          </div>
-        </div>
+                    return (
+                      <tr key={counter.id} className="hover:bg-[#fafaf7] transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <span className="w-7 h-7 rounded border border-[#e6e5e0] bg-[#fafaf7] flex items-center justify-center font-mono font-semibold text-xs text-[#26251e]">
+                              {counter.number}
+                            </span>
+                            <div>
+                              <div className="font-medium text-[#26251e]">{counter.name}</div>
+                              <div className="text-[10px] text-[#807d72] font-mono mt-0.5">{counter.id}</div>
+                            </div>
+                          </div>
+                        </td>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-mono uppercase text-[10px] font-bold">Avg. Wait Time</span>
-            <Clock className="w-4 h-4 text-[#00ACC1]" />
-          </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
-            {formatDuration(overview?.avgWaitTimeSeconds || null)}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-1 font-mono">
-            <span>Avg Svc: {formatDuration(overview?.avgServiceTimeSeconds || null)}</span>
-          </div>
-        </div>
+                        <td className="py-3.5 px-4">
+                          <div className="text-[#5a5852] flex items-center gap-1.5 font-medium">
+                            <Icon icon="lucide:user-check" className="w-3.5 h-3.5 text-[#807d72]" />
+                            <span>{counter.assignedStaffName || 'Unassigned'}</span>
+                          </div>
+                        </td>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-mono uppercase text-[10px] font-bold">Peak Demand Hour</span>
-            <Zap className="w-4 h-4 text-[#00ACC1]" />
-          </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
-            {overview?.peakHour !== null && overview?.peakHour !== undefined ? `${overview.peakHour}:00` : '--:--'}
-          </div>
-          <div className="text-[10px] text-slate-400 font-mono mt-1 font-bold">
-            {overview?.peakHourTokenCount || 0} tokens issued/hr
-          </div>
-        </div>
+                        <td className="py-3.5 px-4">
+                          {getAvailabilityBadge(counter.availability)}
+                        </td>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-mono uppercase text-[10px] font-bold">Completion Rate</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A]">
-            {overview?.totalTokensIssued 
-              ? Math.round((overview.tokensCompleted / overview.totalTokensIssued) * 100) 
-              : 0}%
-          </div>
-          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-1 font-mono">
-            <span>No-show: {overview?.noShowRate ? Math.round(overview.noShowRate * 100) : 0}%</span>
-          </div>
-        </div>
-      </div>
+                        <td className="py-3.5 px-4">
+                          <Badge variant={queueState === 'SERVING' ? 'edit' : 'read'} size="sm">
+                            {queueState}
+                          </Badge>
+                        </td>
 
-      {/* Analytics Bento: Throughput Chart Left, Service Breakdown Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Hourly Throughput Curve */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-[#0F172A]">Throughput vs. Wait Time</h2>
-              <p className="text-xs text-slate-500">Hourly token issuance vs service completion rate</p>
+                        <td className="py-3.5 px-4">
+                          {activeToken ? (
+                            <Badge variant="outline" size="sm" className="font-mono text-[#26251e]">
+                              {activeToken.tokenNumber} ({activeToken.customerName || 'Guest'})
+                            </Badge>
+                          ) : (
+                            <span className="text-[#807d72] font-mono text-[10px] uppercase">Standby</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap gap-1">
+                            {supportedServices.map((srv, sIdx) => (
+                              <span key={sIdx} className="px-2 py-0.5 bg-[#fafaf7] border border-[#e6e5e0] text-[#5a5852] rounded text-[10px] font-mono">
+                                {srv}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <select
+                            value={counter.availability}
+                            onChange={(e) => queueStore.setCounterAvailability(counter.number, e.target.value as CounterAvailability)}
+                            className="text-[10px] font-mono font-semibold uppercase tracking-wider bg-white border border-[#e6e5e0] rounded-md px-2.5 py-1 text-[#26251e] hover:border-[#26251e] focus:outline-none cursor-pointer"
+                          >
+                            <option value="ONLINE">Set ONLINE</option>
+                            <option value="ON_BREAK">Set BREAK</option>
+                            <option value="AWAY">Set AWAY</option>
+                            <option value="OFFLINE">Set OFFLINE</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="flex items-center gap-3 text-xs font-mono font-bold">
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#0F172A]"></span> Tokens Issued
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#00ACC1]"></span> Served
-              </span>
-            </div>
-          </div>
+          </Card>
 
-          {/* SVG Analytical Area / Bar Graph */}
-          <div className="h-64 w-full pt-4 relative">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
-              </div>
-            )}
-            <AnalyticsBarChart data={
-              traffic?.hourlyBuckets.map(b => ({
-                time: `${b.hour.toString().padStart(2, '0')}:00`,
-                issued: b.tokensJoined,
-                served: b.tokensCompleted
-              })) || []
-            } />
-          </div>
-        </div>
-
-        {/* Right 1 Col: Service Volume Distribution */}
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-[#0F172A] mb-1">Service Distribution</h2>
-            <p className="text-xs text-slate-500 mb-5">Traffic allocation by service type</p>
-
-          <div className="relative flex-grow">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 text-[#00ACC1] animate-spin" />
-              </div>
-            )}
-            <AnalyticsServiceProgress data={
-              (() => {
-                if (!services || services.length === 0) return [];
-                const total = services.reduce((sum, s) => sum + s.totalTokens, 0);
-                if (total === 0) return [];
-                const colors = ['#00ACC1', '#0F172A', '#00ACC170', '#94A3B8', '#38BDF8'];
-                return services.slice(0, 5).map((s, i) => ({
-                  serviceName: s.serviceName,
-                  percentage: (s.totalTokens / total) * 100,
-                  color: colors[i % colors.length]
-                }));
-              })()
-            } />
-          </div>
-          </div>
-
-          <div className="pt-4 mt-6 border-t border-slate-100">
-            <button
-              onClick={() => queueStore.setScreen('SCREEN_14_SERVICE_QUEUE_CONFIG')}
-              className="w-full py-3 px-4 bg-[#F1F5F9] hover:bg-slate-200 text-[#0F172A] text-xs font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <span>Configure Services & Queues</span>
-              <ArrowUpRight className="w-3.5 h-3.5 text-[#00ACC1]" />
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 };

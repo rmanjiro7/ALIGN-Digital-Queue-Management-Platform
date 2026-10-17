@@ -1,34 +1,27 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  MoreVertical, 
-  ShieldCheck, 
-  CheckCircle2, 
-  XCircle, 
-  ChevronRight, 
-  ChevronLeft,
-  ArrowLeft,
-  Layers,
-  ArrowUpRight
-} from 'lucide-react';
 import { adminApi } from '../../services/adminApi';
 import { queueStore, AppState } from '../../services/store';
+import { useToast } from '../common/Toast';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 
 interface Screen16TenantManagementProps {
   appState: AppState;
 }
 
 export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> = ({ appState }) => {
+  const { info } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnboardModal, setShowOnboardModal] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [orgSector, setOrgSector] = useState('Healthcare');
   const [orgEmail, setOrgEmail] = useState('');
-  const [orgLocCount, setOrgLocCount] = useState(5);
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const filteredTenants = appState.tenants.filter(t => 
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,8 +29,8 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
     (t.code && t.code.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const totalLocations = 'N/A';
+  const totalQueues = 'N/A';
 
   React.useEffect(() => {
     fetchTenants();
@@ -95,196 +88,252 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-8 bg-[#f7f7f4] min-h-screen text-[#26251e] font-sans">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#e6e5e0]">
         <div>
-          <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#00ACC1]">
-            ALIGN Super-Admin Portal
+          <div className="text-[10px] font-mono font-medium uppercase tracking-widest text-[#f54e00] mb-1">
+            Global Administration / Platform
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] tracking-tight mt-0.5">
-            Platform Operations &amp; Tenant Management
+          <h1 className="text-2xl md:text-3xl font-normal font-display text-[#26251e] tracking-tight">
+            Tenant Management
           </h1>
-          <p className="text-xs text-slate-500">
-            Manage multi-tenant enterprise organizations, quota partitions, and cluster assignments.
+          <p className="text-xs text-[#73726c] mt-1">
+            Global administration, provisioning, and status control for all registered tenant organizations.
           </p>
         </div>
 
-        <button
-          id="onboard-tenant-btn"
-          onClick={() => setShowOnboardModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold rounded-xl shadow-md shadow-[#00ACC1]/25 uppercase tracking-wider transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Onboard New Organization</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <Button
+            id="onboard-tenant-btn"
+            onClick={() => setShowOnboardModal(true)}
+            variant="default"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <span>Onboard Tenant</span>
+          </Button>
+        </div>
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md font-mono">
+          {error}
+        </div>
+      )}
 
       {/* 4 Summary KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
-          <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">Total Tenants</div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">{appState.tenants.length}</div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
-          <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">Active Queues</div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">N/A</div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-[#00ACC1]">
-          <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">Total Locations</div>
-          <div className="text-2xl md:text-3xl font-black text-[#0F172A] mt-0.5">N/A</div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
-          <div className="text-[10px] font-mono uppercase text-slate-400 font-bold">System Status</div>
-          <div className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 mt-2 font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Optimal (0 incidents)</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#73726c] mb-3">
+            <span className="text-xs font-mono font-medium uppercase tracking-wider">Total Tenants</span>
+            <Icon icon="lucide:building-2" className="w-4 h-4 text-[#f54e00]" />
           </div>
-        </div>
+          <div>
+            <div className="text-3xl font-mono font-bold text-[#26251e]">{appState.tenants.length}</div>
+            <div className="text-xs text-[#8c8b85] mt-1 font-mono">Registered organizations</div>
+          </div>
+        </Card>
+
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#73726c] mb-3">
+            <span className="text-xs font-mono font-medium uppercase tracking-wider">Total Locations</span>
+            <Icon icon="lucide:map-pin" className="w-4 h-4 text-[#f54e00]" />
+          </div>
+          <div>
+            <div className="text-3xl font-mono font-bold text-[#26251e]">{totalLocations}</div>
+            <div className="text-xs text-[#8c8b85] mt-1 font-mono">Across all tenants</div>
+          </div>
+        </Card>
+
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#73726c] mb-3">
+            <span className="text-xs font-mono font-medium uppercase tracking-wider">Active Queues</span>
+            <Icon icon="lucide:list-ordered" className="w-4 h-4 text-[#f54e00]" />
+          </div>
+          <div>
+            <div className="text-3xl font-mono font-bold text-[#26251e]">{totalQueues}</div>
+            <div className="text-xs text-[#8c8b85] mt-1 font-mono">Currently operating</div>
+          </div>
+        </Card>
+
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#73726c] mb-3">
+            <span className="text-xs font-mono font-medium uppercase tracking-wider">System Status</span>
+            <Icon icon="lucide:shield-check" className="w-4 h-4 text-[#8c8b85]" />
+          </div>
+          <div>
+            <div className="text-xl font-mono font-bold text-[#73726c] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              Operational
+            </div>
+            <div className="text-xs text-[#8c8b85] mt-1 font-mono">Cluster verified</div>
+          </div>
+        </Card>
       </div>
 
-      {/* Filter and Search Bar */}
-      {error && <div className="text-red-500 font-bold p-3 bg-red-50 border border-red-200 rounded-lg">{error}</div>}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      {/* Main Content Area */}
+      <div className="space-y-4">
+        {/* Filter and Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
+            <Icon icon="lucide:search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b85]" />
+            <Input 
               type="text" 
               placeholder="Search organizations or sector..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-3.5 py-2.5 bg-[#F1F5F9] border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1] focus:bg-white"
+              className="pl-9 pr-4 py-1.5 text-xs w-full"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button 
-              onClick={() => alert('Filter options: Active only, Suspended, Healthcare, Retail, Government')}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-[#F1F5F9] transition-colors cursor-pointer"
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => info('Filter options: Active only, Suspended, Healthcare, Retail, Government', 'Filter Options')}
+              className="flex items-center gap-1.5 text-xs"
             >
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <Icon icon="lucide:filter" className="w-3.5 h-3.5 text-[#73726c]" />
               <span>Filters</span>
-            </button>
-            <button 
-              onClick={() => alert('Exporting tenant registry CSV')}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-[#F1F5F9] transition-colors cursor-pointer"
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => info('Exporting tenant registry CSV', 'Exporting')}
+              className="flex items-center gap-1.5 text-xs"
             >
-              <Download className="w-3.5 h-3.5 text-slate-400" />
+              <Icon icon="lucide:download" className="w-3.5 h-3.5 text-[#73726c]" />
               <span>Export</span>
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Organizations Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-mono text-[10px] uppercase font-bold">
-                <th className="py-3 px-4">Organization Name</th>
-                <th className="py-3 px-4">Sector</th>
-                <th className="py-3 px-4">Locations</th>
-                <th className="py-3 px-4">Active Queues</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {filteredTenants.map((tenant) => {
-                const isActive = tenant.status === 'ACTIVE';
-                return (
-                  <tr key={tenant.id} className="hover:bg-[#F1F5F9]/50 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#0F172A] text-[#00ACC1] flex items-center justify-center font-bold font-mono text-xs shadow-xs">
-                          {tenant.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900">{tenant.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono font-semibold">{tenant.code}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 font-medium">{tenant.sector}</td>
-                    <td className="py-3.5 px-4 font-mono font-semibold">{tenant.locationCount}</td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#0F172A]">{tenant.activeQueueCount}</td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${
-                        isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                        {tenant.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right flex gap-2 justify-end">
-                      <button
-                        disabled={isLoading}
-                        onClick={() => handleToggleStatus(tenant.id, tenant.status)}
-                        className={`px-3.5 py-1.5 rounded-xl border ${isActive ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'} font-bold text-[11px] uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50`}
-                      >
-                        {isActive ? 'Suspend' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          queueStore.selectOrg(tenant.id);
-                          queueStore.setRole('ORG_ADMIN');
-                          queueStore.setScreen('SCREEN_12_ORG_DASHBOARD');
-                        }}
-                        className="px-3.5 py-1.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-[11px] uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Manage Tenant
-                      </button>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#fafaf7] border-b border-[#e6e5e0]">
+                  <th className="px-4 py-3 text-[10px] font-mono font-medium text-[#73726c] uppercase tracking-wider">Organization Name</th>
+                  <th className="px-4 py-3 text-[10px] font-mono font-medium text-[#73726c] uppercase tracking-wider">Sector</th>
+                  <th className="px-4 py-3 text-[10px] font-mono font-medium text-[#73726c] uppercase tracking-wider text-right">Locations</th>
+                  <th className="px-4 py-3 text-[10px] font-mono font-medium text-[#73726c] uppercase tracking-wider text-right">Active Queues</th>
+                  <th className="px-4 py-3 text-[10px] font-mono font-medium text-[#73726c] uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-[10px] font-mono font-medium text-[#73726c] uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e6e5e0]">
+                {filteredTenants.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-[#73726c] text-sm">
+                      No organizations found matching "{searchQuery}"
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-          <span>Showing 1 to {filteredTenants.length} of {appState.tenants.length} tenants</span>
-          <div className="flex items-center gap-1.5">
-            <button className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-50 cursor-pointer">
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="px-2.5 py-1 font-mono text-[#0F172A] font-bold">1</span>
-            <button className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 cursor-pointer">
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+                ) : (
+                  filteredTenants.map((tenant) => {
+                    const isActive = tenant.status === 'ACTIVE';
+                    return (
+                      <tr key={tenant.id} className="hover:bg-[#fafaf7] transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-md bg-[#fafaf7] border border-[#cfcdc4] flex items-center justify-center font-mono text-xs font-bold text-[#f54e00]">
+                              {tenant.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-medium text-[#26251e] text-sm">{tenant.name}</div>
+                              <div className="text-xs font-mono text-[#8c8b85] mt-0.5">{tenant.code}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[#73726c]">{tenant.sector}</td>
+                        <td className="px-4 py-3 text-right text-sm font-mono text-[#26251e]">{'N/A'}</td>
+                        <td className="px-4 py-3 text-right text-sm font-mono text-[#26251e]">{'N/A'}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={isActive ? 'mint' : 'outline'} className="text-[9px] font-mono">
+                            {isActive ? (
+                              <Icon icon="lucide:check-circle-2" className="w-3 h-3 mr-1 text-[#2e7d32]" />
+                            ) : (
+                              <Icon icon="lucide:alert-triangle" className="w-3 h-3 mr-1 text-red-600" />
+                            )}
+                            {tenant.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isLoading}
+                              onClick={() => handleToggleStatus(tenant.id, tenant.status)}
+                              className={`text-xs ${isActive ? 'text-red-600 hover:text-red-700 hover:bg-red-50' : 'text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50'}`}
+                            >
+                              {isActive ? 'Suspend' : 'Activate'}
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                queueStore.selectOrg(tenant.id);
+                                queueStore.setScreen('SCREEN_17_ANALYTICS');
+                              }}
+                              className="text-xs"
+                              title="View Tenant Analytics"
+                            >
+                              Analytics
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
+          
+          {/* Pagination Footer */}
+          <div className="px-4 py-3 border-t border-[#e6e5e0] flex items-center justify-between text-xs text-[#73726c] bg-[#fafaf7]">
+            <span className="font-mono text-[11px]">Showing 1 to {filteredTenants.length} of {appState.tenants.length} tenants</span>
+            <div className="flex items-center gap-1.5 font-mono">
+              <Button variant="ghost" size="icon" className="w-7 h-7 text-[#73726c] disabled:opacity-50">
+                <Icon icon="lucide:chevron-left" className="w-4 h-4" />
+              </Button>
+              <span className="px-2 py-0.5 font-bold text-xs text-[#26251e] bg-white border border-[#e6e5e0] rounded">1</span>
+              <Button variant="ghost" size="icon" className="w-7 h-7 text-[#73726c]">
+                <Icon icon="lucide:chevron-right" className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Onboard Tenant Modal */}
       {showOnboardModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl">
-            <h2 className="text-lg font-black text-[#0F172A] mb-1">Onboard New Enterprise Tenant</h2>
-            <p className="text-xs text-slate-500 mb-4">Provision a new isolated organization node on ALIGN.</p>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <Card className="p-6 max-w-md w-full shadow-xl">
+            <h2 className="text-lg font-normal font-display text-[#26251e] mb-1">Onboard New Organization</h2>
+            <p className="text-xs text-[#73726c] mb-6 border-b border-[#e6e5e0] pb-4">Provision a new isolated organization node on ALIGN.</p>
 
-            <form onSubmit={handleOnboardTenant} className="space-y-3">
+            <form onSubmit={handleOnboardTenant} className="space-y-4">
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Organization Name</label>
-                <input 
+                <label className="text-[10px] font-mono text-[#73726c] uppercase tracking-wider block mb-1.5">Organization Name *</label>
+                <Input 
                   type="text" 
                   required
                   placeholder="e.g. Metro Transit Authority" 
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Industry Sector</label>
+                <label className="text-[10px] font-mono text-[#73726c] uppercase tracking-wider block mb-1.5">Industry Sector</label>
                 <select 
                   value={orgSector}
                   onChange={(e) => setOrgSector(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                  className="w-full px-3 py-2 bg-white border border-[#cfcdc4] rounded-md text-sm text-[#26251e] focus:outline-none focus:border-[#26251e] appearance-none"
                 >
                   <option value="Healthcare">Healthcare &amp; Clinical</option>
                   <option value="Enterprise Retail">Enterprise Retail &amp; Banking</option>
@@ -295,34 +344,35 @@ export const Screen16TenantManagement: React.FC<Screen16TenantManagementProps> =
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Admin Contact Email</label>
-                <input 
+                <label className="text-[10px] font-mono text-[#73726c] uppercase tracking-wider block mb-1.5">Admin Contact Email</label>
+                <Input 
                   type="email" 
                   placeholder="ops@orgname.com" 
                   value={orgEmail}
                   onChange={(e) => setOrgEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
                 />
               </div>
 
-              <div className="flex gap-2 pt-3">
-                <button
+              <div className="flex gap-3 pt-4 border-t border-[#e6e5e0] mt-6">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setShowOnboardModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-slate-300 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="default"
                   disabled={isLoading}
-                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                  className="flex-1"
                 >
-                  {isLoading ? 'Provisioning...' : 'Provision Tenant'}
-                </button>
+                  {isLoading ? 'Provisioning...' : 'Provision'}
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

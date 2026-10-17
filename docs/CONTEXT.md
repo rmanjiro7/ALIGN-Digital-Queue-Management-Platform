@@ -118,81 +118,35 @@ Phase 1 — not in Phase 0.
 
 ---
 
-## Current Phase
+## Current Phase & Verification Status
 
-**Phase 0 — FOUNDATION: ✅ COMPLETE**
-**Phase 1 — SECURITY: ✅ COMPLETE**
+**All Phases 0 through 8 are COMPLETE and VERIFIED ✅**
 
-### Phase 1 — What is validated (2026-09-07)
-
-- ✅ Spring Security 6 (stateless, JWT, CSRF disabled, HTTP Basic disabled)
-- ✅ BCrypt password encoding (strength 12)
-- ✅ JWT access tokens — HS512, signed, expiry 15 min (jjwt 0.12.6)
-- ✅ Refresh tokens — SHA-256 hashed, rotation on use, 7-day expiry
-- ✅ `JwtAuthenticationFilter` — per-request JWT validation
-- ✅ `UserDetailsServiceImpl` — load by email (login) and by UUID (filter)
-- ✅ `TenantContext` — reads orgId/role from SecurityContext, not client input
-- ✅ `UserPrincipal` — Spring Security principal with role + tenant scope
-- ✅ POST /api/v1/auth/login — valid credentials → 200, tokens, user info
-- ✅ POST /api/v1/auth/refresh — valid refresh token → new access token (rotation)
-- ✅ POST /api/v1/auth/logout — revokes all refresh tokens for user → 204
-- ✅ GET /api/v1/auth/me — returns authenticated user from SecurityContext
-- ✅ 401 on missing/invalid/expired/tampered JWT
-- ✅ 401 on invalid credentials (INVALID_CREDENTIALS — no account enumeration)
-- ✅ 401 on INACTIVE account (ACCOUNT_DISABLED)
-- ✅ 403 via AccessDeniedHandler (insufficient role)
-- ✅ 422 on validation failures (VALIDATION_ERROR)
-- ✅ TenantContext.requireSameTenant blocks cross-tenant access
-- ✅ V2__security.sql — organizations stub + users + refresh_tokens
-- ✅ Full test suite: **30 tests PASS, 0 failures, 0 errors**
-
-**Phase 1 Test Environment:**
-- Docker Server: 29.7.2
-- Testcontainers: 1.21.4
-- PostgreSQL: 15.19-alpine (containerized, shared static lifecycle)
-- Apache HttpClient 5 (test scope, for TestRestTemplate)
-- AlignApplicationTest: 4/4 PASS
-- SecurityIntegrationTest: 26/26 PASS
-- Total: **30 tests PASS**
-
-### Phase 0 — What is validated
-
-- ✅ `backend/` directory structure
-- ✅ `pom.xml` with correct Phase 0 dependencies
-- ✅ Maven Wrapper (`mvnw.cmd`, maven-wrapper.jar downloaded)
-- ✅ `AlignApplication.java` main class
-- ✅ `application.yml` + dev/prod/test profiles
-- ✅ `logback-spring.xml` structured logging
-- ✅ `V1__foundation.sql` Flyway migration
-- ✅ Exception handling framework: `GlobalExceptionHandler`, base exceptions, `ErrorResponse`
-- ✅ Test infrastructure: `PostgresIntegrationTest` base class, `AlignApplicationTest` (4 tests)
-- ✅ Maven compilation: **BUILD SUCCESS**
-- ✅ Test execution: **4 tests PASS, 0 failures**
-- ✅ Flyway V1 migration execution verified
-- ✅ `/actuator/health` endpoint verified (HTTP 200)
+- **Phase 0 (Foundation):** Spring Boot 3.2.5, PostgreSQL 15, Actuator, Flyway baseline.
+- **Phase 1 (Security):** JWT HS512, Refresh Tokens, RBAC, TenantContext isolation.
+- **Phase 2 (Organization Domain):** Organization, Location, Service, Queue, Counter CRUD & guards.
+- **Phase 3 (Token Engine):** Atomic sequence, Queue capacity enforcement, Idempotency, 15m Grace step-away.
+- **Phase 4 (Staff Operations):** Concurrency-safe calling (`SKIP LOCKED`), Serve, Complete, Transfer, Recall, No-show.
+- **Phase 5 (Realtime):** WebSocket STOMP broker (`/ws-align`), transaction-bound `AFTER_COMMIT` publishing.
+- **Phase 6 (Admin & Analytics):** Historical metric aggregation (Summary, Queues, Traffic, Services, Counters), audit logs.
+- **Phase 7 (Hardening):** Structured operating hours, SMS consent, Rate limiting filter, concurrency stress tests.
+- **Phase 8 (MVP Gaps & E2E):** Preparation requirements, announcements, public TV audio chime, Puppeteer E2E suites.
+- **Platform Stabilization:** Single-command launch orchestrator (`start.ps1`, `start.bat`), defensive frontend normalization, error boundary.
 
 ---
 
-## Current Status
+## Current Status Matrix
 
-| Component | Status |
-|-----------|--------|
-| Backend code | ✅ Implemented |
-| Maven compilation | ✅ BUILD SUCCESS |
-| Spring Security | ✅ COMPLETE (Phase 1) |
-| JWT authentication | ✅ COMPLETE (Phase 1) |
-| Refresh tokens | ✅ COMPLETE (Phase 1) |
-| TenantContext / RBAC | ✅ COMPLETE (Phase 1) |
-| Flyway V1 + V2 | ✅ VERIFIED (migrations executed) |
-| Test execution | ✅ 30 tests PASS, 0 failures |
-| Application startup | ✅ VERIFIED (Testcontainers PostgreSQL) |
-| Frontend | ✅ Complete (mock store, no backend integration) |
-| Architecture docs | ✅ Complete |
-| ADRs | ✅ Complete (ADR-001 through ADR-011) |
-| Business Rules | ✅ Complete (BR-001 through BR-013) |
-| WebSocket/STOMP | ⏳ Phase 5 |
-| Token Engine | ⏳ Phase 3 |
-| Staff Operations | ⏳ Phase 4 |
+| Component | Status | Validation Reference |
+| :--- | :--- | :--- |
+| **Backend Codebase** | ✅ COMPLETE | 217/217 Tests Passing via Maven Surefire & Failsafe |
+| **Spring Security & Auth** | ✅ COMPLETE | `SecurityIntegrationTest`, `UserManagementIntegrationTest` |
+| **Flyway Schema (V1–V16)** | ✅ COMPLETE | `DATABASE.md`, verified against PostgreSQL 15 |
+| **Concurrency & Queuing** | ✅ COMPLETE | `SkipLockedConcurrencyTest`, `QueueCapacityConcurrencyTest` |
+| **Realtime WebSocket** | ✅ COMPLETE | `/ws-align` STOMP topics verified in E2E tests |
+| **Frontend PWA** | ✅ COMPLETE | React 19 + TypeScript (`bun run lint` & `bun run build` pass) |
+| **Automated End-to-End** | ✅ COMPLETE | Multi-role Puppeteer suite passes 9/9 screens with 0 errors |
+| **Single-Command Launcher** | ✅ COMPLETE | `start.ps1`, `start.ps`, `start.bat` verified |
 
 ---
 

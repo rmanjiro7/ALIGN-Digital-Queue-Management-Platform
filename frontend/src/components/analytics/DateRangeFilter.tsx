@@ -11,12 +11,12 @@ interface DateRangeFilterProps {
 export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ value, onChange }) => {
   return (
     <div className="flex items-center gap-2">
-      <Calendar className="w-4 h-4 text-slate-500" />
-      <span className="text-xs font-bold text-slate-500">Date Range:</span>
+      <Calendar className="w-3.5 h-3.5 text-content-secondary" />
+      <span className="text-[11px] uppercase tracking-wide font-semibold text-content-secondary">Range:</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as DateRangePreset)}
-        className="bg-[#F1F5F9] border border-slate-200 text-xs font-mono font-bold rounded-xl px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+        className="bg-surface-interactive border border-border-strong text-xs font-mono rounded px-2.5 py-1 text-content-primary focus:outline-none focus:border-accent"
       >
         <option value="TODAY">Today</option>
         <option value="YESTERDAY">Yesterday</option>

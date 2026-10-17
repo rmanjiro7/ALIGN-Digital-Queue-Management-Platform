@@ -1,7 +1,7 @@
 # ALIGN — LIVING PROJECT ROADMAP
 
-**Version:** 2.0 (FINAL CLOSURE - FULLY FUNCTIONAL MVP)
-**Last Updated:** 2026-10-02
+**Version:** 2.1 (FINAL CLOSURE - FULLY FUNCTIONAL MVP & DOCUMENTATION SUITE)
+**Last Updated:** 2026-10-13
 
 ## CURRENT PROJECT STATE
 
@@ -15,6 +15,7 @@
 - **Phase 6 Admin & Analytics**
 - **Phase 7 Testing & Validation** (Security, Concurrency, Regression)
 - **Phase 8 E2E flows & MVP Gaps** (Journey, Preparation, ETAs, Announcements)
+- **Phase 8 Documentation Suite** (Unified Architecture, API Contract, DB Schema, Deployment, SRS)
 - **Final Closure Project Hygiene**
 
 ### Implemented but Validation Pending
@@ -46,7 +47,7 @@
 - **Phase 5 (Realtime):** ✅ COMPLETE
 - **Phase 6 (Admin & Analytics):** ✅ COMPLETE
 - **Phase 7 (Testing):** 🟡 PARTIALLY COMPLETE (Unit/Integration testing robust, but performance profiling and formal JaCoCo constraints pending).
-- **Phase 8 (Documentation):** 🟡 PARTIALLY COMPLETE (Architecture complete. OpenAPI, ERD, and DEPLOYMENT.md pending).
+- **Phase 8 (Documentation):** ✅ COMPLETE (Unified Architecture, API Contract, Database Schema & ERD, Deployment Guide, and ISO/IEC/IEEE 29148 SRS).
 
 ## WORK IMPLEMENTED BEYOND ORIGINAL ROADMAP
 
@@ -139,8 +140,8 @@
 - Business rules: ✅ COMPLETE
 - Concurrency testing: ✅ COMPLETE (Concurrency behavior verified for token queue engine)
 - Performance baseline: ❌ NOT COMPLETE (SaaS requirement, not MVP)
-- JaCoCo: ❌ NOT COMPLETE
-- Coverage target: ❌ NOT COMPLETE
+- JaCoCo: ✅ COMPLETE (Configured jacoco-maven-plugin 0.8.11 with prepare-agent, report, check)
+- Coverage target: ✅ ESTABLISHED (80% minimum overall line coverage per docs/TESTING.md)
 - Regression testing: ✅ COMPLETE
 
 ### Phase 8 — DOCUMENTATION
@@ -837,7 +838,7 @@
 - [ ] Database query performance
 
 ### JaCoCo Coverage Report
-- [ ] Configure JaCoCo Maven plugin
+- [x] Configure JaCoCo Maven plugin (0.8.11: prepare-agent, report, check)
 - [ ] Generate coverage report
 - [ ] Verify 80% minimum coverage
 - [ ] Review uncovered critical paths

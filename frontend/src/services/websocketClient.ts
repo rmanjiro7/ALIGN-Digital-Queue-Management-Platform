@@ -176,17 +176,27 @@ export class WebsocketClient {
   }
 
   public unsubscribe() {
-    if (this.client && this.currentSubscriptionId) {
-      this.client.unsubscribe(this.currentSubscriptionId);
+    try {
+      if (this.client && this.client.connected && this.currentSubscriptionId) {
+        this.client.unsubscribe(this.currentSubscriptionId);
+        console.log('[STOMP] Unsubscribed from previous location');
+      }
+    } catch (e) {
+      // Ignore unsubscribe error if socket is already closed/disconnected
+    } finally {
       this.currentSubscriptionId = null;
-      console.log('[STOMP] Unsubscribed from previous location');
     }
   }
 
   public disconnect() {
     this.unsubscribe();
-    if (this.client) {
-      this.client.deactivate();
+    try {
+      if (this.client) {
+        this.client.deactivate();
+      }
+    } catch (e) {
+      // Ignore deactivate error if socket is already closed
+    } finally {
       this.client = null;
     }
   }

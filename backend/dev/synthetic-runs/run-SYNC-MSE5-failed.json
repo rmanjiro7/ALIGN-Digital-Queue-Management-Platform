@@ -1,0 +1,32 @@
+{
+  "runId": "SYNC-MSE5",
+  "timestamp": "2026-10-10T14:19:08.999Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "2ae981da-7d1d-4f7c-9ca6-ae033092f295"
+    ],
+    "locations": [
+      "df922bd5-f946-4a55-a2dc-c26673ce9015"
+    ],
+    "services": [
+      "f8e92221-3560-4ab2-8750-551ee75f7797"
+    ],
+    "queues": [
+      "e5b1012b-4c42-47bf-aa45-7e4415ccff04"
+    ],
+    "counters": [
+      "8e5ba03b-e413-45c5-b1bf-0b1819e1e541"
+    ],
+    "users": [
+      "0e4d65c8-7ebc-4112-b83a-fc7e3e9d5b04",
+      "a4f86d32-aa46-4fa8-900e-f89c0ac93b33"
+    ],
+    "tokens": [
+      "1dc39d63-7e85-4571-a60a-9c908600a45d"
+    ]
+  }
+}

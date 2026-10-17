@@ -1,33 +1,75 @@
 import React, { useState } from 'react';
-import { 
-  Lock, 
-  Mail, 
-  Eye, 
-  EyeOff, 
-  ShieldCheck, 
-  Sparkles, 
-  ArrowRight, 
-  Check, 
-  UserCheck, 
-  Building2, 
-  Layers
-} from 'lucide-react';
 import { queueStore } from '../../services/store';
 import { UserRole } from '../../types';
 import { apiClient } from '../../services/apiClient';
+import { useToast } from '../common/Toast';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
+
+interface AccountPreset {
+  role: UserRole;
+  label: string;
+  badge: string;
+  email: string;
+  password: string;
+  description: string;
+  icon: string;
+}
+
+const PRESET_ACCOUNTS: AccountPreset[] = [
+  {
+    role: 'STAFF',
+    label: 'Staff Operator',
+    badge: 'Counter Ops',
+    email: 'staff@align.local',
+    password: 'Staff@1234',
+    description: 'Counter operation & ticket serving console',
+    icon: 'lucide:user-check'
+  },
+  {
+    role: 'ORG_ADMIN',
+    label: 'Org Admin',
+    badge: 'Tenant Admin',
+    email: 'admin@align.local',
+    password: 'Admin@1234',
+    description: 'Branch, counter, service & queue management',
+    icon: 'lucide:building-2'
+  },
+  {
+    role: 'PLATFORM_ADMIN',
+    label: 'Platform Admin',
+    badge: 'Global Admin',
+    email: 'platform@align.local',
+    password: 'Platform@1234',
+    description: 'Cross-tenant oversight & platform onboarding',
+    icon: 'lucide:shield-check'
+  }
+];
 
 export const Screen08Login: React.FC = () => {
-  const [email, setEmail] = useState('admin@organization.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const { error: toastError, info } = useToast();
+  const [selectedRole, setSelectedRole] = useState<UserRole>('STAFF');
+  const [email, setEmail] = useState('staff@align.local');
+  const [password, setPassword] = useState('Staff@1234');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const activePreset = PRESET_ACCOUNTS.find(a => a.role === selectedRole) || PRESET_ACCOUNTS[0];
+
+  const handleSelectPreset = (preset: AccountPreset) => {
+    setSelectedRole(preset.role);
+    setEmail(preset.email);
+    setPassword(preset.password);
+  };
+
+  const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.login(email, password);
+      const response = await apiClient.login(loginEmail, loginPass);
       queueStore.setAuthStatus('AUTHENTICATED', response.user);
       queueStore.setRole(response.user.role as UserRole);
 
@@ -39,178 +81,200 @@ export const Screen08Login: React.FC = () => {
         queueStore.setScreen('SCREEN_09_STAFF_OPERATIONS');
       }
     } catch (err: any) {
-      alert(err.message || 'Login failed');
+      toastError(err.message || 'Login failed', 'Authentication Error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleQuickDemoLogin = (role: UserRole) => {
-    queueStore.setRole(role);
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await performLogin(email, password);
+  };
+
+  const handleQuickDemoLogin = async (role: UserRole) => {
+    const preset = PRESET_ACCOUNTS.find(a => a.role === role);
+    if (preset) {
+      handleSelectPreset(preset);
+      await performLogin(preset.email, preset.password);
+    }
   };
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
-        {/* Left Decorative / Brand Column */}
-        <div className="bg-[#0F172A] text-white p-8 md:p-10 flex flex-col justify-between relative overflow-hidden">
-          {/* Subtle background blurs */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-[#00ACC1]/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#00ACC1]/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-9 h-9 rounded-xl bg-[#00ACC1] flex items-center justify-center font-bold text-white text-lg shadow-sm italic">
-                A
-              </div>
-              <span className="font-black tracking-wider text-base text-white">ALIGN</span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#00ACC1]/20 text-[#00ACC1]">STAFF</span>
-            </div>
-
-            <h2 className="text-2xl md:text-3xl font-black text-white leading-snug tracking-tight mb-3">
-              Operational Precision. Real-time Control.
-            </h2>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Log in to your assigned counter console to manage live token queues, call walk-ins, and broadcast audio announcements.
-            </p>
+      <div className="w-full max-w-lg">
+        {/* Header / Brand */}
+        <div className="flex flex-col items-center mb-8 text-center">
+          <div className="w-10 h-10 rounded-md bg-[#26251e] text-[#f7f7f4] flex items-center justify-center mb-4">
+            <span className="font-semibold text-lg">A</span>
           </div>
-
-          <div className="relative z-10 pt-8 border-t border-slate-800 space-y-2 text-xs text-slate-300">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#00ACC1]" />
-              <span>Multi-Tenant Role-Based Access Control</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#00ACC1]" />
-              <span>Instant WebSocket / Real-time Sync</span>
-            </div>
-          </div>
+          <h1 className="text-display-md text-[#26251e] mb-1">
+            ALIGN System Access
+          </h1>
+          <p className="text-sm text-[#5a5852] max-w-sm">
+            Select your assigned console role or authenticate with configured credentials.
+          </p>
         </div>
 
-        {/* Right Form Column */}
-        <div className="p-8 md:p-10 flex flex-col justify-between">
-          <div>
-            <div className="mb-6">
-              <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">
-                Staff Authentication
-              </h1>
-              <p className="text-xs text-slate-600 mt-1">
-                Enter your staff credentials to access the operational desk.
-              </p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-3 py-2.5 bg-[#F1F5F9] border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1] focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type={showPassword ? 'text' : 'password'} 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-10 py-2.5 bg-[#F1F5F9] border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1] focus:bg-white font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-600">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded text-[#00ACC1] focus:ring-[#00ACC1]"
-                  />
-                  <span>Remember Counter Session</span>
-                </label>
-                <a href="#reset" onClick={(e) => { e.preventDefault(); alert('Password reset link sent to admin@organization.com'); }} className="text-[#00ACC1] hover:underline font-bold">
-                  Forgot Password?
-                </a>
-              </div>
-
+        {/* Role Selector Tabs */}
+        <div className="bg-white border border-[#e6e5e0] p-1.5 rounded-lg mb-4 grid grid-cols-3 gap-1.5">
+          {PRESET_ACCOUNTS.map((preset) => {
+            const isSelected = selectedRole === preset.role && email === preset.email;
+            return (
               <button
-                type="submit"
-                id="staff-login-submit-btn"
-                disabled={isLoading}
-                className="w-full py-3.5 px-4 rounded-2xl bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 uppercase tracking-wider"
+                key={preset.role}
+                id={`preset-role-${preset.role.toLowerCase()}`}
+                type="button"
+                onClick={() => handleSelectPreset(preset)}
+                className={`flex flex-col items-center py-2.5 px-2 rounded-md text-xs font-medium transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'bg-[#fafaf7] border-[#e6e5e0] text-[#26251e] font-semibold'
+                    : 'border-transparent text-[#5a5852] hover:text-[#26251e] hover:bg-[#fafaf7]'
+                }`}
               >
-                {isLoading ? (
-                  <span>Authenticating...</span>
-                ) : (
-                  <>
-                    <span>Sign In to Counter 3</span>
-                    <ArrowRight className="w-4 h-4 text-[#00ACC1]" />
-                  </>
-                )}
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Icon icon={preset.icon} className={`w-3.5 h-3.5 ${isSelected ? 'text-[#f54e00]' : 'text-[#807d72]'}`} />
+                  <span>{preset.label.split(' ')[0]}</span>
+                </div>
+                <span className="text-[10px] text-[#807d72] font-mono">{preset.badge}</span>
               </button>
-            </form>
+            );
+          })}
+        </div>
+
+        {/* Login Form */}
+        <Card className="p-8 md:p-10 mb-6 rounded-lg">
+          {/* Active Preset Information Banner */}
+          <div className="mb-6 px-3.5 py-2.5 rounded-md bg-[#fafaf7] border border-[#e6e5e0] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Icon icon="lucide:key-round" className="w-4 h-4 text-[#f54e00]" />
+              <div>
+                <span className="text-[#26251e] font-medium">{activePreset.label}</span>
+                <span className="text-[#807d72] ml-1.5 text-[11px]">({activePreset.description})</span>
+              </div>
+            </div>
+            <Badge variant="outline" size="sm">
+              {activePreset.role}
+            </Badge>
           </div>
 
-          {/* Quick Demo Role Switcher Shortcuts */}
-          <div className="mt-8 pt-4 border-t border-slate-100">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-2">
-              Quick Role Test Logins
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] font-semibold block">
+                Email / User Identifier
+              </label>
+              <div className="relative">
+                <Icon icon="lucide:mail" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#807d72]" />
+                <Input 
+                  id="login-email-input"
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="pl-9"
+                  placeholder="Enter email address"
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleQuickDemoLogin('STAFF')}
-                className="p-2.5 rounded-xl bg-[#F1F5F9] hover:bg-slate-200 border border-slate-200 text-left transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-800">
-                  <UserCheck className="w-3 h-3 text-[#00ACC1]" />
-                  <span>Staff</span>
-                </div>
-                <div className="text-[9px] text-slate-500 font-mono">Counter 3</div>
-              </button>
 
-              <button
-                onClick={() => handleQuickDemoLogin('ORG_ADMIN')}
-                className="p-2.5 rounded-xl bg-[#F1F5F9] hover:bg-slate-200 border border-slate-200 text-left transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-800">
-                  <Building2 className="w-3 h-3 text-[#00ACC1]" />
-                  <span>Org Admin</span>
-                </div>
-                <div className="text-[9px] text-slate-500 font-mono">ABC HQ</div>
-              </button>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-[#5a5852] font-semibold block">
+                Password
+              </label>
+              <div className="relative">
+                <Icon icon="lucide:lock" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#807d72]" />
+                <Input 
+                  id="login-password-input"
+                  type={showPassword ? 'text' : 'password'} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="pl-9 pr-10 font-mono"
+                  placeholder="Enter password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#807d72] hover:text-[#26251e] transition-colors cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
-              <button
-                onClick={() => handleQuickDemoLogin('PLATFORM_ADMIN')}
-                className="p-2.5 rounded-xl bg-[#F1F5F9] hover:bg-slate-200 border border-slate-200 text-left transition-colors cursor-pointer"
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-[#5a5852] hover:text-[#26251e] transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading}
+                  className="rounded border-[#cfcdc4] text-[#f54e00] focus:ring-[#f54e00] w-3.5 h-3.5 cursor-pointer"
+                />
+                <span>Remember session</span>
+              </label>
+              <button 
+                type="button"
+                onClick={() => info('Password reset instructions sent to registered contact.', 'Reset Password')} 
+                className="text-[#807d72] hover:text-[#f54e00] font-medium transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-800">
-                  <Layers className="w-3 h-3 text-[#00ACC1]" />
-                  <span>Platform</span>
-                </div>
-                <div className="text-[9px] text-slate-500 font-mono">Global Super</div>
+                Reset Password
               </button>
             </div>
+
+            <Button
+              type="submit"
+              id="staff-login-submit-btn"
+              variant="primary"
+              size="lg"
+              disabled={isLoading}
+              isLoading={isLoading}
+              className="w-full text-xs font-semibold uppercase tracking-wider mt-4"
+            >
+              <span>Sign In to {activePreset.label}</span>
+              <Icon icon="lucide:arrow-right" className="w-4 h-4 ml-1.5" />
+            </Button>
+          </form>
+        </Card>
+
+        {/* Credential Reference & Quick Login Cards */}
+        <div className="pt-4 border-t border-[#e6e5e0]">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-[#807d72] font-semibold mb-3 text-center">
+            Configured Role Credentials
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {PRESET_ACCOUNTS.map((preset) => {
+              const isCurrent = email === preset.email;
+              return (
+                <button
+                  key={preset.role}
+                  id={`quick-login-${preset.role.toLowerCase().replace('_', '-')}-btn`}
+                  onClick={() => handleQuickDemoLogin(preset.role)}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all cursor-pointer text-left ${
+                    isCurrent
+                      ? 'bg-white border-[#26251e]'
+                      : 'bg-[#fafaf7] hover:bg-white border-[#e6e5e0]'
+                  }`}
+                >
+                  <Icon icon={preset.icon} className="w-4 h-4 text-[#807d72]" />
+                  <div className="text-center w-full">
+                    <div className="text-[10px] font-semibold text-[#26251e] uppercase tracking-wider truncate">
+                      {preset.label}
+                    </div>
+                    <div className="text-[9px] text-[#5a5852] font-mono mt-0.5 truncate">
+                      {preset.email}
+                    </div>
+                    <div className="text-[9px] text-[#f54e00] font-mono mt-0.5 font-medium">
+                      {preset.password}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

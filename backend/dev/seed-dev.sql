@@ -95,6 +95,47 @@ VALUES (
 -- Password for all E2E users is: e2e-password
 -- Hash generated via bcrypt (strength 12)
 
+-- Dedicated Role Users with Distinct Passwords:
+-- 1. STAFF: staff@align.local / Staff@1234
+-- 2. ORG_ADMIN: admin@align.local / Admin@1234
+-- 3. PLATFORM_ADMIN: platform@align.local / Platform@1234
+INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)
+VALUES (
+    'a1190000-0000-0000-0000-000000000006',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000002',
+    'staff@align.local',
+    '$2a$12$LeeLLtfdMidjNFFAhWI0CeDWYGdPyNPAJXtC0SZh2YdgWNNUvm8l6',
+    'Staff Operator',
+    'STAFF',
+    'ACTIVE'
+);
+
+INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)
+VALUES (
+    'a1190000-0000-0000-0000-000000000008',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000002',
+    'admin@align.local',
+    '$2a$12$P.QU3HdpUfCc7dgqfDXice3AHv9x4vCX94LbqrrkAiHS46QrTaj72',
+    'Organization Admin',
+    'ORG_ADMIN',
+    'ACTIVE'
+);
+
+INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)
+VALUES (
+    'a1190000-0000-0000-0000-000000000009',
+    NULL,
+    NULL,
+    'platform@align.local',
+    '$2a$12$QJ4Rxuhb3HA8Q4/zduKib.TXRQ9uRTQ/SyqfIIBlP0rjZekmd5SGS',
+    'Platform Admin',
+    'PLATFORM_ADMIN',
+    'ACTIVE'
+);
+
+-- Legacy E2E Test Fixture Accounts (password: e2e-password)
 -- ORG_ADMIN User
 INSERT INTO users (id, org_id, location_id, email, password_hash, name, role, status)
 VALUES (

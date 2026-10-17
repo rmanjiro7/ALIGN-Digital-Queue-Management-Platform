@@ -85,25 +85,31 @@ export const apiClient = {
     }
 
     isRefreshing = true;
+    console.log('[DEBUG] apiClient.refresh: Sending POST /api/v1/auth/refresh');
     refreshPromise = fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     })
       .then(async (res) => {
+        console.log('[DEBUG] apiClient.refresh: Response status', res.status);
         if (!res.ok) {
+          console.error('[DEBUG] apiClient.refresh: Refresh failed, clearing session');
           apiClient.clearSession();
           return false;
         }
         const data: RefreshResponse = await res.json();
+        console.log('[DEBUG] apiClient.refresh: Success, setting tokens');
         apiClient.setTokens(data.accessToken, data.refreshToken);
         return true;
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('[DEBUG] apiClient.refresh: Fetch error', err);
         apiClient.clearSession();
         return false;
       })
       .finally(() => {
+        console.log('[DEBUG] apiClient.refresh: Finally block, clearing locks');
         isRefreshing = false;
         refreshPromise = null;
       });
@@ -112,9 +118,12 @@ export const apiClient = {
   },
 
   authenticatedFetch: async (url: string, options: RequestInit = {}): Promise<Response> => {
+    console.log(`[DEBUG] authenticatedFetch: Starting request to ${url}`);
     if (!memoryAccessToken) {
+      console.log(`[DEBUG] authenticatedFetch: No memory token for ${url}, calling refresh`);
       const refreshed = await apiClient.refresh();
       if (!refreshed) {
+        console.error(`[DEBUG] authenticatedFetch: Refresh failed for ${url}, throwing UNAUTHENTICATED`);
         throw new Error('UNAUTHENTICATED');
       }
     }
@@ -128,13 +137,18 @@ export const apiClient = {
     };
 
     let response = await makeRequest();
+    console.log(`[DEBUG] authenticatedFetch: Initial response for ${url} is`, response.status);
 
     if (response.status === 401) {
+      console.warn(`[DEBUG] authenticatedFetch: 401 received for ${url}, attempting refresh`);
       // Token might be expired, try refreshing once
       const refreshed = await apiClient.refresh();
       if (refreshed) {
+        console.log(`[DEBUG] authenticatedFetch: Refresh succeeded, retrying ${url}`);
         response = await makeRequest();
+        console.log(`[DEBUG] authenticatedFetch: Retry response for ${url} is`, response.status);
       } else {
+        console.error(`[DEBUG] authenticatedFetch: Retry refresh failed for ${url}, throwing UNAUTHENTICATED`);
         throw new Error('UNAUTHENTICATED');
       }
     }
@@ -142,13 +156,12 @@ export const apiClient = {
     return response;
   },
 
-  callNextToken: async (orgId: string, locationId: string, queueId: string, counterId: string): Promise<any> => {
-    const res = await apiClient.authenticatedFetch(`/api/v1/queues/${queueId}/call-next`, {
+  callNextToken: async (_orgId: string, _locationId: string, _queueId: string, counterId: string): Promise<any> => {
+    const res = await apiClient.authenticatedFetch(`/api/v1/staff/counters/${counterId}/call-next`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ counterId })
+      }
     });
 
     if (!res.ok) {
@@ -167,6 +180,16 @@ export const apiClient = {
       throw new Error('Failed to fetch queue warnings');
     }
 
+    return res.json();
+  },
+
+  getServices: async (locationId: string): Promise<any[]> => {
+    const res = await fetch(`/api/v1/services?locationId=${encodeURIComponent(locationId)}`, {
+      method: 'GET'
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch services: ${res.status}`);
+    }
     return res.json();
   },
 
@@ -207,7 +230,18 @@ export const apiClient = {
     });
 
     if (!res.ok) {
-      throw new Error('Failed to join queue');
+      let detail = `Failed to join queue (HTTP ${res.status})`;
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          detail = body.message;
+        } else if (body?.code) {
+          detail = `${body.code}: Failed to join queue`;
+        }
+      } catch (_) {}
+      const err: any = new Error(detail);
+      err.status = res.status;
+      throw err;
     }
 
     return res.json();
@@ -262,3 +296,7 @@ export const apiClient = {
     return res.json();
   }
 };
+
+if (typeof window !== 'undefined') {
+  (window as any).apiClient = apiClient;
+}

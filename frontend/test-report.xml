@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="12" assertions="29" failures="1" skipped="0" time="0.081805">
+  <testsuite name="src\services\store.sync.test.ts" file="src\services\store.sync.test.ts" tests="12" assertions="29" failures="1" skipped="0" time="0.0734189" hostname="">
+    <testsuite name="QueueStore - Realtime State Synchronization (Gate 2D)" file="src\services\store.sync.test.ts" line="13" tests="12" assertions="29" failures="1" skipped="0" time="0.064" hostname="">
+      <testcase name="1 &amp; 2 &amp; 3. startSyncCycle enters SNAPSHOT_SYNC and applies snapshot correctly" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000656" file="src\services\store.sync.test.ts" line="23" assertions="4" />
+      <testcase name="4 &amp; 5 &amp; 6. Buffers events during SNAPSHOT_SYNC and replays them in order" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000535" file="src\services\store.sync.test.ts" line="40" assertions="3" />
+      <testcase name="7. Duplicate event ID is ignored" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000175" file="src\services\store.sync.test.ts" line="66" assertions="3" />
+      <testcase name="8. Wrong-location event is ignored" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000077" file="src\services\store.sync.test.ts" line="82" assertions="1" />
+      <testcase name="9. Malformed event is safely ignored" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000099" file="src\services\store.sync.test.ts" line="92" assertions="1" />
+      <testcase name="10. Snapshot location mismatch is rejected" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000057" file="src\services\store.sync.test.ts" line="104" assertions="1" />
+      <testcase name="11. Disconnect enters RECONNECTING" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000041" file="src\services\store.sync.test.ts" line="111" assertions="1" />
+      <testcase name="13 &amp; 14 &amp; 15. Reconnect creates new generation, old snapshot cannot overwrite" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000119" file="src\services\store.sync.test.ts" line="116" assertions="5" />
+      <testcase name="16. Websocket event after LIVE updates state directly" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000163" file="src\services\store.sync.test.ts" line="136" assertions="1" />
+      <testcase name="17 &amp; 18 &amp; 19 &amp; 20 &amp; 21. All Event Type Mappings" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.000714" file="src\services\store.sync.test.ts" line="144" assertions="3">
+        <failure type="AssertionError" message="expect(received).toBe(expected)&#10;&#10;Expected: &quot;t1&quot;&#10;Received: undefined&#10;">AssertionError: expect(received).toBe(expected)&#10;&#10;Expected: &quot;t1&quot;&#10;Received: undefined&#10;&#10;      at src/services/store.sync.test.ts:156:88&#10;</failure>
+      </testcase>
+      <testcase name="24. Processed-event memory remains bounded" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.063254" file="src\services\store.sync.test.ts" line="183" assertions="1" />
+      <testcase name="25. Realtime internals are not persisted to localStorage" classname="QueueStore - Realtime State Synchronization (Gate 2D)" time="0.001423" file="src\services\store.sync.test.ts" line="215" assertions="5" />
+    </testsuite>
+  </testsuite>
+</testsuites>

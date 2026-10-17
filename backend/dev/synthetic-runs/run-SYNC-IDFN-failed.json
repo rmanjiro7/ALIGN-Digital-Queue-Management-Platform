@@ -1,0 +1,17 @@
+{
+  "runId": "SYNC-IDFN",
+  "timestamp": "2026-10-10T12:53:20.931Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

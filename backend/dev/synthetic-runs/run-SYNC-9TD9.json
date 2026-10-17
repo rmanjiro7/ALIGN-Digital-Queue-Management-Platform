@@ -1,0 +1,68 @@
+{
+  "runId": "SYNC-9TD9",
+  "timestamp": "2026-10-11T04:45:23.295Z",
+  "status": "SUCCESS",
+  "config": {
+    "pilot": true,
+    "backdate": false,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-uqa3"
+    ],
+    "locations": [
+      "mock-uuid-hru6"
+    ],
+    "services": [
+      "mock-uuid-nyk4"
+    ],
+    "queues": [
+      "mock-uuid-gm7j"
+    ],
+    "counters": [
+      "mock-uuid-mdwy"
+    ],
+    "users": [
+      "mock-uuid-mt98",
+      "mock-uuid-ej0n"
+    ],
+    "tokens": [
+      "mock-uuid-3i0p",
+      "mock-uuid-qvdw",
+      "mock-uuid-ca71",
+      "mock-uuid-kxno",
+      "mock-uuid-qiq2"
+    ]
+  },
+  "validation": {
+    "status": "PASSED",
+    "mode": "PILOT",
+    "backdated": false,
+    "checks": [
+      {
+        "orgId": "mock-uuid-uqa3",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-11T04:45:23.299Z",
+          "end": "2026-10-12T04:45:23.299Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      }
+    ]
+  }
+}

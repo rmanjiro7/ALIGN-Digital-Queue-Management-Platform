@@ -3,6 +3,8 @@ package com.align.qms.analytics;
 import com.align.qms.analytics.dto.AnalyticsSummaryResponse;
 import com.align.qms.analytics.dto.QueueAnalyticsResponse;
 import com.align.qms.analytics.dto.StaffServiceDurationResponse;
+import com.align.qms.exception.LocationNotFoundException;
+import com.align.qms.location.LocationRepository;
 import com.align.qms.queue.Queue;
 import com.align.qms.queue.QueueRepository;
 import com.align.qms.organization.OrganizationRepository;
@@ -10,7 +12,6 @@ import com.align.qms.security.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -24,11 +25,17 @@ public class AnalyticsService {
     private final AnalyticsRepository analyticsRepository;
     private final QueueRepository queueRepository;
     private final OrganizationRepository organizationRepository;
+    private final LocationRepository locationRepository;
 
-    public AnalyticsService(AnalyticsRepository analyticsRepository, QueueRepository queueRepository, OrganizationRepository organizationRepository) {
+    public AnalyticsService(
+            AnalyticsRepository analyticsRepository,
+            QueueRepository queueRepository,
+            OrganizationRepository organizationRepository,
+            LocationRepository locationRepository) {
         this.analyticsRepository = analyticsRepository;
         this.queueRepository = queueRepository;
         this.organizationRepository = organizationRepository;
+        this.locationRepository = locationRepository;
     }
     
     private void requireOrgExistsAndAccess(UUID orgId) {
@@ -37,8 +44,17 @@ public class AnalyticsService {
         TenantContext.requireSameTenant(orgId);
     }
 
-    public AnalyticsSummaryResponse getSummary(UUID orgId, UUID locationId, UUID serviceId, UUID queueId, Instant start, Instant end) {
+    private void requireOrgAndLocationAccess(UUID orgId, UUID locationId) {
         requireOrgExistsAndAccess(orgId);
+
+        if (locationId != null
+                && !locationRepository.existsByIdAndOrgId(locationId, orgId)) {
+            throw new LocationNotFoundException(locationId);
+        }
+    }
+
+    public AnalyticsSummaryResponse getSummary(UUID orgId, UUID locationId, UUID serviceId, UUID queueId, Instant start, Instant end) {
+        requireOrgAndLocationAccess(orgId, locationId);
         
         long opVolume = analyticsRepository.getOperationalTokenVolume(orgId, locationId, serviceId, queueId, start, end);
         long qVolume = opVolume; // For summary, queue volume is same as op volume since it's just filtered tokens
@@ -66,12 +82,12 @@ public class AnalyticsService {
     }
 
     public List<StaffServiceDurationResponse> getStaffServiceDuration(UUID orgId, UUID locationId, UUID staffId, Instant start, Instant end) {
-        requireOrgExistsAndAccess(orgId);
+        requireOrgAndLocationAccess(orgId, locationId);
         return analyticsRepository.getStaffServiceDuration(orgId, locationId, staffId, start, end);
     }
 
     public List<QueueAnalyticsResponse> getQueueAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
-        requireOrgExistsAndAccess(orgId);
+        requireOrgAndLocationAccess(orgId, locationId);
         
         // Authorization & tenant validation happens by using orgId and locationId
         List<Queue> queues = queueRepository.findByLocationIdOrderByNameAsc(locationId);
@@ -110,7 +126,7 @@ public class AnalyticsService {
     }
 
     public com.align.qms.analytics.dto.AnalyticsTrafficResponse getTraffic(UUID orgId, UUID locationId, Instant start, Instant end, String timezone) {
-        requireOrgExistsAndAccess(orgId);
+        requireOrgAndLocationAccess(orgId, locationId);
         List<Object[]> rows = analyticsRepository.getTrafficByTimezone(orgId, locationId, start, end, timezone);
         
         List<com.align.qms.analytics.dto.HourlyBucket> hourly = new ArrayList<>();
@@ -157,7 +173,7 @@ public class AnalyticsService {
     }
 
     public List<com.align.qms.analytics.dto.ServiceAnalyticsResponse> getServiceAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
-        requireOrgExistsAndAccess(orgId);
+        requireOrgAndLocationAccess(orgId, locationId);
         List<Object[]> rows = analyticsRepository.getServiceAnalytics(orgId, locationId, start, end);
         List<com.align.qms.analytics.dto.ServiceAnalyticsResponse> res = new ArrayList<>();
         for (Object[] row : rows) {
@@ -188,7 +204,7 @@ public class AnalyticsService {
     }
 
     public List<com.align.qms.analytics.dto.CounterAnalyticsResponse> getCounterAnalytics(UUID orgId, UUID locationId, Instant start, Instant end) {
-        requireOrgExistsAndAccess(orgId);
+        requireOrgAndLocationAccess(orgId, locationId);
         List<Object[]> rows = analyticsRepository.getCounterAnalytics(orgId, locationId, start, end);
         List<com.align.qms.analytics.dto.CounterAnalyticsResponse> res = new ArrayList<>();
         for (Object[] row : rows) {

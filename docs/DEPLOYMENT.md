@@ -197,19 +197,30 @@ Production reverse proxies (like Nginx, Traefik) must be explicitly configured t
 
 ---
 
-## 15. Docker Compose
+## 15. Orchestration & Single-Command Launcher (`start.ps1` / `start.bat`)
 
-**docker-compose.yml** is provided for infrastructure and backend containerization.
+The entire platform can be managed with a unified launch script:
 
+```powershell
+# 1. Start Platform (PostgreSQL, Spring Boot backend, and Vite frontend)
+.\start.ps1
+
+# 2. Check Real-Time Health & Listening Ports
+.\start.ps1 -Status
+
+# 3. Gracefully Stop All Services
+.\start.ps1 -Stop
+```
+
+On Windows CMD or File Explorer, double-click [`start.bat`](file:///d:/align/ALIGN-Digital-Queue-Management-Platform/start.bat) to launch the stack automatically.
+
+### Docker Compose Direct Commands:
 ```bash
 docker compose up -d
 ```
-
-This will start:
-1. PostgreSQL container (Port 5432)
-2. Spring Boot backend container (Port 8080)
-
-*Note: The frontend remains outside Docker for now.*
+This manages:
+1. `align_postgres`: PostgreSQL 15 container (Port 5432, healthcheck via `pg_isready`)
+2. `align_backend`: Spring Boot container (Port 8080, healthcheck via `/actuator/health`)
 ---
 
 ## 16. Security

@@ -1,0 +1,50 @@
+{
+  "runId": "SYNC-49K4",
+  "timestamp": "2026-10-11T04:47:22.694Z",
+  "status": "FAILED",
+  "config": {
+    "pilot": true,
+    "backdate": true,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  },
+  "validation": {
+    "status": "FAILED",
+    "mode": "PILOT",
+    "backdated": true,
+    "checks": [
+      {
+        "orgId": "test-org-5",
+        "phase": "HISTORICAL_WINDOW",
+        "window": {
+          "start": "2026-10-05T04:47:22.706Z",
+          "end": "2026-10-07T04:47:22.706Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      }
+    ]
+  },
+  "error": "API Error 422 on POST /auth/login: {\"success\":false,\"timestamp\":\"2026-10-11T04:47:23.252874774Z\",\"status\":422,\"message\":\"Validation failed\",\"code\":\"VALIDATION_ERROR\",\"errors\":[{\"field\":\"email\",\"message\":\"Email is required\"},{\"field\":\"password\",\"message\":\"Password is required\"}]}"
+}

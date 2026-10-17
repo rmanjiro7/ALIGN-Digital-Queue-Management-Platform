@@ -1,0 +1,45 @@
+{
+  "runId": "SYNC-G56I",
+  "timestamp": "2026-10-11T04:44:38.828Z",
+  "status": "FAILED",
+  "config": {
+    "pilot": true,
+    "backdate": false,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-yi6e"
+    ],
+    "locations": [
+      "mock-uuid-se26"
+    ],
+    "services": [
+      "mock-uuid-m16s"
+    ],
+    "queues": [
+      "mock-uuid-3mmc"
+    ],
+    "counters": [
+      "mock-uuid-baj8"
+    ],
+    "users": [
+      "mock-uuid-220b",
+      "mock-uuid-qp5p"
+    ],
+    "tokens": [
+      "mock-uuid-t8ey",
+      "mock-uuid-z6ha",
+      "mock-uuid-16yi",
+      "mock-uuid-ti84",
+      "mock-uuid-nw2w"
+    ]
+  },
+  "validation": {
+    "status": "FAILED",
+    "mode": "PILOT",
+    "backdated": false,
+    "checks": []
+  },
+  "error": "Operational validation failed! Org SYNC-G56I-O0: reported operationalTokenVolume 0, expected 5."
+}

@@ -1,0 +1,21 @@
+{
+  "runId": "SYNC-629X",
+  "timestamp": "2026-10-10T13:09:34.468Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "d3f13585-4b04-42d9-aaf0-574a3192aded"
+    ],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [
+      "bd9d3d4a-1786-4319-aac5-2a9a2a754d50"
+    ],
+    "tokens": []
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "runId": "SYNC-5X6K",
+  "timestamp": "2026-10-12T14:31:14.080Z",
+  "status": "SUCCESS",
+  "config": {
+    "pilot": true,
+    "backdate": true,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [
+      "2f8eaadc-dba8-4656-87ff-f450ac6b32a4"
+    ],
+    "locations": [
+      "2391927b-d356-42c4-b3b8-e8548ee01c32"
+    ],
+    "services": [
+      "b34a0ba2-f399-4b53-8239-86af5b88b224"
+    ],
+    "queues": [
+      "2058108c-2649-45c1-a2f0-60bf0371ad36"
+    ],
+    "counters": [
+      "dbe61b75-c5b4-4068-8e8b-957d73018242"
+    ],
+    "users": [
+      "64746bbb-60ab-4c33-a778-ef6ad2fead32",
+      "4dfdbc58-61bb-4500-a594-4241fe341839"
+    ],
+    "tokens": [
+      "bb32c647-f591-45f1-b131-834c95aee6aa",
+      "0ce4fa05-1b05-44bb-9b43-b7751af65112",
+      "5adbf172-ddc4-49b7-b999-649790149be3",
+      "0efb2e14-0337-4666-b2b1-aa81b0180622",
+      "61a590e8-e68d-46e6-ac80-bf4dc8dbd14b"
+    ]
+  },
+  "validation": {
+    "status": "PASSED",
+    "mode": "PILOT",
+    "backdated": true,
+    "checks": [
+      {
+        "orgId": "2f8eaadc-dba8-4656-87ff-f450ac6b32a4",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-12T14:31:14.082Z",
+          "end": "2026-10-13T14:31:14.082Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      },
+      {
+        "orgId": "2f8eaadc-dba8-4656-87ff-f450ac6b32a4",
+        "phase": "HISTORICAL_WINDOW",
+        "window": {
+          "start": "2026-10-06T14:31:14.083Z",
+          "end": "2026-10-08T14:31:14.083Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      },
+      {
+        "orgId": "2f8eaadc-dba8-4656-87ff-f450ac6b32a4",
+        "phase": "CURRENT_WINDOW_ZERO_CHECK",
+        "window": {
+          "start": "2026-10-12T13:31:14.083Z",
+          "end": "2026-10-12T15:31:14.083Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      }
+    ]
+  }
+}

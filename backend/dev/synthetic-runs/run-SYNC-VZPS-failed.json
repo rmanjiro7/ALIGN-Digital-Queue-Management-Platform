@@ -1,0 +1,21 @@
+{
+  "runId": "SYNC-VZPS",
+  "timestamp": "2026-10-10T12:27:24.687Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "1af14127-f2d7-46da-bb98-5f2229ccb660"
+    ],
+    "locations": [
+      "278314bc-508a-4960-8050-4f6f184d7408"
+    ],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

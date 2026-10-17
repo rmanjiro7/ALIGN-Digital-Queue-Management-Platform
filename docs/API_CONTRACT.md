@@ -1,478 +1,267 @@
-# ALIGN BACKEND — API CONTRACT
+# ALIGN Backend — Live API Contract & Specification
 
-**Version:** 1.1
-**Last Updated:** 2026-09-07
-**Base Path:** `/api/v1`
-**Status:** Phase 1 auth endpoints IMPLEMENTED AND VALIDATED ✅
-
-> Auth endpoints are live. All other endpoints are planned for later phases.
+**Version:** 2.0 (Phase 8 Verified)  
+**Base Path:** `/api/v1`  
+**Status:** FULLY IMPLEMENTED AND VERIFIED ✅  
 
 ---
 
-## Conventions
+## 1. Global Conventions
 
-- All responses are JSON
-- All IDs are UUID v4
-- All timestamps are ISO-8601 UTC strings
-- Authentication: `Authorization: Bearer <accessToken>` header
-- Pagination: `?page=0&size=20` (Spring Data defaults)
-
-**Standard success wrapper (where used):**
-```json
-{ "success": true, "data": { ... } }
-```
-
-**Standard error format:**
+- **Transport:** HTTP/1.1 over TLS / HTTP in local development.
+- **Data Format:** Standard JSON (`application/json;charset=UTF-8`).
+- **Identifiers:** Standard RFC 4122 UUID v4 strings (e.g. `e2e00000-0000-0000-0000-000000000001`).
+- **Timestamps:** ISO-8601 UTC strings (`YYYY-MM-DDTHH:mm:ss.sssZ`).
+- **Authentication:** `Authorization: Bearer <accessToken>` HTTP header for all protected endpoints.
+- **Error Response Format (RFC 7807 Aligned):**
 ```json
 {
   "success": false,
-  "message": "Human-readable message",
+  "timestamp": "2026-10-13T08:21:17.711Z",
+  "status": 400,
+  "message": "Human-readable error description",
   "code": "DOMAIN_ERROR_CODE",
   "errors": [
-    { "field": "fieldName", "message": "why invalid" }
+    {
+      "field": "fieldName",
+      "message": "Validation rule explanation"
+    }
   ]
 }
 ```
 
 ---
 
-## Authentication
+## 2. Authentication & Identity (`/api/v1/auth`)
 
-### POST /api/v1/auth/login
-**Auth:** None
-**Request:**
-```json
-{ "email": "string", "password": "string" }
-```
-**Response 200:**
+### 2.1 Login
+- **Endpoint:** `POST /api/v1/auth/login`
+- **Auth:** Public / Anonymous
+- **Request Body:**
 ```json
 {
-  "accessToken": "string",
-  "refreshToken": "string",
+  "email": "e2e.admin@align.local",
+  "password": "e2e-password"
+}
+```
+- **Response 200 OK:**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
+  "refreshToken": "fcmpSDGpeTyZRTA...",
   "expiresIn": 900,
-  "user": { "id": "uuid", "name": "string", "email": "string", "role": "STAFF", "orgId": "uuid", "locationId": "uuid" }
+  "user": {
+    "id": "e2e00000-0000-0000-0000-000000000008",
+    "name": "E2E Admin",
+    "email": "e2e.admin@align.local",
+    "role": "ORG_ADMIN",
+    "orgId": "e2e00000-0000-0000-0000-000000000001",
+    "locationId": "e2e00000-0000-0000-0000-000000000002"
+  }
 }
 ```
-**Errors:** 401 `INVALID_CREDENTIALS`, 422 `VALIDATION_ERROR`
-**Status:** NOT IMPLEMENTED
+- **Errors:** 401 `INVALID_CREDENTIALS`, 422 `VALIDATION_ERROR`.
+
+### 2.2 Token Refresh
+- **Endpoint:** `POST /api/v1/auth/refresh`
+- **Auth:** Public
+- **Request Body:** `{ "refreshToken": "string" }`
+- **Response 200 OK:** `{ "accessToken": "string", "refreshToken": "string", "expiresIn": 900 }`
+- **Errors:** 401 `TOKEN_EXPIRED`, 401 `TOKEN_INVALID`.
+
+### 2.3 Logout
+- **Endpoint:** `POST /api/v1/auth/logout`
+- **Auth:** Bearer Token (Authenticated)
+- **Response 204 No Content**
+
+### 2.4 Current User Profile
+- **Endpoint:** `GET /api/v1/auth/me`
+- **Auth:** Bearer Token (Authenticated)
+- **Response 200 OK:** Returns authenticated `User` object.
 
 ---
 
-### POST /api/v1/auth/refresh
-**Auth:** None
-**Request:** `{ "refreshToken": "string" }`
-**Response 200:** `{ "accessToken": "string", "expiresIn": 900 }`
-**Errors:** 401 `TOKEN_EXPIRED`, 401 `TOKEN_INVALID`
-**Status:** NOT IMPLEMENTED
+## 3. Customer Queue Operations (`/api/v1/tokens`)
 
----
-
-### POST /api/v1/auth/logout
-**Auth:** Required (any role)
-**Request:** None
-**Response 204:** No content
-**Status:** NOT IMPLEMENTED
-
----
-
-### GET /api/v1/auth/me
-**Auth:** Required (any role)
-**Response 200:** `{ "id": "uuid", "name": "string", "email": "string", "role": "string", "orgId": "uuid", "locationId": "uuid" }`
-**Errors:** 401 `UNAUTHORIZED`
-**Status:** NOT IMPLEMENTED
-
----
-
-## Tenants / Organizations (Platform Admin)
-
-### GET /api/v1/tenants
-**Auth:** PLATFORM_ADMIN
-**Response 200:** `{ "content": [TenantResponse], "totalElements": n, ... }`
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/tenants
-**Auth:** PLATFORM_ADMIN
-**Request:** `{ "name": "string", "code": "string", "sector": "string", "contactEmail": "string" }`
-**Response 201:** `TenantResponse`
-**Errors:** 409 `CODE_ALREADY_EXISTS`, 422 `VALIDATION_ERROR`
-**Status:** NOT IMPLEMENTED
-
----
-
-### GET /api/v1/tenants/{orgId}
-**Auth:** PLATFORM_ADMIN
-**Response 200:** `TenantResponse`
-**Errors:** 404 `ORGANIZATION_NOT_FOUND`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/tenants/{orgId}
-**Auth:** PLATFORM_ADMIN
-**Response 200:** `TenantResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-## Locations
-
-### GET /api/v1/locations?orgId={orgId}
-**Auth:** ORG_ADMIN (own org), PLATFORM_ADMIN (any org)
-**Response 200:** `[LocationResponse]`
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/locations
-**Auth:** ORG_ADMIN, PLATFORM_ADMIN
-**Request:** `{ "orgId": "uuid", "name": "string", "address": "string", "city": "string", "operatingHours": "string", "isHQ": false }`
-**Response 201:** `LocationResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-### GET /api/v1/locations/{locationId}
-**Auth:** ORG_ADMIN (own org), PLATFORM_ADMIN
-**Response 200:** `LocationResponse`
-**Errors:** 404 `LOCATION_NOT_FOUND`, 403 `RESOURCE_FORBIDDEN`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/locations/{locationId}
-**Auth:** ORG_ADMIN (own org)
-**Response 200:** `LocationResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-## Services
-
-### GET /api/v1/services?locationId={locationId}
-**Auth:** Public (for customer discovery) or authenticated
-**Response 200:** `[ServiceResponse]` — includes `waitingCount`, `estWaitMins`, `estWaitRange`
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/services
-**Auth:** ORG_ADMIN
-**Request:** `{ "locationId": "uuid", "name": "string", "description": "string", "isFastTrack": false }`
-**Response 201:** `ServiceResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/services/{serviceId}
-**Auth:** ORG_ADMIN (own org)
-**Response 200:** `ServiceResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/services/{serviceId}/status
-**Auth:** ORG_ADMIN
-**Request:** `{ "enabled": true|false }`
-**Response 200:** `ServiceResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-## Queues
-
-### GET /api/v1/queues/{queueId}
-**Auth:** ORG_ADMIN (own org), PLATFORM_ADMIN
-**Response 200:** `QueueResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/queues/{queueId}/status
-**Auth:** ORG_ADMIN, STAFF (own location)
-**Request:** `{ "status": "ACTIVE|PAUSED|CLOSED" }`
-**Response 200:** `QueueResponse`
-**Errors:** 404 `QUEUE_NOT_FOUND`, 403 `RESOURCE_FORBIDDEN`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/queues/{queueId}/config
-**Auth:** ORG_ADMIN
-**Request:** `{ "maxCapacity": 100, "autoPauseAtCapacity": false, "tokenPrefix": "A" }`
-**Response 200:** `QueueResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-## Counters
-
-### GET /api/v1/counters?locationId={locationId}
-**Auth:** STAFF, ORG_ADMIN (own org)
-**Response 200:** `[CounterResponse]`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/counters/{counterId}/availability
-**Auth:** STAFF (own counter), ORG_ADMIN
-**Request:** `{ "availability": "ONLINE|ON_BREAK|AWAY|OFFLINE" }`
-**Response 200:** `CounterResponse`
-**Realtime:** Publishes `COUNTER_STATUS_CHANGED` to staff topic AFTER_COMMIT
-**Status:** NOT IMPLEMENTED
-
----
-
-## Tokens (Customer Operations)
-
-### POST /api/v1/tokens/join
-**Auth:** None (anonymous join) or CUSTOMER
-**Request:**
+### 3.1 Join Queue
+- **Endpoint:** `POST /api/v1/tokens`
+- **Auth:** Public / Anonymous
+- **Request Body:**
 ```json
 {
-  "serviceId": "uuid",
-  "customerName": "string (optional, max 255)",
-  "customerPhone": "string (optional, E.164)",
-  "idempotencyKey": "string (optional, max 100)"
+  "orgId": "e2e00000-0000-0000-0000-000000000001",
+  "locationId": "e2e00000-0000-0000-0000-000000000002",
+  "serviceId": "e2e00000-0000-0000-0000-000000000003",
+  "customerName": "Jane Doe",
+  "customerPhone": "+15551234567",
+  "smsConsent": true,
+  "idempotencyKey": "req-uuid-12345"
 }
 ```
-**Response 201:**
+- **Response 201 Created:**
+```json
+{
+  "id": "c1389868-b805-4e67-a2f2-1a48c90823db",
+  "tokenNumber": "E003",
+  "state": "WAITING",
+  "orgId": "e2e00000-0000-0000-0000-000000000001",
+  "locationId": "e2e00000-0000-0000-0000-000000000002",
+  "serviceId": "e2e00000-0000-0000-0000-000000000003",
+  "queueId": "e2e00000-0000-0000-0000-000000000004",
+  "position": 1,
+  "peopleAhead": 0,
+  "estimatedWaitTimeMinutes": 8,
+  "estRangeText": "5-10 min",
+  "joinedAt": "2026-10-13T08:21:56.426Z",
+  "realtimeToken": "eyJhbGciOi..."
+}
+```
+- **Errors:** 400 `LOCATION_CLOSED`, 409 `QUEUE_FULL`, 409 `QUEUE_PAUSED`, 422 `VALIDATION_ERROR`.
+
+### 3.2 Token Live Position & ETA
+- **Endpoint:** `GET /api/v1/tokens/{tokenId}/position`
+- **Auth:** Public
+- **Response 200 OK:**
 ```json
 {
   "tokenId": "uuid",
-  "tokenNumber": "A-043",
+  "tokenNumber": "E003",
   "state": "WAITING",
-  "queueId": "uuid",
-  "serviceId": "uuid",
-  "locationId": "uuid",
-  "orgId": "uuid",
-  "peopleAhead": 5,
-  "estimatedWaitMinutes": 15,
-  "estimatedWaitRange": "12-18 min",
-  "confidence": "HIGH",
-  "joinedAt": "2026-09-05T10:00:00Z",
-  "stepAwayExpiresAt": null
+  "position": 1,
+  "peopleAhead": 0,
+  "estimatedWaitMinutes": 8,
+  "estRangeText": "5-10 min",
+  "confidence": "HIGH"
 }
 ```
-**Errors:** 404 `QUEUE_NOT_FOUND`, 409 `QUEUE_FULL`, 409 `QUEUE_PAUSED`
-**Idempotency:** Duplicate `idempotencyKey` returns existing token with 200
-**Status:** NOT IMPLEMENTED
+
+### 3.3 Step Away (15-Minute Grace Window)
+- **Endpoint:** `POST /api/v1/tokens/{tokenId}/step-away`
+- **Auth:** Public / Customer
+- **Response 200 OK:** Sets token state to `AWAY` and assigns `step_away_expires_at = now + 15m`.
+
+### 3.4 Return from Step Away
+- **Endpoint:** `POST /api/v1/tokens/{tokenId}/return`
+- **Auth:** Public / Customer
+- **Response 200 OK:** Restores token state to `WAITING` with original position priority intact.
+
+### 3.5 Cancel Token
+- **Endpoint:** `POST /api/v1/tokens/{tokenId}/cancel`
+- **Auth:** Public / Customer
+- **Response 200 OK:** Sets state to `CANCELLED` (Terminal State).
 
 ---
 
-### GET /api/v1/tokens/{tokenId}
-**Auth:** None for public status lookup (token owner verified by tokenId knowledge), or authenticated
-**Response 200:** `TokenResponse` (same shape as join response, with updated state/position)
-**Errors:** 404 `TOKEN_NOT_FOUND`
-**Status:** NOT IMPLEMENTED
+## 4. Staff Counter Operations (`/api/v1/staff`)
 
----
-
-### POST /api/v1/tokens/{tokenId}/step-away
-**Auth:** None (customer self-service) or CUSTOMER
-**Response 200:** `TokenResponse` with `state: "AWAY"`, `stepAwayExpiresAt` set
-**Errors:** 400 `TOKEN_INVALID_STATE` (if not WAITING), 404 `TOKEN_NOT_FOUND`
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/tokens/{tokenId}/return
-**Auth:** None or CUSTOMER
-**Response 200:** `TokenResponse` with `state: "WAITING"`, `stepAwayExpiresAt: null`
-**Errors:** 400 `TOKEN_INVALID_STATE` (if not AWAY), 404 `TOKEN_NOT_FOUND`
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/tokens/{tokenId}/cancel
-**Auth:** None (customer self) or CUSTOMER
-**Response 200:** `TokenResponse` with `state: "CANCELLED"`
-**Errors:** 400 `TOKEN_INVALID_STATE`, 404 `TOKEN_NOT_FOUND`
-**Status:** NOT IMPLEMENTED
-
----
-
-### GET /api/v1/tokens
-**Auth:** CUSTOMER (own history) or authenticated user
-**Query params:** `?phone={phone}` or `?customerId={id}` or session-based
-**Response 200:** `[TokenResponse]` (terminal state tokens)
-**Status:** NOT IMPLEMENTED
-
----
-
-## Staff Operations
-
-### POST /api/v1/staff/call-next
-**Auth:** STAFF, ORG_ADMIN
-**Request:** `{ "counterId": "uuid" }` (or derived from JWT staff context)
-**Response 200:** `TokenResponse` with `state: "CALLED"`, counter assignment
-**Errors:**
-- 409 `COUNTER_NOT_AVAILABLE` — counter not ONLINE
-- 409 `COUNTER_ALREADY_SERVING` — counter has active token
-- 404 `NO_WAITING_TOKENS` — queue empty
-- 403 `RESOURCE_FORBIDDEN` — counter not in staff's location
-**Realtime:** Publishes `TOKEN_CALLED` to public and staff topics AFTER_COMMIT
-**Concurrency:** `SELECT FOR UPDATE SKIP LOCKED`
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/staff/recall
-**Auth:** STAFF, ORG_ADMIN
-**Request:** `{ "tokenId": "uuid", "counterId": "uuid" }`
-**Response 200:** `TokenResponse` — state unchanged (still CALLED), `calledAt` updated
-**Errors:** 400 `TOKEN_INVALID_STATE` (must be CALLED), 400 `COUNTER_MISMATCH`
-**Realtime:** Publishes `TOKEN_RECALLED` AFTER_COMMIT
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/staff/complete
-**Auth:** STAFF, ORG_ADMIN
-**Request:** `{ "tokenId": "uuid" }`
-**Response 200:** `TokenResponse` with `state: "COMPLETED"`
-**Realtime:** Publishes `TOKEN_COMPLETED` AFTER_COMMIT
-**Status:** NOT IMPLEMENTED
-
----
-
-### POST /api/v1/staff/skip
-**Auth:** STAFF, ORG_ADMIN
-**Request:** `{ "tokenId": "uuid" }`
-**Response 200:** `TokenResponse` with `state: "NO_SHOW"`
-**Realtime:** Publishes `TOKEN_NO_SHOW` AFTER_COMMIT
-**Status:** NOT IMPLEMENTED
-
----
-
-### GET /api/v1/staff/queue
-**Auth:** STAFF, ORG_ADMIN
-**Query params:** `?counterId={uuid}`
-**Response 200:**
+### 4.1 Call Next Token
+- **Endpoint:** `POST /api/v1/staff/counters/{counterId}/call-next`
+- **Auth:** Bearer Token (`ROLE_STAFF`)
+- **Response 200 OK:**
 ```json
 {
-  "counter": { CounterResponse },
-  "currentServingToken": { TokenResponse } | null,
-  "waitingTokens": [TokenResponse],
-  "waitingCount": 12,
-  "awayCount": 2
+  "id": "uuid",
+  "tokenNumber": "E003",
+  "state": "CALLED",
+  "customerName": "Jane Doe",
+  "customerPhone": "+15551234567",
+  "counterId": "e2e00000-0000-0000-0000-000000000005",
+  "calledAt": "2026-10-13T08:21:56.426Z"
 }
 ```
-**Status:** NOT IMPLEMENTED
+- **Errors:** 404 `NO_WAITING_TOKENS`, 409 `COUNTER_ALREADY_SERVING`, 409 `COUNTER_NOT_AVAILABLE`.
 
----
+### 4.2 Start Service
+- **Endpoint:** `POST /api/v1/staff/tokens/{tokenId}/serve?counterId={counterId}`
+- **Auth:** Bearer Token (`ROLE_STAFF`)
+- **Response 200 OK:** Transitions token state from `CALLED` to `IN_SERVICE`.
 
-## Staff Management (Org Admin)
+### 4.3 Complete Service
+- **Endpoint:** `POST /api/v1/staff/tokens/{tokenId}/complete?counterId={counterId}`
+- **Auth:** Bearer Token (`ROLE_STAFF`)
+- **Response 200 OK:** Transitions token state to `COMPLETED` and clears counter current serving token.
 
-### GET /api/v1/organizations/{orgId}/staff
-**Auth:** ORG_ADMIN (own org), PLATFORM_ADMIN
-**Response 200:** `[StaffUserResponse]`
-**Status:** NOT IMPLEMENTED
+### 4.4 Mark No-Show
+- **Endpoint:** `POST /api/v1/staff/tokens/{tokenId}/no-show?counterId={counterId}`
+- **Auth:** Bearer Token (`ROLE_STAFF`)
+- **Response 200 OK:** Transitions token state to `NO_SHOW`.
 
----
+### 4.5 Recall Token
+- **Endpoint:** `POST /api/v1/staff/tokens/{tokenId}/recall?counterId={counterId}`
+- **Auth:** Bearer Token (`ROLE_STAFF`)
+- **Response 200 OK:** Re-triggers chime and broadcast without advancing queue sequence.
 
-### POST /api/v1/staff
-**Auth:** ORG_ADMIN
-**Request:** `{ "orgId": "uuid", "locationId": "uuid", "name": "string", "email": "string", "role": "STAFF|ORG_ADMIN", "assignedCounterNumber": 3 }`
-**Response 201:** `StaffUserResponse`
-**Errors:** 409 `EMAIL_ALREADY_EXISTS`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/staff/{staffId}/assign-counter
-**Auth:** ORG_ADMIN
-**Request:** `{ "counterNumber": 3 }`
-**Response 200:** `StaffUserResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-### PUT /api/v1/staff/{staffId}/status
-**Auth:** ORG_ADMIN
-**Request:** `{ "status": "ACTIVE|INACTIVE" }`
-**Response 200:** `StaffUserResponse`
-**Status:** NOT IMPLEMENTED
-
----
-
-## Analytics
-
-### GET /api/v1/organizations/{orgId}/analytics/dashboard
-**Auth:** ORG_ADMIN (own org), PLATFORM_ADMIN
-**Response 200:**
+### 4.6 Transfer Token
+- **Endpoint:** `POST /api/v1/staff/tokens/{tokenId}/transfer`
+- **Auth:** Bearer Token (`ROLE_STAFF`)
+- **Request Body:**
 ```json
 {
-  "tokensServedToday": 142,
-  "avgWaitMinutes": 11.4,
-  "activeQueues": 3,
-  "activeCounters": 5,
-  "totalCounters": 8,
-  "waitingNow": 23,
-  "noShowRateToday": 0.04
+  "targetServiceId": "e2e00000-0000-0000-0000-000000000010"
 }
 ```
-**Status:** NOT IMPLEMENTED
+- **Response 200 OK:** Marks parent token `TRANSFERRED`, creates child token in target queue with `priority_timestamp` set to original token join time.
 
 ---
 
-### GET /api/v1/platform/analytics/dashboard
-**Auth:** PLATFORM_ADMIN
-**Response 200:**
-```json
-{
-  "activeOrganizations": 12,
-  "totalTokensLast7Days": 8421,
-  "avgWaitAcrossPlatform": 13.2,
-  "systemAlerts": [SystemAlertResponse]
-}
-```
-**Status:** NOT IMPLEMENTED
+## 5. Organization Domain Management
+
+### 5.1 Locations (`/api/v1/locations`)
+- `GET /api/v1/locations`: List locations for authenticated user's organization.
+- `GET /api/v1/locations/{id}`: Retrieve detailed location profile with operating hours.
+- `POST /api/v1/locations`: Create new location (`ROLE_ORG_ADMIN`).
+- `PUT /api/v1/locations/{id}`: Update location attributes, timezone, and operating schedules (`ROLE_ORG_ADMIN`).
+- `GET /api/v1/locations/{id}/queue-warnings`: Retrieve active queue SLA / threshold warnings.
+
+### 5.2 Services (`/api/v1/services`)
+- `GET /api/v1/services?locationId={locationId}`: Publicly list enabled services for location.
+- `GET /api/v1/services/{id}`: Retrieve service details.
+- `POST /api/v1/services`: Create service (`ROLE_ORG_ADMIN`).
+- `PUT /api/v1/services/{id}`: Update service config (`ROLE_ORG_ADMIN`).
+- `GET /api/v1/services/{id}/preparation-requirements`: List mandatory preparation documents/steps.
+
+### 5.3 Queues (`/api/v1/queues`)
+- `GET /api/v1/queues?locationId={locationId}`: List queues.
+- `GET /api/v1/queues/{id}`: Get queue metrics, prefix, capacity.
+- `POST /api/v1/queues`: Create queue (`ROLE_ORG_ADMIN`).
+- `PUT /api/v1/queues/{id}`: Update queue config (`ROLE_ORG_ADMIN`).
+- `POST /api/v1/queues/{id}/pause`: Pause queue intake (`ROLE_ORG_ADMIN`, `ROLE_STAFF`).
+- `POST /api/v1/queues/{id}/resume`: Resume queue intake (`ROLE_ORG_ADMIN`, `ROLE_STAFF`).
+
+### 5.4 Counters (`/api/v1/counters`)
+- `GET /api/v1/counters?locationId={locationId}`: List counters.
+- `PUT /api/v1/counters/{id}/availability`: Update status (`ONLINE`, `ON_BREAK`, `AWAY`, `OFFLINE`).
 
 ---
 
-## WebSocket Topics (STOMP)
+## 6. Real-time Announcements & Public TV (`/api/v1/announcement-templates`, `/api/v1/staff/announcements`)
 
-**Connection endpoint:** `ws://{host}/ws-align` (SockJS: `http://{host}/ws-align`)
-
-| Topic | Subscribers | Events |
-|-------|-------------|--------|
-| `/topic/tenant/{orgId}/location/{locId}/public` | Public display, customers | `TOKEN_CALLED` (no PII), `TOKEN_RECALLED`, `QUEUE_PAUSED`, `QUEUE_RESUMED` |
-| `/topic/tenant/{orgId}/location/{locId}/staff` | Staff, Org Admin | All above + `TOKEN_JOINED`, `TOKEN_COMPLETED`, `TOKEN_CANCELLED`, `TOKEN_NO_SHOW`, `COUNTER_STATUS_CHANGED` |
-| `/topic/token/{tokenId}` | Token owner | `TOKEN_STATE_CHANGED`, `POSITION_UPDATED`, `STEP_AWAY_EXPIRING` |
-
-**Event payload structure:**
-```json
-{
-  "eventType": "TOKEN_CALLED",
-  "timestamp": "2026-09-05T10:42:35.123Z",
-  "orgId": "uuid",
-  "locationId": "uuid",
-  "data": { ... event-specific fields ... }
-}
-```
-
-**Rule:** Public topic data object must never contain `customerName` or `customerPhone`.
+- `GET /api/v1/announcement-templates`: List announcement templates.
+- `POST /api/v1/announcement-templates`: Create announcement template (`ROLE_ORG_ADMIN`).
+- `POST /api/v1/staff/announcements`: Broadcast custom or template announcement to Public TV.
+  - **Payload:** `{ "locationId": "uuid", "text": "Token E003 proceed to Counter 1" }`
+  - **Broadcast Topic:** `/topic/location/{locationId}/public`
 
 ---
 
-## HTTP Status Code Reference
+## 7. Analytics & Reporting (`/api/v1/analytics`)
 
-| Code | Meaning | When Used |
-|------|---------|-----------|
-| 200 | OK | Successful GET, PUT, operation |
-| 201 | Created | Successful POST creating a resource |
-| 204 | No Content | Successful DELETE or logout |
-| 400 | Bad Request | Business rule violation, invalid state |
-| 401 | Unauthorized | Missing or invalid JWT |
-| 403 | Forbidden | Valid JWT but insufficient role/tenant access |
-| 404 | Not Found | Resource does not exist |
-| 409 | Conflict | Capacity full, counter unavailable, duplicate |
-| 422 | Unprocessable Entity | Input validation failure |
-| 500 | Internal Server Error | Unexpected server error |
+**Auth Required:** `ROLE_ORG_ADMIN` or `ROLE_PLATFORM_ADMIN`  
+**Required Query Parameters:** `orgId={uuid}&start={isoInstant}&end={isoInstant}`
+
+- `GET /api/v1/analytics/summary`: Aggregate metrics (total completed, average wait time, average service duration, completion rate).
+- `GET /api/v1/analytics/queues`: Queue-by-queue performance and throughput.
+- `GET /api/v1/analytics/traffic`: Hourly distribution of customer arrivals and token completions.
+- `GET /api/v1/analytics/services`: Service breakdown by volume, duration, and abandonment.
+- `GET /api/v1/analytics/counters`: Counter operational activity and utilization percentages.
+- `GET /api/v1/analytics/staff-service-duration`: Staff efficiency and processing time benchmarks.
 
 ---
 
-**Last Updated:** 2026-09-05
-**Next Review:** Update after each phase adds/changes endpoints
+## 8. WebSocket STOMP Topics (`/ws-align`)
+
+| Topic Destination | Payload | Audience |
+| :--- | :--- | :--- |
+| `/topic/location/{locationId}/public` | Anonymized Ticket Call (`tokenNumber`, `counterNumber`, audio prompt) | Public TV & Kiosk Displays |
+| `/topic/token/{tokenId}` | Full State Lifecycle Updates (`WAITING`, `CALLED`, `IN_SERVICE`, `COMPLETED`, position) | Customer Mobile Web PWA |
+| `/topic/location/{locationId}/staff` | Operational Queue Updates & SLA Warnings | Staff Station Consoles |

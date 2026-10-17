@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Search, 
-  QrCode, 
-  MapPin, 
-  Clock, 
-  Building2, 
-  ChevronRight, 
-  Navigation,
-  Compass,
-  History
-} from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
+import { useToast } from '../common/Toast';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
 
 interface Screen02DiscoveryProps {
   appState: AppState;
 }
 
 export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }) => {
+  const { info } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [showScannerModal, setShowScannerModal] = useState(false);
 
@@ -26,10 +21,11 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
       locationId: 'e2e00000-0000-0000-0000-000000000002',
       name: 'ABC Bank - Main Branch',
       sector: 'Financial Services',
+      icon: 'lucide:landmark',
       address: '123 Financial District, Suite 100',
       avgWait: '8 min wait',
       activeServices: '4 services available',
-      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      badgeVariant: 'grep' as const, // Mint
       badgeText: 'Low Wait',
     },
     {
@@ -37,10 +33,11 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
       locationId: 'loc-hospital-main',
       name: 'City General Hospital',
       sector: 'Emergency & Outpatient',
+      icon: 'lucide:hospital',
       address: '456 Health Way, Metro City',
       avgWait: '45+ min wait',
       activeServices: '6 services available',
-      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      badgeVariant: 'thinking' as const, // Peach
       badgeText: 'High Demand',
     },
     {
@@ -48,10 +45,11 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
       locationId: 'loc-rmv-central',
       name: 'Metro RMV Services',
       sector: 'Licensing & Registration',
+      icon: 'lucide:car-front',
       address: '789 Civic Center Blvd',
       avgWait: '12 min wait',
       activeServices: '5 services available',
-      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      badgeVariant: 'done' as const, // Gold
       badgeText: 'Moderate Wait',
     },
     {
@@ -59,10 +57,11 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
       locationId: 'loc-main',
       name: 'Global Tech Campus',
       sector: 'Corporate IT & Badging',
+      icon: 'lucide:cpu',
       address: '100 Silicon Way, Tech Park',
       avgWait: '5 min wait',
       activeServices: '2 services available',
-      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      badgeVariant: 'read' as const, // Pastel blue
       badgeText: 'Fast Service',
     }
   ];
@@ -80,43 +79,43 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 md:py-10">
+    <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-accent">
-            <Compass className="w-5 h-5 text-accent" />
-            <span className="text-xs font-mono font-semibold uppercase tracking-widest text-content-muted">Queue Discovery</span>
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Icon icon="lucide:compass" className="w-4 h-4 text-[#f54e00]" />
+            <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-[#807d72]">Virtual Queue Directory</span>
           </div>
 
           <button
             id="view-history-shortcut-btn"
             onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
-            className="flex items-center gap-1.5 text-xs text-content-primary hover:text-accent bg-surface-interactive px-3.5 py-1.5 rounded-lg border border-border-subtle transition-colors cursor-pointer font-semibold"
+            className="flex items-center gap-1.5 text-xs text-[#26251e] hover:text-[#f54e00] bg-white px-3 py-1.5 rounded-md border border-[#e6e5e0] transition-colors cursor-pointer font-medium"
           >
-            <History className="w-3.5 h-3.5 text-accent" />
+            <Icon icon="lucide:ticket" className="w-3.5 h-3.5 text-[#f54e00]" />
             <span>My Tokens</span>
           </button>
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-semibold text-content-primary tracking-tight">
+        <h1 className="text-display-md text-[#26251e]">
           Find your location
         </h1>
-        <p className="text-sm text-content-secondary mt-1">
-          Search for an organization to join their virtual queue.
+        <p className="text-sm text-[#5a5852] mt-1.5">
+          Select an organization to check estimated wait times and join their digital queue.
         </p>
       </div>
 
       {/* Search & QR Scan Box */}
-      <div className="relative flex items-center mb-6">
+      <div className="relative flex items-center gap-2 mb-8">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-content-muted" />
+          <Icon icon="lucide:search" className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#807d72]" />
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, address, or service..." 
-            className="w-full pl-10 pr-12 py-3 bg-surface border border-border-subtle rounded-lg text-sm text-content-primary placeholder-content-muted focus:outline-none focus:border-accent shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e6e5e0] rounded-md text-sm text-[#26251e] placeholder:text-[#a09c92] focus:outline-none focus:border-[#26251e] transition-colors"
           />
         </div>
 
@@ -124,106 +123,111 @@ export const Screen02Discovery: React.FC<Screen02DiscoveryProps> = ({ appState }
           id="qr-scan-btn"
           onClick={() => setShowScannerModal(true)}
           title="Scan location QR code"
-          className="ml-2 p-3 bg-surface hover:bg-surface-interactive border border-border-subtle text-accent rounded-lg transition-colors cursor-pointer"
+          className="p-2.5 bg-white hover:bg-[#fafaf7] border border-[#e6e5e0] text-[#26251e] rounded-md transition-colors cursor-pointer"
         >
-          <QrCode className="w-5 h-5" />
+          <Icon icon="lucide:qr-code" className="w-5 h-5 text-[#f54e00]" />
         </button>
       </div>
 
       {/* Location Section Heading */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs font-mono uppercase tracking-widest text-content-muted font-semibold">
-          Nearby Organizations
+        <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#807d72] font-semibold">
+          Available Locations ({filteredOrgs.length})
         </h2>
         <button 
-          onClick={() => alert('Location GPS detected: Metro Central District (Accuracy: 12m)')}
-          className="flex items-center gap-1 text-xs text-accent hover:text-accent-hover font-semibold cursor-pointer transition-colors"
+          onClick={() => info('Location detected: Metro Central District (Accuracy: 12m)', 'Location Services')}
+          className="flex items-center gap-1.5 text-xs text-[#f54e00] hover:text-[#d04200] font-medium cursor-pointer transition-colors"
         >
-          <Navigation className="w-3 h-3" />
-          <span>Use my location</span>
+          <Icon icon="lucide:navigation" className="w-3.5 h-3.5" />
+          <span>Near me</span>
         </button>
       </div>
 
       {/* Organization Cards List */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {filteredOrgs.map((org) => (
-          <div
+          <Card
             key={org.id}
             id={`org-card-${org.id}`}
             onClick={() => handleSelectOrg(org.id, org.locationId)}
-            className="bg-surface p-5 rounded-lg border border-border-subtle hover:border-accent hover:bg-surface-interactive transition-all cursor-pointer group relative"
+            variant="interactive"
+            className="p-5 group"
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-lg bg-surface-elevated text-content-primary flex items-center justify-center font-semibold text-sm shrink-0 border border-border-strong">
-                  <Building2 className="w-5 h-5 text-accent" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-md bg-[#fafaf7] text-[#26251e] flex items-center justify-center shrink-0 border border-[#e6e5e0]">
+                  <Icon icon={org.icon} className="w-5 h-5 text-[#26251e]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-content-primary group-hover:text-accent transition-colors">
+                  <h3 className="text-sm font-semibold text-[#26251e] group-hover:text-[#f54e00] transition-colors">
                     {org.name}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-content-secondary mt-0.5">
-                    <MapPin className="w-3.5 h-3.5 text-content-muted shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-[#5a5852] mt-1">
+                    <Icon icon="lucide:map-pin" className="w-3.5 h-3.5 text-[#807d72] shrink-0" />
                     <span className="truncate">{org.address}</span>
                   </div>
-                  <div className="text-[11px] text-content-muted mt-1 font-mono">
+                  <div className="text-[11px] text-[#807d72] mt-1 font-mono">
                     {org.activeServices}
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold border ${org.badgeColor.replace('bg-emerald-50 text-emerald-700 border-emerald-200', 'bg-success/10 text-success border-success/30').replace('bg-rose-50 text-rose-700 border-rose-200', 'bg-error/10 text-error border-error/30').replace('bg-amber-50 text-amber-700 border-amber-200', 'bg-warning/10 text-warning border-warning/30').replace('bg-blue-50 text-blue-700 border-blue-200', 'bg-accent/10 text-accent border-accent/30')}`}>
+                <Badge variant={org.badgeVariant} size="sm">
                   {org.badgeText}
-                </span>
-                <div className="flex items-center gap-1 text-xs text-content-secondary font-semibold font-mono">
-                  <Clock className="w-3 h-3 text-content-muted" />
+                </Badge>
+                <div className="flex items-center gap-1 text-xs text-[#5a5852] font-medium font-mono">
+                  <Icon icon="lucide:clock" className="w-3 h-3 text-[#807d72]" />
                   <span>{org.avgWait}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-border-subtle flex items-center justify-between text-xs text-accent font-semibold">
-              <span>View Services & Queues</span>
-              <ChevronRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+            <div className="mt-4 pt-3 border-t border-[#efeee8] flex items-center justify-between text-xs text-[#f54e00] font-medium">
+              <span>Explore services and queues</span>
+              <Icon icon="lucide:chevron-right" className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* Scanner Simulation Modal */}
       {showScannerModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg p-6 max-w-sm w-full text-center border border-border-subtle shadow-2xl">
-            <div className="w-16 h-16 mx-auto rounded-lg bg-surface-elevated flex items-center justify-center text-accent mb-4">
-              <QrCode className="w-8 h-8" />
+        <div className="fixed inset-0 bg-[#26251e]/30 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <Card className="max-w-sm w-full p-6 text-center border border-[#e6e5e0]">
+            <div className="w-12 h-12 mx-auto rounded-lg bg-[#fafaf7] border border-[#e6e5e0] flex items-center justify-center text-[#f54e00] mb-4">
+              <Icon icon="lucide:qr-code" className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-semibold text-content-primary mb-1">Simulated QR Code Scanner</h3>
-            <p className="text-xs text-content-secondary mb-6">
-              In production, scanning a desk QR code instantly loads the organization and branch token queue.
+            <h3 className="text-base font-semibold text-[#26251e] mb-1">Simulated QR Code Scanner</h3>
+            <p className="text-xs text-[#5a5852] mb-5">
+              In a physical branch, scanning a desk QR code instantly loads the organization and branch token queue.
             </p>
-            <div className="p-4 bg-surface-elevated rounded-lg border border-border-subtle mb-6 text-left font-mono text-xs space-y-1">
-              <div className="text-content-muted">Target QR URL:</div>
-              <div className="text-accent font-semibold break-all">https://align.app/q/abc-services/main-branch</div>
+            <div className="p-3.5 bg-[#fafaf7] rounded-md border border-[#e6e5e0] mb-5 text-left font-mono text-xs space-y-1">
+              <div className="text-[#807d72]">Target QR URL:</div>
+              <div className="text-[#26251e] font-medium break-all">https://align.app/q/abc-bank/main-branch</div>
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="md"
                 onClick={() => setShowScannerModal(false)}
-                className="flex-1 py-3 rounded-lg border border-border-strong text-xs font-semibold text-content-primary hover:bg-surface-interactive cursor-pointer uppercase tracking-widest transition-colors"
+                className="flex-1"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => {
                   setShowScannerModal(false);
                   handleSelectOrg('e2e00000-0000-0000-0000-000000000001', 'e2e00000-0000-0000-0000-000000000002');
                 }}
-                className="flex-1 py-3 rounded-lg bg-accent hover:bg-accent-hover text-base text-xs font-semibold cursor-pointer uppercase tracking-widest transition-colors"
+                className="flex-1"
               >
                 Simulate Scan
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

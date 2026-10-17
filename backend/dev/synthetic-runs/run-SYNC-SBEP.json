@@ -1,0 +1,36 @@
+{
+  "runId": "SYNC-SBEP",
+  "timestamp": "2026-10-10T16:54:13.601Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "d9abc651-0ca5-4783-aedb-75eaaf585f68"
+    ],
+    "locations": [
+      "9ed35c16-163e-4c90-a59e-8d171d418143"
+    ],
+    "services": [
+      "c8917237-01ff-4e24-9c43-1d201f673087"
+    ],
+    "queues": [
+      "06282c59-d02d-48bb-810a-a98ede484270"
+    ],
+    "counters": [
+      "d3a7eff4-1f3c-42cb-b8dc-1640607366af"
+    ],
+    "users": [
+      "e4da3898-ac7d-46d3-9311-4e2adff682dd",
+      "be66b40f-292e-4307-9c6d-0163b84c9360"
+    ],
+    "tokens": [
+      "44a50db3-6c1d-4f24-b96b-4a36f8c7d06d",
+      "a2f403d9-c226-488b-9291-b1456f8ebf89",
+      "0ed9ab2b-545b-43b8-a825-e55bf814d684",
+      "1ab848e6-da31-486c-9c26-3abb54419f76",
+      "47adb678-a5a2-4d49-98f3-412bf340203e"
+    ]
+  }
+}

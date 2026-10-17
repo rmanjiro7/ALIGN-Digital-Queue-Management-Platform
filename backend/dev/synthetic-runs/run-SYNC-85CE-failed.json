@@ -1,0 +1,17 @@
+{
+  "runId": "SYNC-85CE",
+  "timestamp": "2026-10-10T13:59:47.773Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

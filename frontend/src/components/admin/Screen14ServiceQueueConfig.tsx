@@ -1,27 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Settings, 
-  Plus, 
-  ToggleLeft, 
-  ToggleRight, 
-  Layers, 
-  Pause, 
-  Play, 
-  Edit, 
-  Trash2, 
-  ShieldCheck, 
-  Clock, 
-  AlertTriangle,
-  Info,
-  CheckCircle2,
-  ClipboardList,
-  ChevronDown,
-  ChevronUp,
-  MessageSquare
-} from 'lucide-react';
 import { adminApi } from '../../services/adminApi';
 import { queueStore, AppState } from '../../services/store';
 import { PreparationRequirement, AnnouncementTemplate } from '../../types';
+import { AuthGuard } from '../common/AuthGuard';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 
 interface Screen14ServiceQueueConfigProps {
   appState: AppState;
@@ -52,7 +38,6 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   const [editServiceIcon, setEditServiceIcon] = useState('FileText');
   const [editServiceFastTrack, setEditServiceFastTrack] = useState(false);
   const [editServicePrep, setEditServicePrep] = useState('');
-
 
   const [showCreateServiceModal, setShowCreateServiceModal] = useState(false);
   const [createServiceName, setCreateServiceName] = useState('');
@@ -96,10 +81,11 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   const [annTemplateText, setAnnTemplateText] = useState('');
   const [annIsDefault, setAnnIsDefault] = useState(false);
 
-
   React.useEffect(() => {
-    fetchData();
-  }, [currentLocation.id]);
+    if (appState.authStatus === 'AUTHENTICATED' || appState.authStatus === 'AUTH_READY') {
+      fetchData();
+    }
+  }, [currentLocation.id, appState.authStatus]);
 
   const fetchData = async () => {
     try {
@@ -265,14 +251,11 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
       setError(null);
       setSavedSuccess(false);
       
-      console.log(`[Screen14] Saving rules for org: ${currentOrg.id}`, { threshold, maxWait });
       const updatedOrg = await adminApi.updateOrganizationRules(currentOrg.id, {
         capacityThresholdPercent: threshold,
         maxWaitThresholdMins: maxWait
       });
-      console.log(`[Screen14] Save success:`, updatedOrg);
       
-      // Update global rules state optimism
       queueStore.updateGlobalRules(currentOrg.id, {
         autoPauseAtCapacity: autoPause,
         capacityThresholdPercent: updatedOrg.capacityThresholdPercent,
@@ -288,7 +271,6 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     }
   };
 
-  // ── Preparation Requirements Handlers ──
   const fetchPrepReqs = async (serviceId: string) => {
     try {
       const reqs = await adminApi.getPreparationRequirements(serviceId);
@@ -324,7 +306,7 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     setEditingPrepReq(req);
     setPrepServiceId(serviceId);
     setPrepTitle(req.title);
-    setPrepDescription(req.description);
+    setPrepDescription(req.description || '');
     setPrepIsRequired(req.isRequired);
     setPrepDisplayOrder(req.displayOrder);
     setPrepIsActive(req.isActive);
@@ -372,7 +354,6 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
     }
   };
 
-  // ── Announcement Templates Handlers ──
   const openAddAnnTemplateModal = () => {
     setEditingAnnTemplate(null);
     setAnnLangCode('en');
@@ -437,802 +418,752 @@ export const Screen14ServiceQueueConfig: React.FC<Screen14ServiceQueueConfigProp
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
-      {/* Header with Create Service Action */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#00ACC1]">
-            {currentOrg.name} &gt; {currentLocation.name}
+    <AuthGuard appState={appState}>
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-[#f7f7f4] min-h-screen text-[#26251e] font-sans">
+        
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 pb-6 border-b border-[#e6e5e0]">
+          <div className="space-y-1">
+            <div className="text-[10px] font-mono text-[#f54e00] uppercase tracking-widest flex items-center gap-2">
+              <span>{currentOrg.name}</span>
+              <span className="text-[#cfcdc4]">/</span>
+              <span className="text-[#26251e] font-medium">{currentLocation.name}</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-normal font-display text-[#26251e] tracking-tight">
+              Service &amp; Queue Settings
+            </h1>
+            <p className="text-xs text-[#73726c] max-w-xl">
+              Manage services, queue mapping, customer preparation requirements, and announcement templates.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] tracking-tight mt-0.5">
-            Active Services &amp; Queue Mapping
-          </h1>
-          <p className="text-xs text-slate-500">
-            Manage public-facing services, underlying token algorithms, and capacity threshold guardrails.
-          </p>
+          <Button
+            onClick={() => setShowCreateServiceModal(true)}
+            variant="default"
+            size="sm"
+            className="flex items-center gap-2 shrink-0"
+          >
+            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <span>Create Service</span>
+          </Button>
         </div>
 
-        <button
-          onClick={() => setShowCreateServiceModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold rounded-xl shadow-md shadow-[#00ACC1]/25 uppercase tracking-wider transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Service</span>
-        </button>
-      </div>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md font-mono">
+            {error}
+          </div>
+        )}
 
-      {/* Main Layout: Services Cards Left (2 cols), Global Rules Right (1 col) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Services and Associated Queues */}
-        <div className="lg:col-span-2 space-y-6">
-          {error && <div className="text-red-500 font-bold p-3 bg-red-50 border border-red-200 rounded-lg">{error}</div>}
-          {services.map((srv) => {
-            const queuesForSrv = appState.queues.filter(q => q.serviceId === srv.id);
-            return (
-              <div
-                key={srv.id}
-                className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4"
-              >
-                {/* Service Header with Enabled Toggle */}
-                <div className="flex items-start justify-between gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          
+          {/* LEFT COLUMN: SERVICES & PREPARATION */}
+          <div className="xl:col-span-8 space-y-6">
+            {services.map((srv) => {
+              const queuesForSrv = appState.queues.filter(q => q.serviceId === srv.id);
+              return (
+                <Card key={srv.id} className="p-6 space-y-6 transition-all hover:border-[#cfcdc4]">
+                  
+                  {/* Service Header */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-base font-medium text-[#26251e]">{srv.name}</h2>
+                        <Badge variant={srv.enabled ? 'mint' : 'outline'} className="text-[9px] font-mono">
+                          {srv.enabled ? 'Active' : 'Disabled'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-[#73726c] mt-1.5">{srv.description}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditServiceClick(srv)}
+                        title="Edit Service"
+                      >
+                        <Icon icon="lucide:edit-3" className="w-4 h-4 text-[#73726c]" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={isLoading}
+                        onClick={() => handleToggleService(srv.id, srv.enabled)}
+                        title="Toggle Service Enabled State"
+                      >
+                        {srv.enabled ? (
+                          <Icon icon="lucide:toggle-right" className="w-6 h-6 text-emerald-600" />
+                        ) : (
+                          <Icon icon="lucide:toggle-left" className="w-6 h-6 text-[#cfcdc4]" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Queues Section */}
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-slate-900">{srv.name}</h2>
-                      <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full ${
-                        srv.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'
-                      }`}>
-                        {srv.enabled ? 'Active' : 'Disabled'}
-                      </span>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#73726c] mb-3 flex items-center justify-between font-medium">
+                      <span>Queue Configuration</span>
+                      <button
+                        onClick={() => {
+                          setCreateQueueServiceId(srv.id);
+                          setCreateQueueName(srv.name + ' Queue');
+                          setCreateQueuePrefix(srv.name.substring(0, 1).toUpperCase());
+                          setShowCreateQueueModal(true);
+                        }}
+                        className="text-[#f54e00] hover:text-[#d04200] flex items-center gap-1 cursor-pointer transition-colors text-[10px] font-mono font-medium"
+                      >
+                        <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
+                        <span>Map Queue</span>
+                      </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">{srv.description}</p>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEditServiceClick(srv)}
-                      className="text-slate-700 hover:text-[#00ACC1] transition-colors p-1 cursor-pointer disabled:opacity-50"
-                      title="Edit Service"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                    <button
-                      disabled={isLoading}
-                      onClick={() => handleToggleService(srv.id, srv.enabled)}
-                      className="text-slate-700 hover:text-slate-900 transition-colors p-1 cursor-pointer disabled:opacity-50"
-                      title="Toggle Service Enabled State"
-                    >
-                      {srv.enabled ? (
-                        <ToggleRight className="w-8 h-8 text-[#00ACC1]" />
-                      ) : (
-                        <ToggleLeft className="w-8 h-8 text-slate-300" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Associated Operational Queues Table */}
-                <div>
-                  <div className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-2">
-                    Associated Operational Queues
-                  </div>
-
-                  {queuesForSrv.length > 0 ? (
-                    <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
-                      {queuesForSrv.map((q) => {
-                        const isQActive = q.status === 'Active';
-                        return (
-                          <div
-                            key={q.id}
-                            className="p-3.5 flex items-center justify-between gap-3 bg-[#F1F5F9]/50 hover:bg-[#F1F5F9] transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-[#0F172A] text-[#00ACC1] flex items-center justify-center font-mono font-black text-xs shadow-xs">
-                                {q.tokenPrefix}
-                              </div>
-                              <div>
-                                <div className="text-xs font-bold text-slate-900">{q.name}</div>
-                                <div className="text-[10px] text-slate-400 font-mono">
-                                  Range {q.startRange}-{q.endRange} â€¢ Avg Wait {q.avgWaitMins}m
+                    {queuesForSrv.length > 0 ? (
+                      <div className="border border-[#e6e5e0] bg-[#fafaf7] rounded-md divide-y divide-[#e6e5e0] overflow-hidden">
+                        {queuesForSrv.map((q) => {
+                          const isQActive = q.status === 'Active' || q.status === 'ACTIVE';
+                          return (
+                            <div key={q.id} className="p-4 flex items-center justify-between gap-4 group hover:bg-white transition-colors">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-white border border-[#cfcdc4] rounded-md flex items-center justify-center font-mono font-bold text-[#26251e] text-sm">
+                                  {q.tokenPrefix}
                                 </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <div className="text-xs font-bold font-mono text-slate-800">
-                                  {q.currentCount} / {q.maxCapacity} Max
-                                </div>
-                                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold border ${
-                                  isQActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'
-                                }`}>
-                                  {q.status}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleToggleQueue(q)}
-                                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
-                                  title={isQActive ? 'Pause Queue' : 'Resume Queue'}
-                                >
-                                  {isQActive ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600" />}
-                                </button>
-                                <button
-                                  onClick={() => {
-  setEditQueueId(q.id);
-  setEditQueueName(q.name);
-  setEditQueuePrefix(q.tokenPrefix || '');
-  setEditQueueMaxCapacity(q.maxCapacity || 50);
-  setEditQueueAutoPause(q.autoPauseAtCapacity || false);
-  setShowEditQueueModal(true);
-}}
-                                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
-                                  title="Edit Queue Parameters"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-500">
-                      No queues currently configured for this service.
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => {
-  setCreateQueueServiceId(srv.id);
-  setCreateQueueName(srv.name + ' Queue');
-  setCreateQueuePrefix(srv.name.substring(0, 1).toUpperCase());
-  setShowCreateQueueModal(true);
-}}
-                    className="mt-2 text-xs font-bold text-[#00ACC1] hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Map additional queue</span>
-                  </button>
-                </div>
-
-                {/* Preparation Requirements Section */}
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <button
-                    onClick={() => togglePrepSection(srv.id)}
-                    className="flex items-center justify-between w-full text-left cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="w-4 h-4 text-[#00ACC1]" />
-                      <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
-                        Preparation Requirements
-                      </span>
-                      {prepReqs[srv.id]?.length > 0 && (
-                        <span className="text-[10px] font-mono font-bold bg-[#00ACC1]/10 text-[#00ACC1] px-2 py-0.5 rounded-full">
-                          {prepReqs[srv.id].length}
-                        </span>
-                      )}
-                    </div>
-                    {expandedPrepService === srv.id
-                      ? <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-                      : <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-                    }
-                  </button>
-
-                  {expandedPrepService === srv.id && (
-                    <div className="mt-3 space-y-2">
-                      {(prepReqs[srv.id] || []).length > 0 ? (
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
-                          {(prepReqs[srv.id] || [])
-                            .sort((a, b) => a.displayOrder - b.displayOrder)
-                            .map((req) => (
-                            <div
-                              key={req.id}
-                              className={`p-3 flex items-center justify-between gap-3 transition-colors ${
-                                req.isActive ? 'bg-[#F1F5F9]/50 hover:bg-[#F1F5F9]' : 'bg-slate-50 opacity-60'
-                              }`}
-                            >
-                              <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold shrink-0 ${
-                                  req.isRequired ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-slate-100 text-slate-500 border border-slate-200'
-                                }`}>
-                                  {req.isRequired ? '!' : '?'}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-slate-900 truncate">{req.title}</div>
-                                  {req.description && (
-                                    <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{req.description}</div>
-                                  )}
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                                      req.isRequired ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'
-                                    }`}>
-                                      {req.isRequired ? 'REQUIRED' : 'OPTIONAL'}
-                                    </span>
-                                    {!req.isActive && (
-                                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
-                                        INACTIVE
-                                      </span>
-                                    )}
+                                <div>
+                                  <div className="text-sm font-medium text-[#26251e]">{q.name}</div>
+                                  <div className="text-[10px] text-[#73726c] font-mono mt-0.5">
+                                    Capacity: {q.currentCount}/{q.maxCapacity} &bull; Avg: {q.avgWaitMins}m
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  onClick={() => openEditPrepModal(srv.id, req)}
-                                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
-                                  title="Edit Requirement"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeletePrepReq(srv.id, req.id)}
-                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                  title="Delete Requirement"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                              <div className="flex items-center gap-3">
+                                <Badge variant={isQActive ? 'mint' : 'peach'} className="text-[9px] font-mono">
+                                  {q.status}
+                                </Badge>
+
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleToggleQueue(q)}
+                                    title={isQActive ? 'Pause Queue' : 'Resume Queue'}
+                                  >
+                                    {isQActive ? (
+                                      <Icon icon="lucide:pause" className="w-4 h-4 text-amber-600" />
+                                    ) : (
+                                      <Icon icon="lucide:play" className="w-4 h-4 text-emerald-600" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditQueueId(q.id);
+                                      setEditQueueName(q.name);
+                                      setEditQueuePrefix(q.tokenPrefix || '');
+                                      setEditQueueMaxCapacity(q.maxCapacity || 50);
+                                      setEditQueueAutoPause(q.autoPauseAtCapacity || false);
+                                      setShowEditQueueModal(true);
+                                    }}
+                                    title="Edit Queue"
+                                  >
+                                    <Icon icon="lucide:edit-3" className="w-4 h-4 text-[#73726c]" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-6 border border-dashed border-[#cfcdc4] rounded-md text-center text-xs font-mono text-[#8c8b85]">
+                        No queues mapped to this service.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preparation Requirements Section */}
+                  <div className="pt-4 border-t border-[#e6e5e0]">
+                    <button
+                      onClick={() => togglePrepSection(srv.id)}
+                      className="flex items-center justify-between w-full text-left cursor-pointer group py-1"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon icon="lucide:clipboard-list" className="w-4 h-4 text-[#73726c] group-hover:text-[#26251e] transition-colors" />
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#73726c] group-hover:text-[#26251e] transition-colors font-medium">
+                          Preparation Requirements
+                        </span>
+                        {prepReqs[srv.id]?.length > 0 && (
+                          <Badge variant="secondary" className="text-[9px] font-mono px-1.5 py-0">
+                            {prepReqs[srv.id].length}
+                          </Badge>
+                        )}
+                      </div>
+                      <Icon 
+                        icon={expandedPrepService === srv.id ? "lucide:chevron-up" : "lucide:chevron-down"} 
+                        className="w-4 h-4 text-[#8c8b85]" 
+                      />
+                    </button>
+
+                    {expandedPrepService === srv.id && (
+                      <div className="mt-4 space-y-3">
+                        {(prepReqs[srv.id] || []).length > 0 ? (
+                          <div className="border border-[#e6e5e0] rounded-md divide-y divide-[#e6e5e0] overflow-hidden">
+                            {(prepReqs[srv.id] || [])
+                              .sort((a, b) => a.displayOrder - b.displayOrder)
+                              .map((req) => (
+                              <div
+                                key={req.id}
+                                className={`p-4 flex items-start justify-between gap-4 transition-colors ${
+                                  req.isActive ? 'bg-white hover:bg-[#fafaf7]' : 'bg-[#fafaf7] opacity-60'
+                                }`}
+                              >
+                                <div className="flex items-start gap-3.5 flex-1">
+                                  <div className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-bold shrink-0 border ${
+                                    req.isRequired ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                                  }`}>
+                                    {req.isRequired ? '!' : '?'}
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-[#26251e]">{req.title}</div>
+                                    {req.description && (
+                                      <div className="text-xs text-[#73726c] mt-0.5">{req.description}</div>
+                                    )}
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Badge variant={req.isRequired ? 'peach' : 'outline'} className="text-[9px] font-mono">
+                                        {req.isRequired ? 'REQUIRED' : 'OPTIONAL'}
+                                      </Badge>
+                                      {!req.isActive && (
+                                        <Badge variant="outline" className="text-[9px] font-mono text-red-600 border-red-200 bg-red-50">
+                                          INACTIVE
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditPrepModal(srv.id, req)}
+                                    title="Edit Requirement"
+                                  >
+                                    <Icon icon="lucide:edit-3" className="w-4 h-4 text-[#73726c]" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeletePrepReq(srv.id, req.id)}
+                                    title="Delete Requirement"
+                                  >
+                                    <Icon icon="lucide:trash-2" className="w-4 h-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-4 border border-dashed border-[#cfcdc4] rounded-md text-center text-xs font-mono text-[#8c8b85]">
+                            No preparation requirements configured.
+                          </div>
+                        )}
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openAddPrepModal(srv.id)}
+                          className="text-[#f54e00] hover:text-[#d04200] flex items-center gap-1.5 p-0"
+                        >
+                          <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
+                          <span className="font-mono text-xs uppercase tracking-wider">Add Requirement</span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* RIGHT COLUMN: CONFIG & TEMPLATES */}
+          <div className="xl:col-span-4 space-y-6">
+            
+            {/* Global Rules */}
+            <Card className="p-6 space-y-6">
+              <h2 className="text-[10px] font-mono uppercase tracking-widest text-[#73726c] flex items-center gap-2 font-medium">
+                <Icon icon="lucide:shield-check" className="w-4 h-4 text-[#f54e00]" />
+                <span>Operational Rules</span>
+              </h2>
+
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#26251e]">Auto-Pause at Capacity</span>
+                    <button
+                      onClick={() => setAutoPause(!autoPause)}
+                      className="cursor-pointer"
+                    >
+                      {autoPause ? (
+                        <Icon icon="lucide:toggle-right" className="w-7 h-7 text-[#f54e00]" />
                       ) : (
-                        <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-500">
-                          No preparation requirements configured for this service.
-                        </div>
+                        <Icon icon="lucide:toggle-left" className="w-7 h-7 text-[#cfcdc4]" />
                       )}
-
-                      <button
-                        onClick={() => openAddPrepModal(srv.id)}
-                        className="text-xs font-bold text-[#00ACC1] hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add preparation requirement</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Right 1 Col: Global Rules & Threshold Controls */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#00ACC1]" />
-              <span>Global Operational Rules</span>
-            </h2>
-
-            <div className="space-y-4 pt-2 text-xs">
-              <div className="p-3.5 bg-[#F1F5F9] rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Auto-Pause at Capacity</span>
-                  <button
-                    onClick={() => setAutoPause(!autoPause)}
-                    className="text-[#00ACC1] cursor-pointer"
-                  >
-                    {autoPause ? <ToggleRight className="w-7 h-7 text-[#00ACC1]" /> : <ToggleLeft className="w-7 h-7 text-slate-300" />}
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Automatically pause queue token issuance when capacity exceeds safety limit.
-                </p>
-                {autoPause && (
-                  <div className="pt-2">
-                    <label className="text-[10px] text-slate-500 font-mono font-bold">Threshold Percentage</label>
-                    <div className="flex items-center gap-2 mt-1">
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[#73726c] leading-relaxed">
+                    Automatically pause queue token issuance when capacity exceeds safety limit.
+                  </p>
+                  
+                  {autoPause && (
+                    <div className="pt-2">
+                      <div className="flex justify-between text-[11px] font-mono text-[#73726c] mb-1.5">
+                        <span>Capacity Threshold</span>
+                        <span className="font-bold text-[#26251e]">{threshold}%</span>
+                      </div>
                       <input 
                         type="range" 
                         min="50" 
                         max="100" 
                         value={threshold}
                         onChange={(e) => setThreshold(parseInt(e.target.value))}
-                        className="flex-1 accent-[#00ACC1] cursor-pointer"
+                        className="w-full accent-[#f54e00] cursor-pointer h-1.5 bg-[#e6e5e0] rounded-sm appearance-none"
                       />
-                      <span className="font-mono font-bold text-[#0F172A] text-xs w-8">{threshold}%</span>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-3.5 bg-[#F1F5F9] rounded-2xl border border-slate-200 space-y-2">
-                <span className="font-bold text-slate-800 block">Max Wait Time Threshold</span>
-                <p className="text-[11px] text-slate-500">
-                  Flag executive alert when predicted wait time exceeds this threshold.
-                </p>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="number" 
-                    value={maxWait}
-                    onChange={(e) => setMaxWait(parseInt(e.target.value) || 30)}
-                    className="w-20 px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono text-xs font-bold focus:outline-none focus:border-[#00ACC1]"
-                  />
-                  <span className="text-slate-500 font-semibold">minutes</span>
+                  )}
                 </div>
-              </div>
 
-              <button
-                id="save-rules-btn"
-                onClick={handleSaveRules}
-                disabled={isLoading}
-                className={`w-full py-3 px-4 text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 ${
-                  savedSuccess
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                    : isLoading
-                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-[#00ACC1] text-white hover:bg-[#0097A7] shadow-md shadow-[#00ACC1]/25 cursor-pointer'
-                }`}
-              >
-                {savedSuccess ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Saved</span>
-                  </>
-                ) : (
-                  <span>{isLoading ? 'SAVING...' : 'SAVE CONFIGURATION'}</span>
-                )}
-              </button>
-            </div>
-          </div>
+                <div className="space-y-3 pt-4 border-t border-[#e6e5e0]">
+                  <label className="text-xs font-medium text-[#26251e] block">Wait Time Alert Threshold</label>
+                  <p className="text-[11px] text-[#73726c] leading-relaxed">
+                    Flag executive alert when predicted wait time exceeds this threshold.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Input 
+                      type="number" 
+                      value={maxWait}
+                      onChange={(e) => setMaxWait(parseInt(e.target.value) || 30)}
+                      className="w-24 font-mono text-xs"
+                    />
+                    <span className="text-[11px] font-mono text-[#73726c] uppercase tracking-wider">minutes</span>
+                  </div>
+                </div>
 
-          {/* Quick Stats Summary */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-3">
-              Location Summary
-            </h2>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">Total Services</span>
-                <span className="font-bold text-[#0F172A]">{services.length}</span>
+                <Button
+                  onClick={handleSaveRules}
+                  disabled={isLoading}
+                  variant={savedSuccess ? "outline" : "default"}
+                  className="w-full text-xs font-mono uppercase tracking-wider"
+                >
+                  {savedSuccess ? (
+                    <>
+                      <Icon icon="lucide:check-circle-2" className="w-4 h-4 mr-2 text-emerald-600" />
+                      <span>Saved</span>
+                    </>
+                  ) : (
+                    <span>{isLoading ? 'Saving...' : 'Save Rules'}</span>
+                  )}
+                </Button>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">Active Operational Queues</span>
-                <span className="font-bold text-[#0F172A]">{appState.queues.length}</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-500">Active Counters</span>
-                <span className="font-bold text-[#0F172A]">{appState.counters.length}</span>
-              </div>
-            </div>
-          </div>
+            </Card>
 
-          {/* Announcement Templates Summary */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-mono uppercase tracking-wider text-[#0F172A] font-bold flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#00ACC1]" />
-                Announcement Templates
-              </h2>
-              <button
-                onClick={openAddAnnTemplateModal}
-                className="text-[#00ACC1] hover:bg-[#00ACC1]/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                title="Add Template"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            
-            <div className="space-y-2">
-              {announcementTemplates.length > 0 ? (
-                announcementTemplates.map(template => (
-                  <div key={template.id} className="p-3 bg-[#F1F5F9] rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold font-mono text-slate-800 uppercase">{template.eventType}</span>
-                        {template.isDefault && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#00ACC1]/10 text-[#00ACC1] font-bold uppercase">Default</span>
-                        )}
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-bold uppercase">{template.languageCode}</span>
+            {/* Announcement Templates */}
+            <Card className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[10px] font-mono uppercase tracking-widest text-[#73726c] flex items-center gap-2 font-medium">
+                  <Icon icon="lucide:message-square" className="w-4 h-4 text-[#f54e00]" />
+                  <span>Announcement Templates</span>
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={openAddAnnTemplateModal}
+                  title="Add Template"
+                >
+                  <Icon icon="lucide:plus" className="w-4 h-4 text-[#26251e]" />
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {announcementTemplates.length > 0 ? (
+                  announcementTemplates.map(template => (
+                    <div key={template.id} className="p-3.5 bg-[#fafaf7] border border-[#e6e5e0] rounded-md flex flex-col gap-2.5 group hover:border-[#cfcdc4] transition-colors">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant="outline" className="text-[9px] font-mono">
+                            {template.eventType}
+                          </Badge>
+                          <Badge variant="outline" className="text-[9px] font-mono">
+                            {template.languageCode}
+                          </Badge>
+                          {template.isDefault && (
+                            <Badge variant="secondary" className="text-[9px] font-mono">
+                              Default
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" onClick={() => openEditAnnTemplateModal(template)}>
+                            <Icon icon="lucide:edit-3" className="w-3.5 h-3.5 text-[#73726c]" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteAnnTemplate(template.id)}>
+                            <Icon icon="lucide:trash-2" className="w-3.5 h-3.5 text-red-500" />
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-600 truncate mt-1">{template.templateText}</p>
+                      <p className="text-xs font-mono text-[#26251e] leading-relaxed">
+                        {template.templateText}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => openEditAnnTemplateModal(template)} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-lg cursor-pointer">
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDeleteAnnTemplate(template.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs font-mono text-[#8c8b85] p-4 border border-dashed border-[#cfcdc4] rounded-md text-center">
+                    No templates configured.
                   </div>
-                ))
-              ) : (
-                <div className="text-[11px] text-slate-500 italic p-2 text-center border border-dashed border-slate-200 rounded-xl">
-                  No templates configured. Standard messages will be used.
+                )}
+              </div>
+            </Card>
+
+            {/* Quick Stats Summary */}
+            <Card className="p-6 space-y-4">
+              <h2 className="text-[10px] font-mono uppercase tracking-widest text-[#73726c] font-medium">
+                Location Summary
+              </h2>
+              <div className="space-y-2.5 text-xs font-mono">
+                <div className="flex justify-between py-1.5 border-b border-[#e6e5e0] text-[#73726c]">
+                  <span>Services</span>
+                  <span className="text-[#26251e] font-bold">{services.length}</span>
                 </div>
-              )}
-            </div>
+                <div className="flex justify-between py-1.5 border-b border-[#e6e5e0] text-[#73726c]">
+                  <span>Queues</span>
+                  <span className="text-[#26251e] font-bold">{appState.queues.length}</span>
+                </div>
+                <div className="flex justify-between py-1.5 text-[#73726c]">
+                  <span>Counters</span>
+                  <span className="text-[#26251e] font-bold">{appState.counters.length}</span>
+                </div>
+              </div>
+            </Card>
+
           </div>
         </div>
       </div>
 
-      {/* Edit Service Modal */}
-      {showEditServiceModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl">
-            <h2 className="text-lg font-black text-[#0F172A] mb-1">Edit Service</h2>
-            <p className="text-xs text-slate-500 mb-4">Update service configuration.</p>
-
-            <form onSubmit={handleUpdateService} className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Service Name</label>
-                <input 
-                  type="text" 
+      {/* --- MODALS --- */}
+      
+      {/* SERVICE MODAL (Create/Edit) */}
+      {(showCreateServiceModal || showEditServiceModal) && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <Card className="w-full max-w-md shadow-xl overflow-hidden">
+            <div className="p-5 border-b border-[#e6e5e0] flex items-center justify-between">
+              <h2 className="text-sm font-medium font-mono text-[#26251e] uppercase tracking-wider">
+                {showEditServiceModal ? 'Edit Service' : 'Create Service'}
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => showEditServiceModal ? setShowEditServiceModal(false) : setShowCreateServiceModal(false)}
+              >
+                <Icon icon="lucide:x" className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <form onSubmit={showEditServiceModal ? handleUpdateService : handleCreateService} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Service Name *</label>
+                <Input
+                  type="text"
                   required
-                  value={editServiceName}
-                  onChange={(e) => setEditServiceName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+                  value={showEditServiceModal ? editServiceName : createServiceName}
+                  onChange={e => showEditServiceModal ? setEditServiceName(e.target.value) : setCreateServiceName(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Description</label>
+                <textarea
+                  value={showEditServiceModal ? editServiceDesc : createServiceDesc}
+                  onChange={e => showEditServiceModal ? setEditServiceDesc(e.target.value) : setCreateServiceDesc(e.target.value)}
+                  rows={2}
+                  className="w-full bg-white border border-[#cfcdc4] rounded-md text-[#26251e] text-sm px-3 py-2 focus:outline-none focus:border-[#26251e]"
                 />
               </div>
 
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Description</label>
-                <input 
-                  type="text" 
-                  value={editServiceDesc}
-                  onChange={(e) => setEditServiceDesc(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <input 
-                  type="checkbox"
-                  id="fastTrack"
-                  checked={editServiceFastTrack}
-                  onChange={(e) => setEditServiceFastTrack(e.target.checked)}
-                  className="w-4 h-4 text-[#00ACC1] rounded cursor-pointer"
-                />
-                <label htmlFor="fastTrack" className="text-xs font-bold text-slate-700 cursor-pointer">
-                  Is Fast Track?
-                </label>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Preparation Guidance</label>
-                <textarea 
-                  value={editServicePrep}
-                  onChange={(e) => setEditServicePrep(e.target.value)}
-                  rows={3}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00ACC1]"
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Preparation Guidance (Optional)</label>
+                <textarea
+                  value={showEditServiceModal ? editServicePrep : createServicePrep}
+                  onChange={e => showEditServiceModal ? setEditServicePrep(e.target.value) : setCreateServicePrep(e.target.value)}
+                  rows={2}
+                  className="w-full bg-white border border-[#cfcdc4] rounded-md text-[#26251e] text-sm px-3 py-2 focus:outline-none focus:border-[#26251e] placeholder-[#8c8b85]"
                   placeholder="e.g. Please have your ID ready"
                 />
               </div>
 
-              <div className="flex gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowEditServiceModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-slate-300 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 cursor-pointer"
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="fastTrackTog"
+                  checked={showEditServiceModal ? editServiceFastTrack : createServiceFastTrack}
+                  onChange={e => showEditServiceModal ? setEditServiceFastTrack(e.target.checked) : setCreateServiceFastTrack(e.target.checked)}
+                  className="w-4 h-4 rounded border-[#cfcdc4] bg-white text-[#f54e00] focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="fastTrackTog" className="text-xs font-medium text-[#26251e] cursor-pointer">Enable Fast Track</label>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => showEditServiceModal ? setShowEditServiceModal(false) : setShowCreateServiceModal(false)} 
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 py-3 rounded-xl bg-[#00ACC1] hover:bg-[#0097A7] text-white text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="default"
+                  disabled={isLoading} 
+                  className="flex-1"
                 >
-                  {isLoading ? 'Saving...' : 'Save Changes'}
-                </button>
+                  {isLoading ? 'Saving...' : (showEditServiceModal ? 'Save Changes' : 'Create')}
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
 
-      {/* CREATE SERVICE MODAL */}
-      {showCreateServiceModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">Create New Service</h2>
-              <button onClick={() => setShowCreateServiceModal(false)} className="text-slate-400 hover:text-slate-600">Ã—</button>
-            </div>
-            <form onSubmit={handleCreateService} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Service Name</label>
-                <input
-                  type="text"
-                  required
-                  value={createServiceName}
-                  onChange={e => setCreateServiceName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
-                <textarea
-                  value={createServiceDesc}
-                  onChange={e => setCreateServiceDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="fastTrackCreate"
-                  checked={createServiceFastTrack}
-                  onChange={e => setCreateServiceFastTrack(e.target.checked)}
-                  className="rounded text-[#00ACC1]"
-                />
-                <label htmlFor="fastTrackCreate" className="text-sm text-slate-700">Enable Fast Track</label>
-              </div>
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowCreateServiceModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
-                  Create Service
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* CREATE QUEUE MODAL */}
-      {showCreateQueueModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">Map Queue to Service</h2>
-              <button onClick={() => setShowCreateQueueModal(false)} className="text-slate-400 hover:text-slate-600">Ã—</button>
-            </div>
-            <form onSubmit={handleCreateQueue} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Queue Name</label>
-                <input
-                  type="text"
-                  required
-                  value={createQueueName}
-                  onChange={e => setCreateQueueName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Token Prefix</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={4}
-                  value={createQueuePrefix}
-                  onChange={e => setCreateQueuePrefix(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1] uppercase"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Max Capacity</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={createQueueMaxCapacity}
-                  onChange={e => setCreateQueueMaxCapacity(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="autoPauseCreate"
-                  checked={createQueueAutoPause}
-                  onChange={e => setCreateQueueAutoPause(e.target.checked)}
-                  className="rounded text-[#00ACC1]"
-                />
-                <label htmlFor="autoPauseCreate" className="text-sm text-slate-700">Auto Pause at Capacity</label>
-              </div>
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowCreateQueueModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
-                  Create Queue
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT QUEUE MODAL */}
-      {showEditQueueModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">Edit Queue: {editQueueName}</h2>
-              <button onClick={() => setShowEditQueueModal(false)} className="text-slate-400 hover:text-slate-600">Ã—</button>
-            </div>
-            <form onSubmit={handleUpdateQueue} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Token Prefix</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={4}
-                  value={editQueuePrefix}
-                  onChange={e => setEditQueuePrefix(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1] uppercase"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Max Capacity</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={editQueueMaxCapacity}
-                  onChange={e => setEditQueueMaxCapacity(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="autoPauseEdit"
-                  checked={editQueueAutoPause}
-                  onChange={e => setEditQueueAutoPause(e.target.checked)}
-                  className="rounded text-[#00ACC1]"
-                />
-                <label htmlFor="autoPauseEdit" className="text-sm text-slate-700">Auto Pause at Capacity</label>
-              </div>
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowEditQueueModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* PREPARATION REQUIREMENT ADD/EDIT MODAL */}
-      {showPrepModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">
-                {editingPrepReq ? 'Edit Requirement' : 'Add Preparation Requirement'}
+      {/* QUEUE MODAL (Create/Edit) */}
+      {(showCreateQueueModal || showEditQueueModal) && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <Card className="w-full max-w-md shadow-xl overflow-hidden">
+            <div className="p-5 border-b border-[#e6e5e0] flex items-center justify-between">
+              <h2 className="text-sm font-medium font-mono text-[#26251e] uppercase tracking-wider">
+                {showEditQueueModal ? 'Edit Queue' : 'Map Queue'}
               </h2>
-              <button onClick={() => setShowPrepModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">×</button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => showEditQueueModal ? setShowEditQueueModal(false) : setShowCreateQueueModal(false)}
+              >
+                <Icon icon="lucide:x" className="w-4 h-4" />
+              </Button>
             </div>
-            <form onSubmit={handleSavePrepReq} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Title</label>
+
+            <form onSubmit={showEditQueueModal ? handleUpdateQueue : handleCreateQueue} className="p-6 space-y-4">
+              {!showEditQueueModal && (
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Queue Name *</label>
+                  <Input
+                    type="text"
+                    required
+                    value={createQueueName}
+                    onChange={e => setCreateQueueName(e.target.value)}
+                  />
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Token Prefix *</label>
+                  <Input
+                    type="text"
+                    required
+                    maxLength={4}
+                    value={showEditQueueModal ? editQueuePrefix : createQueuePrefix}
+                    onChange={e => showEditQueueModal ? setEditQueuePrefix(e.target.value) : setCreateQueuePrefix(e.target.value)}
+                    className="uppercase font-mono"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Max Capacity *</label>
+                  <Input
+                    type="number"
+                    required
+                    min="1"
+                    value={showEditQueueModal ? editQueueMaxCapacity : createQueueMaxCapacity}
+                    onChange={e => showEditQueueModal ? setEditQueueMaxCapacity(e.target.value === '' ? '' : parseInt(e.target.value)) : setCreateQueueMaxCapacity(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
                 <input
+                  type="checkbox"
+                  id="autoPauseQueueTog"
+                  checked={showEditQueueModal ? editQueueAutoPause : createQueueAutoPause}
+                  onChange={e => showEditQueueModal ? setEditQueueAutoPause(e.target.checked) : setCreateQueueAutoPause(e.target.checked)}
+                  className="w-4 h-4 rounded border-[#cfcdc4] bg-white text-[#f54e00] focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="autoPauseQueueTog" className="text-xs font-medium text-[#26251e] cursor-pointer">Auto Pause at Capacity</label>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => showEditQueueModal ? setShowEditQueueModal(false) : setShowCreateQueueModal(false)} 
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="default"
+                  disabled={isLoading} 
+                  className="flex-1"
+                >
+                  {isLoading ? 'Saving...' : (showEditQueueModal ? 'Save Changes' : 'Map Queue')}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* PREPARATION REQUIREMENT MODAL */}
+      {showPrepModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <Card className="w-full max-w-md shadow-xl overflow-hidden">
+            <div className="p-5 border-b border-[#e6e5e0] flex items-center justify-between">
+              <h2 className="text-sm font-medium font-mono text-[#26251e] uppercase tracking-wider">
+                {editingPrepReq ? 'Edit Requirement' : 'Add Requirement'}
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowPrepModal(false)}>
+                <Icon icon="lucide:x" className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <form onSubmit={handleSavePrepReq} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Title *</label>
+                <Input
                   type="text"
                   required
                   value={prepTitle}
                   onChange={e => setPrepTitle(e.target.value)}
                   placeholder="e.g. Valid Photo ID"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Description</label>
                 <textarea
                   value={prepDescription}
                   onChange={e => setPrepDescription(e.target.value)}
                   rows={3}
-                  placeholder="e.g. Please bring a government-issued photo ID (passport, driver's license)"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                  className="w-full bg-white border border-[#cfcdc4] rounded-md text-[#26251e] text-sm px-3 py-2 focus:outline-none focus:border-[#26251e]"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="prepRequired"
-                    checked={prepIsRequired}
-                    onChange={e => setPrepIsRequired(e.target.checked)}
-                    className="rounded text-[#00ACC1]"
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Display Order</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={prepDisplayOrder}
+                    onChange={e => setPrepDisplayOrder(parseInt(e.target.value) || 0)}
                   />
-                  <label htmlFor="prepRequired" className="text-sm text-slate-700 cursor-pointer">Required</label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="prepActive"
-                    checked={prepIsActive}
-                    onChange={e => setPrepIsActive(e.target.checked)}
-                    className="rounded text-[#00ACC1]"
-                  />
-                  <label htmlFor="prepActive" className="text-sm text-slate-700 cursor-pointer">Active</label>
+                <div className="flex flex-col justify-end gap-2 pb-1">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="pReq" checked={prepIsRequired} onChange={e => setPrepIsRequired(e.target.checked)} className="rounded border-[#cfcdc4] text-[#f54e00]" />
+                    <label htmlFor="pReq" className="text-xs font-medium text-[#26251e] cursor-pointer">Required</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="pAct" checked={prepIsActive} onChange={e => setPrepIsActive(e.target.checked)} className="rounded border-[#cfcdc4] text-[#f54e00]" />
+                    <label htmlFor="pAct" className="text-xs font-medium text-[#26251e] cursor-pointer">Active</label>
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Display Order</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={prepDisplayOrder}
-                  onChange={e => setPrepDisplayOrder(parseInt(e.target.value) || 0)}
-                  className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
-                />
-              </div>
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowPrepModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Cancel</button>
-                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#00ACC1] hover:bg-[#0097A7] text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50 cursor-pointer">
-                  {editingPrepReq ? 'Save Changes' : 'Add Requirement'}
-                </button>
+
+              <div className="pt-4 flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowPrepModal(false)} className="flex-1">Cancel</Button>
+                <Button type="submit" variant="default" disabled={isLoading} className="flex-1">
+                  {isLoading ? 'Saving...' : 'Save Requirement'}
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
 
-      {/* Announcement Template Modal */}
+      {/* ANNOUNCEMENT TEMPLATE MODAL */}
       {showAnnTemplateModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">
-                {editingAnnTemplate ? 'Edit Template' : 'Add Announcement Template'}
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <Card className="w-full max-w-md shadow-xl overflow-hidden">
+            <div className="p-5 border-b border-[#e6e5e0] flex items-center justify-between">
+              <h2 className="text-sm font-medium font-mono text-[#26251e] uppercase tracking-wider">
+                {editingAnnTemplate ? 'Edit Template' : 'Add Template'}
               </h2>
-              <button onClick={() => setShowAnnTemplateModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">×</button>
+              <Button variant="ghost" size="icon" onClick={() => setShowAnnTemplateModal(false)}>
+                <Icon icon="lucide:x" className="w-4 h-4" />
+              </Button>
             </div>
+            
             <form onSubmit={handleSaveAnnTemplate} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Event Type</label>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Event Type</label>
                   <select
                     required
                     value={annEventType}
                     onChange={e => setAnnEventType(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1] cursor-pointer"
+                    className="w-full bg-white border border-[#cfcdc4] rounded-md text-[#26251e] text-sm px-3 py-2 focus:outline-none focus:border-[#26251e]"
                   >
                     <option value="CALL_NEXT">Call Next</option>
                     <option value="WAIT_REMINDER">Wait Reminder</option>
                     <option value="QUEUE_CLOSED">Queue Closed</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Language Code</label>
-                  <input
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Language Code</label>
+                  <Input
                     type="text"
                     required
                     value={annLangCode}
                     onChange={e => setAnnLangCode(e.target.value)}
-                    placeholder="e.g. en, es, fr"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                    placeholder="e.g. en, es"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Template Text</label>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#73726c] uppercase tracking-wider">Template Text</label>
                 <textarea
                   required
                   value={annTemplateText}
                   onChange={e => setAnnTemplateText(e.target.value)}
-                  rows={4}
-                  placeholder="e.g. Token {tokenNumber}, please proceed to Counter {counterNumber}."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00ACC1]"
+                  rows={3}
+                  className="w-full bg-white border border-[#cfcdc4] rounded-md text-[#26251e] text-sm px-3 py-2 focus:outline-none focus:border-[#26251e]"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Variables available: {'{tokenNumber}'}, {'{counterNumber}'}</p>
+                <p className="text-[10px] font-mono text-[#8c8b85]">Variables: {'{tokenNumber}'}, {'{counterNumber}'}</p>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
-                  id="isDefaultTemplate"
+                  id="annDef"
                   checked={annIsDefault}
                   onChange={e => setAnnIsDefault(e.target.checked)}
-                  className="rounded text-[#00ACC1] cursor-pointer"
+                  className="rounded border-[#cfcdc4] text-[#f54e00]"
                 />
-                <label htmlFor="isDefaultTemplate" className="text-sm text-slate-700 cursor-pointer">
-                  Set as Default for Event
-                </label>
+                <label htmlFor="annDef" className="text-xs font-medium text-[#26251e] cursor-pointer">Set as Default for Event</label>
               </div>
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowAnnTemplateModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Cancel</button>
-                <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-md disabled:opacity-50 cursor-pointer">
-                  {editingAnnTemplate ? 'Save Changes' : 'Add Template'}
-                </button>
+
+              <div className="pt-4 flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowAnnTemplateModal(false)} className="flex-1">Cancel</Button>
+                <Button type="submit" variant="default" disabled={isLoading} className="flex-1">
+                  {isLoading ? 'Saving...' : 'Save Template'}
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
-    </div>
+
+    </AuthGuard>
   );
 };
-

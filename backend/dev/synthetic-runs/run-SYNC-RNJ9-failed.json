@@ -1,0 +1,17 @@
+{
+  "runId": "SYNC-RNJ9",
+  "timestamp": "2026-10-10T14:11:10.969Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

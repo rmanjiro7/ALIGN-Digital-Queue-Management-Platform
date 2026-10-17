@@ -1,0 +1,26 @@
+{
+  "runId": "SYNC-NSAU",
+  "timestamp": "2026-10-12T15:04:15.303Z",
+  "status": "FAILED",
+  "config": {
+    "pilot": true,
+    "backdate": false,
+    "dryRun": false
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  },
+  "validation": {
+    "status": "FAILED",
+    "mode": "PILOT",
+    "backdated": false,
+    "checks": []
+  },
+  "error": "API Error 401 on POST /auth/login: {\"success\":false,\"timestamp\":\"2026-10-12T15:04:15.759292374Z\",\"status\":401,\"message\":\"Invalid email or password\",\"code\":\"INVALID_CREDENTIALS\",\"errors\":[]}"
+}

@@ -160,3 +160,84 @@
 - [x] Logback warnings fixed (nested springProfile elements)
 
 **Phase 0 deliverables complete. Ready for Phase 1 (Security).**
+
+---
+
+## [Phase 2] — 2026-09-10 — Organization Domain Complete ✅
+
+- Implemented JPA Entities & Repositories: `Organization`, `Location`, `Service`, `Queue`, `Counter`
+- Enforced Flyway migration `V3__organization_domain.sql`
+- Built full CRUD endpoints under `/api/v1/locations`, `/api/v1/services`, `/api/v1/queues`, `/api/v1/counters`
+- Implemented tenant isolation in service layer via `TenantContext.requireSameTenant()`
+- Passed all 70 tests in `OrganizationDomainIntegrationTest`
+
+---
+
+## [Phase 3] — 2026-09-15 — Token Engine Complete ✅
+
+- Flyway migration `V4__token_engine.sql`: `tokens` and `token_events` tables
+- Atomic per-queue token sequencing via `allocateNextTokenNumber`
+- Token state machine: `WAITING`, `AWAY`, `CALLED`, `IN_SERVICE`, `COMPLETED`, `NO_SHOW`, `CANCELLED`, `EXPIRED`, `TRANSFERRED`
+- Idempotency key handling via partial unique index
+- Step-away 15-minute grace period with `@Scheduled` expiration job
+
+---
+
+## [Phase 4] — 2026-09-20 — Staff Operations Complete ✅
+
+- Flyway migration `V5__staff_operations.sql` and `V10__counter_service_assignments.sql`
+- Concurrency-safe queue calling with `SELECT ... FOR UPDATE SKIP LOCKED`
+- Counter availability tracking (`ONLINE`, `ON_BREAK`, `AWAY`, `OFFLINE`)
+- Implemented `serve`, `complete`, `no-show`, `recall`, and `transfer` operations
+- Counter service assignment filtering
+
+---
+
+## [Phase 5] — 2026-09-25 — Realtime WebSocket Engine Complete ✅
+
+- WebSocket STOMP endpoint `/ws-align` with SockJS fallback
+- Transaction-bound publishing using `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`
+- Anonymized Public TV topics: `/topic/location/{locationId}/public`
+- Dedicated customer tracking topics: `/topic/token/{tokenId}`
+- Staff console updates: `/topic/location/{locationId}/staff`
+
+---
+
+## [Phase 6] — 2026-09-28 — Administration & Analytics Complete ✅
+
+- Flyway migrations `V7__phase6_administration_analytics.sql` and `V8__phase6_analytics_indexes.sql`
+- High-efficiency SQL aggregation for historical metrics (summary, queues, traffic, services, counters)
+- Tenant audit events and counter availability history
+- Global operational threshold rules (`V9__global_operational_rules.sql`)
+
+---
+
+## [Phase 7] — 2026-10-01 — Hardening & Multi-Tier Validation Complete ✅
+
+- Flyway migrations `V13__phase7_notifications.sql`, `V14__structured_operating_hours.sql`, `V15__phase7_customer_sms_consent.sql`
+- Structured location operating hours and timezone validation
+- SMS consent capture on queue entry
+- Bucket4j in-memory rate limiting filter for auth and public endpoints
+- Extensive Testcontainers concurrency test suites (SkipLocked, Capacity, CallNext)
+
+---
+
+## [Phase 8] — 2026-10-04 — MVP Gaps & E2E Validation Complete ✅
+
+- Flyway migration `V16__phase8_mvp_gaps.sql`: Journeys, preparation requirements, announcement templates
+- Public TV speech synthesis chime and custom broadcast messaging
+- Puppeteer automated end-to-end regression suites (`phase-8.cjs`, `phase-6-7-transfer.cjs`)
+- All 217 backend tests passing with Testcontainers
+
+---
+
+## [MVP Stabilization & Launcher] — 2026-10-13 — Full Platform Operational ✅
+
+- Created single-command orchestration scripts: [`start.ps1`](file:///d:/align/ALIGN-Digital-Queue-Management-Platform/start.ps1), [`start.ps`](file:///d:/align/ALIGN-Digital-Queue-Management-Platform/start.ps), [`start.bat`](file:///d:/align/ALIGN-Digital-Queue-Management-Platform/start.bat)
+- Resolved frontend `Screen04JoinConfirm.tsx` crash with optional chaining and defensive normalization in `store.ts`
+- Wrapped UI hierarchy in global `ErrorBoundary.tsx`
+- Aligned `callNextToken` route to `/api/v1/staff/counters/{counterId}/call-next`
+- Added SVG favicon and eliminated 404 console errors
+- Implemented automatic demo role authentication in `TopBar.tsx` and `Screen08Login.tsx`
+- Automated multi-role whitebox verification passed with 0 errors across all 9 screens and full token lifecycle
+

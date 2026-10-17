@@ -1,0 +1,17 @@
+{
+  "runId": "SYNC-H076",
+  "timestamp": "2026-10-10T11:18:48.654Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "fixtureId": "transfer-fixture-1791793998603",
+  "status": "COMPLETE",
+  "createdAt": "2026-10-12T08:33:18.603Z",
+  "updatedAt": "2026-10-12T08:33:20.349Z",
+  "apiUrl": "http://localhost:8080",
+  "orgId": "e2e00000-0000-0000-0000-000000000001",
+  "locationId": "e2e00000-0000-0000-0000-000000000002",
+  "serviceA": {
+    "id": "9bad9485-7e35-48be-9fd1-25276ec22694",
+    "name": "Isolated Transfer Service A"
+  },
+  "queueA": {
+    "id": "5a0982f9-dcef-4e44-b66c-b9a695ce0271",
+    "name": "Isolated Transfer Queue A"
+  },
+  "serviceB": {
+    "id": "7893500b-f3b6-464b-ba3d-8705cee525a9",
+    "name": "Isolated Transfer Service B"
+  },
+  "queueB": {
+    "id": "a020169b-130a-4c5c-ba53-d8527917cec9",
+    "name": "Isolated Transfer Queue B"
+  },
+  "counter1": {
+    "id": "7cc9fe01-dba7-4a86-9d36-a1bc9c69ffeb",
+    "number": 3
+  },
+  "counter2": {
+    "id": "7ee63fff-2b9f-4a05-8aa4-6a0016cef1a5",
+    "number": 4
+  },
+  "assignments": [
+    {
+      "counterId": "7cc9fe01-dba7-4a86-9d36-a1bc9c69ffeb",
+      "serviceId": "9bad9485-7e35-48be-9fd1-25276ec22694"
+    },
+    {
+      "counterId": "7ee63fff-2b9f-4a05-8aa4-6a0016cef1a5",
+      "serviceId": "7893500b-f3b6-464b-ba3d-8705cee525a9"
+    }
+  ],
+  "unresolvedOutcome": null
+}

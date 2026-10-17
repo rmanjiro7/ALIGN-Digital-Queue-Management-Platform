@@ -1,0 +1,36 @@
+{
+  "runId": "SYNC-3P2P",
+  "timestamp": "2026-10-10T16:45:29.099Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-rs9h"
+    ],
+    "locations": [
+      "mock-uuid-3j0g"
+    ],
+    "services": [
+      "mock-uuid-vmub"
+    ],
+    "queues": [
+      "mock-uuid-1c88"
+    ],
+    "counters": [
+      "mock-uuid-n6yh"
+    ],
+    "users": [
+      "mock-uuid-3pz7",
+      "mock-uuid-7ksa"
+    ],
+    "tokens": [
+      "mock-uuid-7q87",
+      "mock-uuid-3hhp",
+      "mock-uuid-ue28",
+      "mock-uuid-dcj8",
+      "mock-uuid-fq06"
+    ]
+  }
+}

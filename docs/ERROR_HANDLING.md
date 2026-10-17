@@ -1,122 +1,105 @@
-# ALIGN BACKEND — ERROR HANDLING
+# ALIGN Platform — Error Handling & Validation Specification
 
-**Version:** 1.0
-**Last Updated:** 2026-09-05
-**Status:** PLANNED — Not yet implemented
-
----
-
-## Strategy
-
-Centralized exception handling via `@ControllerAdvice` (`GlobalExceptionHandler`).
-All exceptions are caught, mapped to appropriate HTTP status codes, and serialized as a consistent JSON error response.
+**Version:** 2.0 (Phase 8 Verified)  
+**Status:** FULLY IMPLEMENTED AND VERIFIED ✅  
 
 ---
 
-## Error Response Format
+## 1. Centralized Exception Strategy
+
+All errors in ALIGN are handled uniformly at the HTTP boundary via Spring's `@RestControllerAdvice` (`GlobalExceptionHandler.java`). 
+- **Uniform Response Structure:** Every error returns a standardized JSON payload regardless of origin (Spring Security, Bean Validation, Business Exception, or Infrastructure Failure).
+- **Security & PII Sanitization:** Internal stack traces, raw SQL queries, and sensitive data are strictly omitted from responses.
+- **RFC 7807 Alignment:** Responses feature machine-readable domain error codes (`code`), human-readable descriptions (`message`), HTTP status (`status`), and field-specific validation errors (`errors`).
 
 ```json
 {
   "success": false,
+  "timestamp": "2026-10-13T08:21:17.711Z",
+  "status": 400,
   "message": "Human-readable description",
   "code": "DOMAIN_ERROR_CODE",
   "errors": [
-    { "field": "fieldName", "message": "validation message", "rejectedValue": "..." }
+    {
+      "field": "fieldName",
+      "message": "Validation message explaining constraint violation"
+    }
   ]
 }
 ```
 
-- `errors` array is empty for non-validation errors
-- `errors` array contains one entry per invalid field for validation failures
-- Stack traces are NEVER included in responses
+---
+
+## 2. Domain Error Code Registry
+
+| HTTP Status | Domain Error Code | Description / Trigger Scenario |
+| :--- | :--- | :--- |
+| **400 Bad Request** | `TOKEN_INVALID_STATE` | Attempted state transition disallowed by state machine (e.g. `COMPLETED` → `WAITING`). |
+| **400 Bad Request** | `LOCATION_CLOSED` | Customer attempted to join outside configured location operating hours. |
+| **400 Bad Request** | `COUNTER_MISMATCH` | Action attempted from a counter other than the assigned counter. |
+| **400 Bad Request** | `STEP_AWAY_ALREADY_USED` | Token has already consumed its one-time 15-minute grace period. |
+| **401 Unauthorized** | `INVALID_CREDENTIALS` | Incorrect username, email, or password provided. |
+| **401 Unauthorized** | `TOKEN_EXPIRED` | JWT access token or refresh token has exceeded its TTL. |
+| **401 Unauthorized** | `TOKEN_INVALID` | JWT signature is invalid or token is malformed. |
+| **401 Unauthorized** | `UNAUTHORIZED` | Protected endpoint accessed without an `Authorization: Bearer` header. |
+| **403 Forbidden** | `RESOURCE_FORBIDDEN` | Authenticated user attempted to access or modify resources belonging to another organization. |
+| **403 Forbidden** | `INSUFFICIENT_PERMISSIONS` | Authenticated user's role lacks the necessary `@PreAuthorize` authority. |
+| **404 Not Found** | `TOKEN_NOT_FOUND` | Specified token UUID does not exist. |
+| **404 Not Found** | `QUEUE_NOT_FOUND` | Specified queue UUID or queue for service does not exist. |
+| **404 Not Found** | `LOCATION_NOT_FOUND` | Specified location UUID does not exist. |
+| **404 Not Found** | `ORGANIZATION_NOT_FOUND` | Specified organization UUID does not exist. |
+| **404 Not Found** | `COUNTER_NOT_FOUND` | Specified counter UUID does not exist. |
+| **404 Not Found** | `NO_WAITING_TOKENS` | Queue has zero tokens in `WAITING` state when staff calls next. |
+| **409 Conflict** | `QUEUE_FULL` | Active tokens reached or exceeded `max_capacity`. |
+| **409 Conflict** | `QUEUE_PAUSED` | Queue is currently paused or closed. |
+| **409 Conflict** | `COUNTER_ALREADY_SERVING`| Counter currently has an active, uncompleted token assigned. |
+| **409 Conflict** | `COUNTER_NOT_AVAILABLE` | Counter availability status is not `ONLINE`. |
+| **409 Conflict** | `EMAIL_ALREADY_EXISTS` | User registration attempted with an already registered email. |
+| **409 Conflict** | `CODE_ALREADY_EXISTS` | Organization code collision. |
+| **422 Unprocessable** | `VALIDATION_ERROR` | Jakarta Bean Validation failure on request body fields. |
+| **500 Internal Error** | `INTERNAL_SERVER_ERROR` | Unhandled system exception or runtime failure. |
 
 ---
 
-## Domain Error Codes
+## 3. Input Validation Specifications (Jakarta Bean Validation)
 
-| HTTP | Code | Description |
-|------|------|-------------|
-| 400 | `TOKEN_INVALID_STATE` | Attempted state transition not allowed by state machine |
-| 400 | `COUNTER_MISMATCH` | Recall attempted from wrong counter |
-| 400 | `STEP_AWAY_ALREADY_USED` | Token already used step-away grace period |
-| 401 | `INVALID_CREDENTIALS` | Email/password mismatch |
-| 401 | `TOKEN_EXPIRED` | JWT or refresh token has expired |
-| 401 | `TOKEN_INVALID` | JWT signature invalid or malformed |
-| 401 | `UNAUTHORIZED` | No token provided on protected endpoint |
-| 403 | `RESOURCE_FORBIDDEN` | Valid auth, accessing another org's resource |
-| 403 | `INSUFFICIENT_PERMISSIONS` | Role lacks required permission |
-| 404 | `TOKEN_NOT_FOUND` | Token ID does not exist |
-| 404 | `QUEUE_NOT_FOUND` | Queue for service does not exist |
-| 404 | `LOCATION_NOT_FOUND` | Location ID does not exist |
-| 404 | `ORGANIZATION_NOT_FOUND` | Organization ID does not exist |
-| 404 | `COUNTER_NOT_FOUND` | Counter ID does not exist |
-| 404 | `NO_WAITING_TOKENS` | Queue has no tokens in WAITING state |
-| 409 | `QUEUE_FULL` | Active token count >= max_capacity |
-| 409 | `QUEUE_PAUSED` | Queue status is PAUSED or CLOSED |
-| 409 | `COUNTER_NOT_AVAILABLE` | Counter availability != ONLINE |
-| 409 | `COUNTER_ALREADY_SERVING` | Counter already has a token assigned |
-| 409 | `EMAIL_ALREADY_EXISTS` | Duplicate email on user creation |
-| 409 | `CODE_ALREADY_EXISTS` | Duplicate organization code |
-| 422 | `VALIDATION_ERROR` | Jakarta Bean Validation failure |
-| 500 | `INTERNAL_SERVER_ERROR` | Unexpected server error |
+Untrusted client inputs are strictly validated at the controller boundary using `@Valid`.
 
----
+### 3.1 Authentication DTOs
+- **`LoginRequest`:**
+  - `email`: `@NotBlank`, `@Email`
+  - `password`: `@NotBlank`, `@Size(min=1, max=100)`
+- **`RefreshTokenRequest`:**
+  - `refreshToken`: `@NotBlank`
 
-## Exception Class Hierarchy
+### 3.2 Token DTOs
+- **`TokenJoinRequest`:**
+  - `orgId`: `@NotNull`, valid UUID
+  - `locationId`: `@NotNull`, valid UUID
+  - `serviceId`: `@NotNull`, valid UUID
+  - `customerName`: `@Size(max=255)` (Optional)
+  - `customerPhone`: `@Pattern(regexp = "^\\+?[1-9]\\d{1,14}$")` (E.164 phone format, Optional)
+  - `smsConsent`: `@NotNull` boolean
+  - `idempotencyKey`: `@Size(max=100)` (Optional)
 
-```
-AlignException (base, RuntimeException)
-├── ResourceNotFoundException (404)
-│   ├── TokenNotFoundException
-│   ├── QueueNotFoundException
-│   ├── LocationNotFoundException
-│   ├── OrganizationNotFoundException
-│   └── CounterNotFoundException
-├── BusinessException (400/409)
-│   ├── InvalidTokenStateException (400)
-│   ├── QueueFullException (409)
-│   ├── QueuePausedException (409)
-│   ├── CounterNotAvailableException (409)
-│   ├── CounterAlreadyServingException (409)
-│   ├── NoWaitingTokensException (404)
-│   └── StepAwayAlreadyUsedException (400)
-└── SecurityException (401/403)
-    ├── InvalidCredentialsException (401)
-    ├── TokenExpiredException (401)
-    └── UnauthorizedTenantAccessException (403)
-```
+### 3.3 Location DTOs
+- **`CreateLocationRequest` / `UpdateLocationRequest`:**
+  - `name`: `@NotBlank`, `@Size(max=255)`
+  - `address`: `@Size(max=1000)`
+  - `city`: `@Size(max=100)`
+  - `timezone`: `@NotBlank` (Valid IANA timezone, defaults to `UTC`)
+  - `enforceSchedule`: `@NotNull` boolean
 
----
+### 3.4 Service DTOs
+- **`CreateServiceRequest` / `UpdateServiceRequest`:**
+  - `name`: `@NotBlank`, `@Size(max=255)`
+  - `description`: `@Size(max=2000)`
+  - `enabled`: `@NotNull` boolean
+  - `isFastTrack`: `@NotNull` boolean
 
-## GlobalExceptionHandler Mappings
-
-| Exception | HTTP | Code |
-|-----------|------|------|
-| `ResourceNotFoundException` | 404 | `{entity}_NOT_FOUND` |
-| `InvalidTokenStateException` | 400 | `TOKEN_INVALID_STATE` |
-| `QueueFullException` | 409 | `QUEUE_FULL` |
-| `QueuePausedException` | 409 | `QUEUE_PAUSED` |
-| `CounterNotAvailableException` | 409 | `COUNTER_NOT_AVAILABLE` |
-| `CounterAlreadyServingException` | 409 | `COUNTER_ALREADY_SERVING` |
-| `InvalidCredentialsException` | 401 | `INVALID_CREDENTIALS` |
-| `UnauthorizedTenantAccessException` | 403 | `RESOURCE_FORBIDDEN` |
-| `MethodArgumentNotValidException` | 422 | `VALIDATION_ERROR` |
-| `DataIntegrityViolationException` | 409 | context-dependent |
-| `Exception` (catch-all) | 500 | `INTERNAL_SERVER_ERROR` |
-
----
-
-## What Is Never Exposed
-
-- Stack traces
-- SQL exception messages
-- Internal class names (e.g., `com.align.qms.service.TokenService`)
-- Database column names
-- Hibernate/JPA error details
-- JWT secret values
-- Any password or credential value
-
----
-
-**Last Updated:** 2026-09-05
-**Next Review:** After Phase 0 (GlobalExceptionHandler implementation)
+### 3.5 Queue DTOs
+- **`CreateQueueRequest` / `UpdateQueueRequest`:**
+  - `name`: `@NotBlank`, `@Size(max=255)`
+  - `tokenPrefix`: `@NotBlank`, `@Size(min=1, max=5)`, uppercase alphanumeric
+  - `maxCapacity`: `@Min(1)`, `@Max(10000)`
+  - `autoPauseAtCapacity`: `@NotNull` boolean

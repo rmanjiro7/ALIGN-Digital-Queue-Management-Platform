@@ -1,0 +1,36 @@
+{
+  "runId": "SYNC-01V9",
+  "timestamp": "2026-10-10T15:49:13.471Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-wjdg"
+    ],
+    "locations": [
+      "mock-uuid-lzqi"
+    ],
+    "services": [
+      "mock-uuid-1jf0"
+    ],
+    "queues": [
+      "mock-uuid-1kyc"
+    ],
+    "counters": [
+      "mock-uuid-oqon"
+    ],
+    "users": [
+      "mock-uuid-86yo",
+      "mock-uuid-mv38"
+    ],
+    "tokens": [
+      "mock-uuid-n97l",
+      "mock-uuid-niuy",
+      "mock-uuid-yjg3",
+      "mock-uuid-dnm5",
+      "mock-uuid-lt67"
+    ]
+  }
+}

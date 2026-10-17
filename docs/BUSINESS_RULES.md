@@ -1,8 +1,8 @@
 # ALIGN BACKEND — BUSINESS RULES
 
-**Version:** 1.1  
-**Last Updated:** 2026-09-01  
-**Status:** APPROVED
+**Version:** 2.0 (Phase 8 MVP & Operational Baseline)  
+**Last Updated:** 2026-10-13  
+**Status:** APPROVED & FULLY IMPLEMENTED ✅
 
 ---
 
@@ -866,6 +866,48 @@ public Token callNext(UUID counterId) {
 
 ---
 
+## BR-014: Operating Hours & Schedule Enforcement
+
+**Rule:** When a location's `enforce_schedule` flag is `true`, customer queue intake must only be accepted if the current location time falls within active operating hours defined in `location_schedules`.
+
+**Enforcement:**
+- Evaluated in `LocationScheduleService.isLocationOpen(locationId)`.
+- Rejects queue entry with HTTP 400 `LOCATION_CLOSED` if outside configured operating windows.
+- Admin bypass: Staff or admins manually generating tokens can bypass schedule constraints.
+
+---
+
+## BR-015: Inter-Queue Token Transfer Priority Inheritance
+
+**Rule:** When a customer token is transferred from one queue to another, the customer must not be penalized with a reset wait time.
+
+**Enforcement:**
+- `TokenTransferService`: Marks parent token `TRANSFERRED` and creates child token in target queue.
+- Child token inherits `priority_timestamp = parent.joined_at`.
+- `CALL NEXT` queries sort by `priority_timestamp ASC NULLS LAST, joined_at ASC`, ensuring transferred customers are called before newer arrivals in the destination queue.
+
+---
+
+## BR-016: SMS Consent & Phone Number Validation
+
+**Rule:** Customers opting in to SMS queue updates must provide explicit consent and an E.164 formatted telephone number.
+
+**Enforcement:**
+- `POST /api/v1/tokens`: If `smsConsent = true` and `phoneNumber` is null, empty, or invalid, the request must fail with HTTP 422 `VALIDATION_ERROR`.
+- If phone number is valid, `sms_consent = true` and `sms_consent_timestamp = now()` are recorded on the token entity.
+
+---
+
+## BR-017: Service Preparation Requirements
+
+**Rule:** Services can define mandatory and optional pre-service preparation checklist items.
+
+**Enforcement:**
+- Screen 04 presents required documentation checklists retrieved from `GET /api/v1/services/{id}/preparation-requirements`.
+- Prevents counter stalling by requiring acknowledgment of checklist prerequisites before customer confirms queue entry.
+
+---
+
 ## SUMMARY TABLE
 
 | Rule ID | Rule Title | Enforcement Level | Test Required |
@@ -883,9 +925,13 @@ public Token callNext(UUID counterId) {
 | BR-011 | Recall Operation Semantics | Service | ✅ Unit |
 | BR-012 | Queue Pause Behavior | Service | ✅ Integration |
 | BR-013 | Token Event Recording | Service | ✅ Integration |
+| BR-014 | Operating Hours Enforcement | Service | ✅ Integration |
+| BR-015 | Token Transfer Priority | Service, Database | ✅ Integration |
+| BR-016 | SMS Consent Validation | Controller, Entity | ✅ Integration |
+| BR-017 | Preparation Requirements | Service, Controller | ✅ Integration |
 
 ---
 
-**Document Status:** APPROVED  
-**Last Updated:** 2026-09-01  
-**Next Review:** After Phase 4 (Staff Operations) implementation
+**Document Status:** APPROVED & FULLY IMPLEMENTED ✅  
+**Last Updated:** 2026-10-13  
+**Verified In:** Phase 8 E2E Test Suite & Testcontainers Integration Suite

@@ -100,6 +100,17 @@ async function run() {
     await page.waitForSelector('#analytics-refresh-btn', { timeout: 5000 });
     await page.waitForSelector('#analytics-kpi-grid', { timeout: 10000 });
 
+    // Select Last 30 Days to load historical seeded tokens and render time-series & entity charts
+    await page.evaluate(() => {
+      const selects = Array.from(document.querySelectorAll('#analytics-filter-bar select'));
+      const dateSelect = selects.find(s => s.querySelector('option[value="LAST_30_DAYS"]'));
+      if (dateSelect) {
+        dateSelect.value = 'LAST_30_DAYS';
+        dateSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    await new Promise(r => setTimeout(r, 2000));
+
     const trafficChartFound = await page.evaluate(() => {
       return !!document.querySelector('.recharts-wrapper') || !!document.querySelector('.recharts-surface');
     });
@@ -154,6 +165,17 @@ async function run() {
 
     await page.waitForSelector('#analytics-refresh-btn', { timeout: 5000 });
     await page.waitForSelector('#analytics-traffic-chart', { timeout: 10000 });
+
+    // Select Last 30 Days to load historical seeded tokens for PLATFORM_ADMIN
+    await page.evaluate(() => {
+      const selects = Array.from(document.querySelectorAll('#analytics-filter-bar select'));
+      const dateSelect = selects.find(s => s.querySelector('option[value="LAST_30_DAYS"]'));
+      if (dateSelect) {
+        dateSelect.value = 'LAST_30_DAYS';
+        dateSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    await new Promise(r => setTimeout(r, 2000));
 
     // Platform admin should see org selector
     const hasOrgSelector = await page.evaluate(() => !!document.querySelector('#analytics-org-selector'));

@@ -832,11 +832,58 @@ When AI features are implemented:
 
 ---
 
+---
+
+## ADR-011: Structured Operating Hours & Timezone Evaluation
+
+**Date:** 2026-10-01  
+**Status:** ✅ APPROVED  
+**Context:** Locations operate in different timezones and customer queue intake must respect branch schedules.  
+**Decision:** Store IANA timezone strings and 7-day schedule intervals (`location_schedules`) with `enforce_schedule` boolean flag on locations. Evaluate current local time against active intervals before queue insertion.
+
+---
+
+## ADR-012: Token Transfer with Priority Inheritance
+
+**Date:** 2026-10-02  
+**Status:** ✅ APPROVED  
+**Context:** When a customer is redirected to a specialist queue, they should not lose their waiting priority relative to newly arriving customers.  
+**Decision:** When transferring a token, create a child token in the target queue and copy the parent token's `joined_at` timestamp into `priority_timestamp`. Sort `CALL NEXT` queries by `priority_timestamp ASC NULLS LAST, joined_at ASC`.
+
+---
+
+## ADR-013: Explicit Customer SMS Consent Capture
+
+**Date:** 2026-10-02  
+**Status:** ✅ APPROVED  
+**Context:** Regulatory compliance requires explicit consent before dispatching queue notification SMS messages.  
+**Decision:** Store `sms_consent` (boolean) and `sms_consent_timestamp` on `tokens`. If customer requests SMS consent without supplying a phone number, reject with HTTP 422.
+
+---
+
+## ADR-014: Service Preparation Requirements & Multi-Stage Journeys
+
+**Date:** 2026-10-03  
+**Status:** ✅ APPROVED  
+**Context:** Customers frequently reach counters missing required paperwork, wasting teller capacity.  
+**Decision:** Model `preparation_requirements` tied to services and `journeys` / `journey_stages` for complex multi-counter workflows. Present requirements in Screen 04 before queue confirmation.
+
+---
+
+## ADR-015: Windows WMI Process Detachment & Port Probing for Launcher
+
+**Date:** 2026-10-13  
+**Status:** ✅ APPROVED  
+**Context:** Spawning background Vite dev server processes from PowerShell terminates upon script completion due to job object cleanup, and probing `localhost` hangs on IPv6 `::1`.  
+**Decision:** Use Windows Management Instrumentation (`win32_process.Create`) to detach the background process and bind probing directly to IPv4 loopback `127.0.0.1`.
+
+---
+
 ## SUMMARY OF ACTIVE DECISIONS
 
 | ADR | Decision | Status | Impact |
-|-----|----------|--------|--------|
-| ADR-001 | Atomic counter token generation | ✅ APPROVED | Database schema, token service |
+|:---|:---|:---|:---|
+| ADR-001 | Atomic counter token generation | ✅ APPROVED | Database schema, queue counter |
 | ADR-002 | TokenEvent entity for lifecycle history | ✅ APPROVED | Database schema, event recording |
 | ADR-003 | Database-enforced idempotency | ✅ APPROVED | Token service, error handling |
 | ADR-004 | Active token state definition | ✅ APPROVED | Capacity checks, statistics |
@@ -846,8 +893,13 @@ When AI features are implemented:
 | ADR-008 | AFTER_COMMIT WebSocket events | ✅ APPROVED | Realtime consistency |
 | ADR-009 | State machine enforcement | ✅ APPROVED | Token entity, services |
 | ADR-010 | ML data foundation | ✅ APPROVED | Schema design, timestamps |
+| ADR-011 | Structured Operating Hours | ✅ APPROVED | Location schedules, timezone |
+| ADR-012 | Token Transfer Priority Inheritance | ✅ APPROVED | Priority sorting, queue transfers |
+| ADR-013 | Customer SMS Consent Capture | ✅ APPROVED | Compliance, token schema |
+| ADR-014 | Preparation Requirements & Journeys | ✅ APPROVED | Pre-service triage, customer UI |
+| ADR-015 | WMI Background Detachment Launcher | ✅ APPROVED | Automation, process orchestration |
 
 ---
 
-**Last Updated:** 2026-09-01  
-**Next Review:** After Phase 3 (Token Engine) implementation
+**Last Updated:** 2026-10-13  
+**Status:** ALL ARCHITECTURAL DECISIONS IMPLEMENTED & VERIFIED ✅

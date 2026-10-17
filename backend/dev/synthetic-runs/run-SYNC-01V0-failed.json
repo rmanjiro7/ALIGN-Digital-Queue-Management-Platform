@@ -1,0 +1,30 @@
+{
+  "runId": "SYNC-01V0",
+  "timestamp": "2026-10-10T13:13:29.850Z",
+  "config": {
+    "pilot": false,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-2pn7"
+    ],
+    "locations": [
+      "mock-uuid-kpgk"
+    ],
+    "services": [
+      "mock-uuid-yzzn"
+    ],
+    "queues": [
+      "mock-uuid-jh9o"
+    ],
+    "counters": [
+      "mock-uuid-yp2c"
+    ],
+    "users": [
+      "mock-uuid-de31",
+      "mock-uuid-wiml"
+    ],
+    "tokens": []
+  }
+}

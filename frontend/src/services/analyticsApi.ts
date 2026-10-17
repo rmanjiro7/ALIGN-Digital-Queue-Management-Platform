@@ -202,24 +202,44 @@ export const analyticsApi = {
         return res.json();
     },
 
-    // ── Legacy endpoints (preserved for Screen12OrgDashboard) ───────────────
+    // ── Legacy endpoints (adapted to current backend for Screen12OrgDashboard) ─
 
     getOverview: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<AnalyticsOverviewResponse> => {
-        const params = buildLegacyParams(startDate, endDate, orgId, locationId);
-        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/overview?${params.toString()}`);
-        return res.json();
+        const params = buildParams({ orgId, start: startDate, end: endDate, locationId });
+        const res = await apiClient.authenticatedFetch(`/api/v1/analytics/summary?${params.toString()}`);
+        if (!res.ok) throw new Error(`Overview request failed: ${res.status}`);
+        const data: AnalyticsSummaryResponse = await res.json();
+        return {
+            totalTokensIssued: data.operationalTokenVolume,
+            tokensCompleted: data.completedTokens,
+            tokensNoShow: data.noShows,
+            tokensCancelled: data.cancellations,
+            tokensExpired: 0,
+            tokensInProgress: data.currentQueueLoad,
+            avgWaitTimeSeconds: null,
+            avgWaitTimeSampleSize: 0,
+            avgServiceTimeSeconds: null,
+            avgServiceTimeSampleSize: 0,
+            avgJourneyTimeSeconds: null,
+            avgJourneyTimeSampleSize: 0,
+            noShowRate: data.noShowRate,
+            cancellationRate: data.cancellationRate,
+            peakHour: null,
+            peakHourTokenCount: null,
+        };
     },
 
     getTraffic: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<LegacyAnalyticsTrafficResponse> => {
-        const params = buildLegacyParams(startDate, endDate, orgId, locationId);
-        // Note: the backend no longer uses startDate/endDate, this will likely fail or require updating Screen12
+        const params = buildParams({ orgId, start: startDate, end: endDate, locationId });
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/traffic?${params.toString()}`);
+        if (!res.ok) throw new Error(`Traffic request failed: ${res.status}`);
         return res.json();
     },
 
     getServices: async (startDate: string, endDate: string, orgId?: string, locationId?: string): Promise<LegacyServiceAnalyticsResponse[]> => {
-        const params = buildLegacyParams(startDate, endDate, orgId, locationId);
+        const params = buildParams({ orgId, start: startDate, end: endDate, locationId });
         const res = await apiClient.authenticatedFetch(`/api/v1/analytics/services?${params.toString()}`);
+        if (!res.ok) throw new Error(`Services request failed: ${res.status}`);
         return res.json();
     },
 };

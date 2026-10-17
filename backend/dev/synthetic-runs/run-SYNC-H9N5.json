@@ -1,0 +1,68 @@
+{
+  "runId": "SYNC-H9N5",
+  "timestamp": "2026-10-11T08:17:49.625Z",
+  "status": "SUCCESS",
+  "config": {
+    "pilot": true,
+    "backdate": false,
+    "dryRun": false
+  },
+  "generated": {
+    "organizations": [
+      "b1a8cd10-9628-437f-9813-ae10c3c04057"
+    ],
+    "locations": [
+      "c511cc01-05f0-432b-b430-5424eb8ed292"
+    ],
+    "services": [
+      "34f4a561-f0d5-458f-ac9d-8b66abed3239"
+    ],
+    "queues": [
+      "994fba64-3a32-4c78-a854-0d339b4018c5"
+    ],
+    "counters": [
+      "5dc7f108-d150-4fcb-9a2a-f42a362305dc"
+    ],
+    "users": [
+      "73e90446-2bad-4685-b86d-9a4dde5a1c52",
+      "0cc32b2e-882e-442a-a180-e5358ce73e8b"
+    ],
+    "tokens": [
+      "670a6b3b-441e-4b8a-81ab-18deff432aa7",
+      "e50a3733-1342-4daa-8b9a-de1118bc1a87",
+      "a5ca5e89-61a9-4109-838e-cfc941e4b0ee",
+      "bc5576e7-53bd-44dd-b92e-12012699fdff",
+      "9ee267d4-3795-4089-8616-2d0337b907a2"
+    ]
+  },
+  "validation": {
+    "status": "PASSED",
+    "mode": "PILOT",
+    "backdated": false,
+    "checks": [
+      {
+        "orgId": "b1a8cd10-9628-437f-9813-ae10c3c04057",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-11T08:17:53.504Z",
+          "end": "2026-10-12T08:17:53.504Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      }
+    ]
+  }
+}

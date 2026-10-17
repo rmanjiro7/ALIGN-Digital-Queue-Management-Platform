@@ -1,0 +1,17 @@
+{
+  "runId": "SYNC-DXEE",
+  "timestamp": "2026-10-10T12:49:59.197Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

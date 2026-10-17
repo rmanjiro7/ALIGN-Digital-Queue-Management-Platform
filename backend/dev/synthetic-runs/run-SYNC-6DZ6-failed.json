@@ -1,0 +1,41 @@
+{
+  "runId": "SYNC-6DZ6",
+  "timestamp": "2026-10-11T04:50:13.622Z",
+  "status": "FAILED",
+  "config": {
+    "pilot": true,
+    "backdate": true,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-kbce"
+    ],
+    "locations": [
+      "mock-uuid-ycgy"
+    ],
+    "services": [
+      "mock-uuid-ecjj"
+    ],
+    "queues": [
+      "mock-uuid-84bi"
+    ],
+    "counters": [
+      "mock-uuid-125a"
+    ],
+    "users": [
+      "mock-uuid-eeso",
+      "mock-uuid-ru0f"
+    ],
+    "tokens": [
+      "mock-uuid-fcko"
+    ]
+  },
+  "validation": {
+    "status": "FAILED",
+    "mode": "PILOT",
+    "backdated": true,
+    "checks": []
+  },
+  "error": "isPilot is not defined"
+}

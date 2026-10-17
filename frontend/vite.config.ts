@@ -4,6 +4,9 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const restTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:8080';
+  const wsTarget = process.env.VITE_WS_PROXY_TARGET || 'ws://localhost:8080';
+
   return {
     envDir: '../',
     plugins: [react(), tailwindcss()],
@@ -20,11 +23,11 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
       proxy: {
         '/api': {
-          target: 'http://localhost:8080',
+          target: restTarget,
           changeOrigin: true,
         },
         '/ws': {
-          target: 'ws://localhost:8080',
+          target: wsTarget,
           ws: true,
         },
       },

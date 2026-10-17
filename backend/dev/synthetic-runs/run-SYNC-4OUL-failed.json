@@ -1,0 +1,19 @@
+{
+  "runId": "SYNC-4OUL",
+  "timestamp": "2026-10-10T11:54:26.347Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "e57155e8-311a-4f0e-9507-aa910639dcf9"
+    ],
+    "locations": [],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

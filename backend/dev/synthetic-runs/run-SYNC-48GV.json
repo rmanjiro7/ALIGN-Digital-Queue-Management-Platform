@@ -1,0 +1,114 @@
+{
+  "runId": "SYNC-48GV",
+  "timestamp": "2026-10-12T01:33:49.038Z",
+  "status": "SUCCESS",
+  "config": {
+    "pilot": true,
+    "backdate": true,
+    "dryRun": false
+  },
+  "generated": {
+    "organizations": [
+      "8b9272e4-5381-496f-8fea-67e6448ca98d"
+    ],
+    "locations": [
+      "62362a00-0e92-40e9-8b3e-2ccccd754aa8"
+    ],
+    "services": [
+      "446e8832-037b-4def-b8d3-d575ad1f50ae"
+    ],
+    "queues": [
+      "cc44b542-0ad5-4dc9-ada8-b83a44181d4f"
+    ],
+    "counters": [
+      "387b19ad-eb30-431a-812c-ba3dfc2106e2"
+    ],
+    "users": [
+      "b264ef80-1323-4838-be1c-9b41a7e160bf",
+      "b5af43f3-be74-401a-ba74-4b025f90941d"
+    ],
+    "tokens": [
+      "ded4e14c-a308-4087-a45d-f9f574860742",
+      "e17a18b1-e0d6-429e-948e-0712e2dcf6bc",
+      "6140c02b-13e2-4755-b488-82d20a6d5eb2",
+      "36ae9d10-9b11-4633-ad11-3b664d07ec5a",
+      "22db8bae-f9f5-4d1e-a1c7-83704a5f3247"
+    ]
+  },
+  "validation": {
+    "status": "PASSED",
+    "mode": "PILOT",
+    "backdated": true,
+    "checks": [
+      {
+        "orgId": "8b9272e4-5381-496f-8fea-67e6448ca98d",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-12T01:33:52.255Z",
+          "end": "2026-10-13T01:33:52.255Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      },
+      {
+        "orgId": "8b9272e4-5381-496f-8fea-67e6448ca98d",
+        "phase": "HISTORICAL_WINDOW",
+        "window": {
+          "start": "2026-10-06T01:33:52.426Z",
+          "end": "2026-10-08T01:33:52.426Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      },
+      {
+        "orgId": "8b9272e4-5381-496f-8fea-67e6448ca98d",
+        "phase": "CURRENT_WINDOW_ZERO_CHECK",
+        "window": {
+          "start": "2026-10-12T00:33:52.426Z",
+          "end": "2026-10-12T02:33:52.426Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "runId": "SYNC-JP12",
+  "timestamp": "2026-10-11T04:52:37.099Z",
+  "status": "SUCCESS",
+  "config": {
+    "pilot": true,
+    "backdate": true,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-1zs1"
+    ],
+    "locations": [
+      "mock-uuid-qi7y"
+    ],
+    "services": [
+      "mock-uuid-cqk1"
+    ],
+    "queues": [
+      "mock-uuid-s26e"
+    ],
+    "counters": [
+      "mock-uuid-2994"
+    ],
+    "users": [
+      "mock-uuid-t075",
+      "mock-uuid-jdex"
+    ],
+    "tokens": [
+      "mock-uuid-gon2",
+      "mock-uuid-va3d",
+      "mock-uuid-cjbn",
+      "mock-uuid-f941",
+      "mock-uuid-jib4"
+    ]
+  },
+  "validation": {
+    "status": "PASSED",
+    "mode": "PILOT",
+    "backdated": true,
+    "checks": [
+      {
+        "orgId": "mock-uuid-1zs1",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-11T04:52:37.100Z",
+          "end": "2026-10-12T04:52:37.100Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      },
+      {
+        "orgId": "mock-uuid-1zs1",
+        "phase": "HISTORICAL_WINDOW",
+        "window": {
+          "start": "2026-10-05T04:52:37.101Z",
+          "end": "2026-10-07T04:52:37.101Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "reported": {
+          "operationalTokenVolume": 5,
+          "completedTokens": 2,
+          "noShows": 1,
+          "cancellations": 1,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      },
+      {
+        "orgId": "mock-uuid-1zs1",
+        "phase": "CURRENT_WINDOW_ZERO_CHECK",
+        "window": {
+          "start": "2026-10-11T03:52:37.101Z",
+          "end": "2026-10-11T05:52:37.101Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0
+        },
+        "reported": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 1
+        },
+        "passed": true
+      }
+    ]
+  }
+}

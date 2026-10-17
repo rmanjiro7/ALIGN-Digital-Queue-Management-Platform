@@ -1,0 +1,21 @@
+{
+  "runId": "SYNC-P6EZ",
+  "timestamp": "2026-10-10T12:19:54.384Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "f0fbab8d-a0b9-4005-9249-5f7146603f7d"
+    ],
+    "locations": [
+      "5b0a68a8-67e0-4f38-a133-00727850db08"
+    ],
+    "services": [],
+    "queues": [],
+    "counters": [],
+    "users": [],
+    "tokens": []
+  }
+}

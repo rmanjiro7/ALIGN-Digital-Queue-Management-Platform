@@ -1,0 +1,29 @@
+{
+  "runId": "SYNC-7405",
+  "timestamp": "2026-10-10T16:07:42.877Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "427756a4-cc3d-4761-bb9f-6f2082f79dfb"
+    ],
+    "locations": [
+      "6ae4aa82-45b2-45d2-ae77-b4cd02a8f127"
+    ],
+    "services": [
+      "2f66ed76-cb49-4e74-bf78-8905b836db44"
+    ],
+    "queues": [
+      "bb2e175c-cd31-48ca-b261-40076be89c5b"
+    ],
+    "counters": [
+      "c8c12bfb-7300-4d61-87b3-d8df84b5fb87"
+    ],
+    "users": [
+      "28a0cb7d-0114-4788-a410-2aa778241ef9"
+    ],
+    "tokens": []
+  }
+}

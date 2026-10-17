@@ -1,0 +1,44 @@
+{
+  "fixtureId": "transfer-fixture-1791807887621",
+  "status": "COMPLETE",
+  "createdAt": "2026-10-12T12:24:47.621Z",
+  "updatedAt": "2026-10-12T12:24:48.203Z",
+  "apiUrl": "http://localhost:8080",
+  "orgId": "e2e00000-0000-0000-0000-000000000001",
+  "locationId": "e2e00000-0000-0000-0000-000000000002",
+  "serviceA": {
+    "id": "3a5b2bf5-81d3-4443-add3-baedb6fb16e1",
+    "name": "Isolated Transfer Service A - Run 20261012-175447"
+  },
+  "queueA": {
+    "id": "09b4159e-b4b6-4b69-8323-41c8b67bcd60",
+    "name": "Isolated Transfer Queue A"
+  },
+  "serviceB": {
+    "id": "86d6ea4e-75b6-4841-a424-1b7956f5a3b6",
+    "name": "Isolated Transfer Service B - Run 20261012-175447"
+  },
+  "queueB": {
+    "id": "c48e30dd-a49b-460c-a3e4-506286569204",
+    "name": "Isolated Transfer Queue B"
+  },
+  "counter1": {
+    "id": "cbb78120-806c-4217-b51a-cbd4fc0edaac",
+    "number": 5
+  },
+  "counter2": {
+    "id": "94c6377e-89d1-403f-9c60-b21f2cb69688",
+    "number": 6
+  },
+  "assignments": [
+    {
+      "counterId": "cbb78120-806c-4217-b51a-cbd4fc0edaac",
+      "serviceId": "3a5b2bf5-81d3-4443-add3-baedb6fb16e1"
+    },
+    {
+      "counterId": "94c6377e-89d1-403f-9c60-b21f2cb69688",
+      "serviceId": "86d6ea4e-75b6-4841-a424-1b7956f5a3b6"
+    }
+  ],
+  "unresolvedOutcome": null
+}

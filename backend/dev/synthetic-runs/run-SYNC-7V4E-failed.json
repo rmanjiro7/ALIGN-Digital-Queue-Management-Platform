@@ -1,0 +1,32 @@
+{
+  "runId": "SYNC-7V4E",
+  "timestamp": "2026-10-10T13:19:21.950Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "a522b70a-e502-42de-9654-d9791cb29860"
+    ],
+    "locations": [
+      "6c7107f1-0d11-422e-8cfc-b3e07c572d24"
+    ],
+    "services": [
+      "3a9a1e3b-df18-49df-84be-a036ef813053"
+    ],
+    "queues": [
+      "19ca287c-2a69-446f-bf2d-929ae9640f3d"
+    ],
+    "counters": [
+      "c3896508-08db-4696-9518-dfe74fe9677b"
+    ],
+    "users": [
+      "9ac1d8c3-ac9e-4c6e-ac84-9f8017a1fe56",
+      "9c6ddc01-03ae-40f1-afd3-6021190455f0"
+    ],
+    "tokens": [
+      "b54c57ec-e52b-4bf5-b379-e3853b2fd63d"
+    ]
+  }
+}

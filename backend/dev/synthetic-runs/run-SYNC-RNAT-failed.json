@@ -1,0 +1,32 @@
+{
+  "runId": "SYNC-RNAT",
+  "timestamp": "2026-10-10T14:52:20.402Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "962a2def-c9fb-4bc7-ac3e-aef52ed258bc"
+    ],
+    "locations": [
+      "9fef9340-2cfc-47e1-99dc-e0f0423d29d2"
+    ],
+    "services": [
+      "276befa5-11f7-4359-b8ec-78d534a15609"
+    ],
+    "queues": [
+      "a57cd98a-58a1-448c-bcf2-697d79209de5"
+    ],
+    "counters": [
+      "0538d43d-8f78-4b5d-99b1-4308d6f7bd8e"
+    ],
+    "users": [
+      "32bc8cfe-ca6c-4aa5-a1a1-de27939539d6",
+      "def539ed-eec1-47f2-9ef0-85036a7ba5f2"
+    ],
+    "tokens": [
+      "0a21eecc-a599-464d-a0e9-4f49814aea57"
+    ]
+  }
+}

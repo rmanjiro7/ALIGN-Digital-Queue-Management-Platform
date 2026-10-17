@@ -1,0 +1,338 @@
+{
+  "runId": "SYNC-0CSO",
+  "timestamp": "2026-10-12T15:37:02.173Z",
+  "status": "SUCCESS",
+  "config": {
+    "pilot": false,
+    "sample": true,
+    "backdate": true,
+    "dryRun": true
+  },
+  "generated": {
+    "organizations": [
+      "e428a256-58ab-4c75-a667-fda239fc4c17",
+      "6ae36996-61e9-4ac1-8242-8df4b7becf4d"
+    ],
+    "locations": [
+      "e10d7106-9f8b-438d-b3ff-de54de7e921b",
+      "0fa14e9d-f308-4d15-88ca-8f00d78cca1c",
+      "2f8b662f-f555-4f69-b45b-5e51a13d3bf7",
+      "ca0ecacc-3de6-412b-9961-bb27b84ecc6b"
+    ],
+    "services": [
+      "0047b1de-064c-46e6-85f6-7f8166aafc1f",
+      "b8fbc397-e51c-4a3b-9d7a-636bd444fb1f",
+      "58ab6c1a-fffb-44f7-b8af-5a4cd7123b21",
+      "3199059f-50f0-4316-b3ad-4eb80023a467",
+      "22ff8b70-71a6-41c8-9ac9-f0f32c77f585",
+      "03d5d653-5986-446d-9e8d-40f18e94ff1d",
+      "effa4970-69c9-404e-ab03-50ddd87b16be",
+      "aa96af6a-8eb2-42b4-bd6b-6615ed4f1ccf"
+    ],
+    "queues": [
+      "b9dcdb06-a4a5-43fa-b565-c9580baa770b",
+      "903f84c6-c559-4bbd-bf87-b1f28ef2440b",
+      "7ead5786-0d96-4576-8801-e57eb2c3c116",
+      "eb86071c-c439-4e7d-a985-85b0264d1f02",
+      "ca592f7e-ac83-4a3c-af54-3137e877c85d",
+      "3fd1b34d-0eb6-4822-92b9-039affa0d72d",
+      "0ba843be-4030-486a-9fa3-75099465851f",
+      "efea8c65-68d5-4f2f-bc36-456b2d754d3e"
+    ],
+    "counters": [
+      "994d5e2a-c5f6-45ed-83f2-086a75af2b67",
+      "e1c17d7e-fc0c-4229-b2a8-5de3914d26d9",
+      "48172608-09ab-46c2-90f1-b70b837b4313",
+      "95b229de-67af-458b-9d5c-93ddec90ade6",
+      "d0b98aa9-6574-489d-8ec5-d99cc2402332",
+      "967ae573-55ac-430e-a2be-67c937a3e48a",
+      "01d8784f-5aa2-470c-b837-ff1ebf0fce4f",
+      "a8a1ba5e-27c9-46cf-93f4-3cdd10786202",
+      "3446c769-8449-4c19-9d81-28d3d5264627",
+      "e2366728-ed28-4720-9e8a-112f2b66a5d5",
+      "c93b035d-5857-42a5-a936-3f534bebc634",
+      "1df25a0c-2b2d-4344-bcfc-746d9f907964",
+      "d85e1728-8e1e-46c8-911e-1e1c3f6fd6c4",
+      "1490a49e-0993-4dfd-8f77-babd20401060",
+      "f6a99168-cccf-4ab4-ac60-dcef1a021e23",
+      "7153adc4-4fbc-47f7-bbd8-7af5a54a7bfc"
+    ],
+    "users": [
+      "de64e4b5-80b8-46c5-adc2-d59aa77b19ce",
+      "1863f7ee-1294-4409-a7bd-1cadbc32ea69",
+      "12c25ec7-cf8b-4412-bf27-a40f212d5ee0",
+      "2849f993-0b5f-493a-8560-97eaa461da88",
+      "fe2d70e6-9d9d-443a-a8d8-542c398b3fe5",
+      "c52375fd-e2c3-483d-8c93-262bad208ac5",
+      "8f935473-a5cf-497c-a09d-2aaac2b8568c",
+      "157d9f18-235e-4294-995a-85a31cae9d4a",
+      "10b3ec46-7097-4f4f-9dac-37bb75ebe083",
+      "dfa202ed-9bce-4f43-8a54-25edc6771921",
+      "a205943e-280e-40e6-b939-62939f44ceac",
+      "c38668f5-5ac5-4ff4-a80c-141ef4dfe7c0",
+      "c0ed3737-7cba-4832-914f-d031d9b2751b",
+      "644beb9d-195c-4a4b-9cb1-3f3f536bad70",
+      "06646bef-b3d4-4e0a-a8ed-81e230fd6cf4",
+      "2ff87340-13d8-4bd9-89b7-7f000bdc426b",
+      "a309b675-324f-47b5-9b20-33ec28d516ef",
+      "1aac7ad8-ab1a-4c7b-837c-90405b70c49f",
+      "436ad739-c11e-47d1-8749-7d8aa57d3715",
+      "e7a60402-69c9-4a7f-9326-6aadb425266b",
+      "943f22fb-3282-48d3-a330-c6e2c691a0fb",
+      "bdfefb1e-c0c5-4b1b-b665-c4b031915e50",
+      "de839e2f-6545-455d-a68b-1619f73f20fb",
+      "7a46628a-9b68-4cb4-9ebe-f47e809d7075",
+      "fc0f6a25-dfe1-421d-98fb-1ac9eae523a6",
+      "ba555166-721e-46d0-bee5-c0d6b8f80303",
+      "ad40d535-56df-40bd-944f-30532012dd24",
+      "c2290502-5fa4-4064-9028-30a15029f45b"
+    ],
+    "tokens": [
+      "be9654e2-6144-41d0-850d-de8182a3d239",
+      "5da74df4-77fd-4e67-88ce-fad196e4fdbc",
+      "8cee81ce-a164-4307-85e5-b9e8daab53d9",
+      "b2dc012e-6a99-4302-81f6-d7f82421e284",
+      "29f5503b-f3ea-4492-9457-071a86b21c1d",
+      "783fcabd-4287-4d66-b8e2-b82353deb13c",
+      "6761f8af-904b-4690-a98d-b82fb08f1ac0",
+      "8c5db3df-81ce-47b3-9f3a-fa6a6970e3cf",
+      "afc0929b-d21e-492e-a8d2-08667021b1a3",
+      "a2d8db3c-c09a-42af-87ce-529095258c4c",
+      "cac7ea0d-75e8-4ac8-a575-52b3a722a8e5",
+      "cf6c0af9-039a-4b1b-bea7-2ce11eb71144",
+      "13198a84-b6b0-449f-a66c-a805fece7eb9",
+      "db13d8dd-2ba2-456b-aec4-76d5f4e0380b",
+      "c4f07662-fb8a-40fb-afe5-220d24b0782a",
+      "cfc9bdba-9ae0-4154-adf4-2cfbd837ae38",
+      "77595c7e-df8e-4d10-95fb-958588f3c693",
+      "23e3a44d-1be0-4ba3-8278-d11f7ebfc1f6",
+      "2b9948a0-2f85-4434-a6e6-8d23ad520c9d",
+      "6ef4d1d1-87b9-4c73-a91e-31232dd1dada",
+      "5687f200-bda9-4066-a267-6222cc407d9e",
+      "d768797e-a098-4753-8947-39401c6324b3",
+      "adbaa788-3d05-45d1-9e7e-dc89d9292099",
+      "9bc53a06-9483-4994-9c79-172001877b9b",
+      "a87cce63-22e2-4e16-b551-ffe2c48f7908",
+      "ea055985-c8ed-4f32-a11f-99e941a63330",
+      "fc0e13d5-fc72-40bb-bd91-52b437c3cabb",
+      "95309fab-2623-456d-8b21-e8693be37c5e",
+      "de850a17-74b1-4457-b88b-15cb6bb4fde5",
+      "0f01db68-bb1f-4c74-b97c-7c3736a47b13",
+      "92c7be66-fc3a-4bf5-a277-9a8550cbfa02",
+      "c458052d-1581-4836-b956-c4f4f0efed83",
+      "84cbe765-5f90-436e-b777-48bd6e02528c",
+      "013cea5a-6167-4be5-b6b6-d6fef1b6f116",
+      "df9a53e5-8447-45b3-a34b-bd0a21e6c6d6",
+      "6da35e9e-f61d-4864-95a5-a129fafffe5e",
+      "3d5ba184-fc3d-4e92-82f5-fcfc4293761a",
+      "7b270e27-c693-437d-b96a-1fff6fac58cb",
+      "20e98264-dfc0-4fce-b7aa-7ed30d338d37",
+      "e342da51-3530-47ab-b238-c670cb0a8296",
+      "940bc46a-1ea3-4d50-aff5-bde904ed20fd",
+      "09a8e310-20fc-498f-ac2a-7cb13ffb1018",
+      "1769b7fe-dc3b-4376-a277-e4cc259a6e99",
+      "4949fdc3-c31d-4d26-810d-7cb5cd82034e",
+      "29f03894-adc1-4e75-bc0f-f1e24bf96d12",
+      "8ce64917-d69e-462a-bc99-58716c48c4de",
+      "6d15a4e1-0bdc-45dd-a34d-f70b77735021",
+      "d60521b1-2e7f-4845-8306-ee8cf0e9f1f6",
+      "84255306-3e7f-464e-8af1-333bd7e49483",
+      "5b4c6b0e-2801-4f88-858f-35e56dad9ccc",
+      "aa6a80d9-c8b9-482e-a86d-88b2644a369b",
+      "1278a4ad-b05b-4fab-8a27-761052ec74b0",
+      "dbbaddd6-37b0-4929-81ab-48322b1e843e",
+      "b1c5f093-793b-4eec-a269-a08da44f7d29",
+      "31ef3235-0fa6-409d-8b23-1fbf80ef33f7",
+      "50efc427-0053-4ed6-ad3a-7e4a3db90c76",
+      "4de91676-09f5-4c75-b4db-211fb35af0ed",
+      "6059c464-1b9f-4588-b3b8-e6f62a5d41a7",
+      "5f6b2520-e820-4aea-a400-dee57f2af5c5",
+      "6c6b9f2e-6e7c-4cd5-9e46-c5ec25a864ba",
+      "c3b1704f-52e6-4df6-8971-036e6a2f26de",
+      "16560885-51e0-4348-b543-942b8040e09d",
+      "7f53ef95-ce77-461a-8e71-0a9855ea824b",
+      "36aff393-6f92-4f70-aea9-490f13e2cc63",
+      "fa401521-3aa7-4705-9f35-6a165b8eaff0",
+      "020afca0-8a85-46a0-bf7d-5a0eac943d7a",
+      "d9e9d199-37f8-431a-a23e-e9bd772f638d",
+      "182fb569-6624-41d4-9ed2-311a016f2f77",
+      "e0c557da-ce1a-431a-bf91-6dcefacc6d1f",
+      "131e4dfd-ce20-4cee-aaa3-c438a15d6879",
+      "acbd039d-bcc3-4899-9e62-62b2abe101c6",
+      "b9b8333d-9cff-42ea-9adc-a3d0fcfaebb2",
+      "56bd6c5c-3b4c-4d25-b6cf-c8b558228d33",
+      "03182dfe-b8a3-45d0-af0d-970ae08af660",
+      "f99a591e-f6d6-4004-a7ba-7ce8db11a72f",
+      "8accdc96-61b7-47cb-861c-f9abba8332fa",
+      "e7de34aa-0315-45a0-ab1e-4d03f12f11c5",
+      "d606f7d7-c600-4c76-b638-d68556e4a414",
+      "9cc38123-063a-432a-9cc9-a40d1225818d",
+      "d36b07e8-58a2-4eed-981c-12dfcac99a97",
+      "7c4923d3-e2ae-4073-90b4-e6c300066b12",
+      "330bfd9b-8e0e-4efb-873c-1d334ed44a61",
+      "c8d57a00-9968-4ef3-a2e5-a051bcd9ffce",
+      "be415cf1-d83e-43f5-8be3-ae2409dd897d",
+      "c7a109fb-3d2a-4ff7-b2b6-c810334d1e9b",
+      "a8084c8a-259a-466e-b508-f272e25ecdea",
+      "649a3f55-2b7c-425b-9b6f-408d8a0b8df4",
+      "93850b0f-859a-4791-b1cb-8eb2e98bf55f",
+      "dcb472ba-1954-4244-804f-c8fd1b38336a",
+      "7ed98717-d13c-4830-9bba-f36b29ac2d1f",
+      "bb9e3afb-37de-47ad-abf9-65f67610f419",
+      "cfadcdbf-b3c3-454a-83b7-83a00337f4e8",
+      "c5f2b678-aa5c-41ea-8e00-2421c98391e3",
+      "6ed1e49a-32c9-45e7-a75d-b5d0a8dfe742",
+      "b2adac0a-96ad-4f0e-858c-f217c8c0b4ff",
+      "9e82f450-dd36-4bbc-bbec-8728ad61a333",
+      "64d9b8bd-b82a-4f88-bf82-afea595efc1d",
+      "fdde8550-bc60-4749-bfc2-aac584ac7ed7",
+      "2f068aa7-bbf5-43ec-8eba-61d435f0d430",
+      "4ab65074-d451-4ede-8495-10ca81324c13"
+    ]
+  },
+  "validation": {
+    "status": "PASSED",
+    "mode": "SAMPLE",
+    "backdated": true,
+    "checks": [
+      {
+        "orgId": "e428a256-58ab-4c75-a667-fda239fc4c17",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-12T15:37:02.184Z",
+          "end": "2026-10-13T15:37:02.184Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 8,
+          "cancellations": 3,
+          "currentQueueLoad": 4
+        },
+        "reported": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 8,
+          "cancellations": 3,
+          "currentQueueLoad": 4
+        },
+        "passed": true
+      },
+      {
+        "orgId": "6ae36996-61e9-4ac1-8242-8df4b7becf4d",
+        "phase": "OPERATIONAL_WINDOW",
+        "window": {
+          "start": "2026-09-12T15:37:02.184Z",
+          "end": "2026-10-13T15:37:02.184Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 7,
+          "cancellations": 2,
+          "currentQueueLoad": 6
+        },
+        "reported": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 7,
+          "cancellations": 2,
+          "currentQueueLoad": 6
+        },
+        "passed": true
+      },
+      {
+        "orgId": "e428a256-58ab-4c75-a667-fda239fc4c17",
+        "phase": "HISTORICAL_WINDOW",
+        "window": {
+          "start": "2026-10-06T15:37:02.186Z",
+          "end": "2026-10-08T15:37:02.186Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 8,
+          "cancellations": 3,
+          "currentQueueLoad": 4
+        },
+        "reported": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 8,
+          "cancellations": 3,
+          "currentQueueLoad": 4
+        },
+        "passed": true
+      },
+      {
+        "orgId": "e428a256-58ab-4c75-a667-fda239fc4c17",
+        "phase": "CURRENT_WINDOW_ZERO_CHECK",
+        "window": {
+          "start": "2026-10-12T14:37:02.186Z",
+          "end": "2026-10-12T16:37:02.186Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 4
+        },
+        "reported": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 4
+        },
+        "passed": true
+      },
+      {
+        "orgId": "6ae36996-61e9-4ac1-8242-8df4b7becf4d",
+        "phase": "HISTORICAL_WINDOW",
+        "window": {
+          "start": "2026-10-06T15:37:02.186Z",
+          "end": "2026-10-08T15:37:02.186Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 7,
+          "cancellations": 2,
+          "currentQueueLoad": 6
+        },
+        "reported": {
+          "operationalTokenVolume": 50,
+          "completedTokens": 35,
+          "noShows": 7,
+          "cancellations": 2,
+          "currentQueueLoad": 6
+        },
+        "passed": true
+      },
+      {
+        "orgId": "6ae36996-61e9-4ac1-8242-8df4b7becf4d",
+        "phase": "CURRENT_WINDOW_ZERO_CHECK",
+        "window": {
+          "start": "2026-10-12T14:37:02.186Z",
+          "end": "2026-10-12T16:37:02.186Z"
+        },
+        "expected": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 6
+        },
+        "reported": {
+          "operationalTokenVolume": 0,
+          "completedTokens": 0,
+          "noShows": 0,
+          "cancellations": 0,
+          "currentQueueLoad": 6
+        },
+        "passed": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "runId": "SYNC-G2G3",
+  "timestamp": "2026-10-10T15:20:52.127Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "mock-uuid-31xz"
+    ],
+    "locations": [
+      "mock-uuid-xcw6"
+    ],
+    "services": [
+      "mock-uuid-n9s8"
+    ],
+    "queues": [
+      "mock-uuid-w4i7"
+    ],
+    "counters": [
+      "mock-uuid-vq0z"
+    ],
+    "users": [
+      "mock-uuid-d3pz",
+      "mock-uuid-qx6o"
+    ],
+    "tokens": [
+      "mock-uuid-cbro",
+      "mock-uuid-le63",
+      "mock-uuid-35qm",
+      "mock-uuid-airn",
+      "mock-uuid-eo7d"
+    ]
+  }
+}

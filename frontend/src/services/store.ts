@@ -609,7 +609,7 @@ const INITIAL_ALERTS: SystemAlert[] = [
   }
 ];
 
-const INITIAL_STATE: AppState = {
+const createInitialState = (): AppState => ({
   currentRole: 'CUSTOMER',
   currentScreen: 'SCREEN_01_SPLASH',
   selectedOrgId: 'e2e00000-0000-0000-0000-000000000001',
@@ -617,15 +617,15 @@ const INITIAL_STATE: AppState = {
   selectedServiceId: 'e2e00000-0000-0000-0000-000000000003',
   activeCustomerTokenId: 'tok-042',
   lastCalledTokenId: null,
-  currentStaffUser: INITIAL_STAFF[0],
-  tenants: INITIAL_TENANTS,
-  locations: INITIAL_LOCATIONS,
-  services: INITIAL_SERVICES,
-  queues: INITIAL_QUEUES,
-  tokens: INITIAL_TOKENS,
-  counters: INITIAL_COUNTERS,
-  staffUsers: INITIAL_STAFF,
-  announcements: INITIAL_ANNOUNCEMENTS,
+  currentStaffUser: { ...INITIAL_STAFF[0] },
+  tenants: [...INITIAL_TENANTS],
+  locations: [...INITIAL_LOCATIONS],
+  services: [...INITIAL_SERVICES],
+  queues: INITIAL_QUEUES.map(q => ({ ...q })),
+  tokens: INITIAL_TOKENS.map(t => ({ ...t })),
+  counters: INITIAL_COUNTERS.map(c => ({ ...c })),
+  staffUsers: INITIAL_STAFF.map(s => ({ ...s })),
+  announcements: INITIAL_ANNOUNCEMENTS.map(a => ({ ...a })),
   globalRules: {
     'e2e00000-0000-0000-0000-000000000001': {
       autoPauseAtCapacity: true,
@@ -633,7 +633,7 @@ const INITIAL_STATE: AppState = {
       maxWaitThresholdMins: 45,
     }
   },
-  alerts: INITIAL_ALERTS,
+  alerts: INITIAL_ALERTS.map(a => ({ ...a })),
   auditLogs: [
     {
       id: 'log-1',
@@ -647,12 +647,14 @@ const INITIAL_STATE: AppState = {
       details: 'Assigned to Counter 3',
     }
   ],
-  historyTokens: INITIAL_HISTORY,
+  historyTokens: INITIAL_HISTORY.map(h => ({ ...h })),
   queueWarnings: [],
   authStatus: 'UNAUTHENTICATED',
   currentUser: null,
   syncStatus: 'DISCONNECTED',
-};
+});
+
+const INITIAL_STATE: AppState = createInitialState();
 
 type Listener = (state: AppState) => void;
 
@@ -675,26 +677,41 @@ export class QueueStore {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        const mergedCounters = INITIAL_COUNTERS.map(defaultCounter => {
-          const savedCounter = parsed.counters?.find((c: CounterItem) => c.number === defaultCounter.number);
-          if (!savedCounter) return defaultCounter;
-          return {
-            ...defaultCounter,
-            ...savedCounter,
-            availability: savedCounter.availability || defaultCounter.availability || 'ONLINE',
-          };
-        });
+        const isRestoring = !!sessionStorage.getItem('refresh_token');
+        const isDemo = !isRestoring && parsed.authStatus !== 'AUTHENTICATED' && parsed.selectedLocationId === 'e2e00000-0000-0000-0000-000000000002';
+
+        let effectiveCounters: CounterItem[];
+        if (isDemo) {
+          effectiveCounters = INITIAL_COUNTERS.map(defaultCounter => {
+            const savedCounter = parsed.counters?.find((c: CounterItem) => c.number === defaultCounter.number);
+            if (!savedCounter) return { ...defaultCounter };
+            return {
+              ...defaultCounter,
+              ...savedCounter,
+              availability: savedCounter.availability || defaultCounter.availability || 'ONLINE',
+            };
+          });
+        } else {
+          effectiveCounters = Array.isArray(parsed.counters) ? parsed.counters : [];
+        }
+
+        const effectiveServices = (Array.isArray(parsed.services) ? parsed.services : INITIAL_SERVICES).map((s: ServiceItem) => ({
+          ...s,
+          associatedQueues: Array.isArray(s?.associatedQueues) ? s.associatedQueues : []
+        }));
 
         return {
-          ...INITIAL_STATE,
+          ...createInitialState(),
           ...parsed,
-          counters: mergedCounters,
+          authStatus: isRestoring ? 'AUTH_RESTORING' : (parsed.authStatus === 'AUTHENTICATED' ? 'UNAUTHENTICATED' : parsed.authStatus),
+          counters: effectiveCounters,
+          services: effectiveServices,
         };
       }
     } catch {
       // fallback
     }
-    return INITIAL_STATE;
+    return createInitialState();
   }
 
   private saveState() {
@@ -746,6 +763,16 @@ export class QueueStore {
     this.state.authStatus = status;
     if (user !== undefined) {
       this.state.currentUser = user;
+      if (status === 'AUTHENTICATED' && user) {
+        if (user.orgId) {
+          this.state.selectedOrgId = user.orgId;
+        }
+        if (user.locationId) {
+          this.state.selectedLocationId = user.locationId;
+          this.state.tokens = [];
+          this.state.counters = [];
+        }
+      }
     }
     this.saveState();
   }
@@ -762,7 +789,10 @@ export class QueueStore {
   }
 
   public setServices(services: ServiceItem[]) {
-    this.state.services = services;
+    this.state.services = (services || []).map(s => ({
+      ...s,
+      associatedQueues: Array.isArray(s?.associatedQueues) ? s.associatedQueues : []
+    }));
     this.saveState();
   }
 
@@ -791,6 +821,8 @@ export class QueueStore {
     }
     if (!snapshot || snapshot.locationId !== expectedLocationId) {
       this.state.syncStatus = 'ERROR';
+      this.state.tokens = [];
+      this.state.counters = [];
       this.saveState();
       return;
     }
@@ -803,13 +835,27 @@ export class QueueStore {
     }));
     this.state.tokens = mappedTokens;
     
-    if (snapshot.counters) {
-      snapshot.counters.forEach((snapCounter: any) => {
-        const c = this.state.counters.find(x => x.number === snapCounter.number);
-        if (c) {
-          Object.assign(c, snapCounter);
-        }
-      });
+    if (snapshot.counters !== undefined) {
+      const countersList = Array.isArray(snapshot.counters) ? snapshot.counters : [];
+      this.state.counters = countersList.map((snapCounter: any) => {
+        const existing = this.state.counters.find(x => x.id === snapCounter.id || x.number === snapCounter.number);
+        return {
+          id: snapCounter.id,
+          orgId: snapCounter.orgId || this.state.selectedOrgId,
+          locationId: snapCounter.locationId || expectedLocationId,
+          number: snapCounter.number,
+          name: snapCounter.name || (existing && existing.locationId === expectedLocationId ? existing.name : `Counter ${snapCounter.number}`),
+          status: snapCounter.status || (existing && existing.locationId === expectedLocationId ? existing.status : 'Active'),
+          availability: snapCounter.availability || 'ONLINE',
+          currentServingTokenId: snapCounter.currentServingTokenId,
+          serviceStartTime: snapCounter.serviceStartTime,
+          assignedStaffId: snapCounter.assignedStaffId || (existing && existing.locationId === expectedLocationId ? existing.assignedStaffId : undefined),
+          assignedStaffName: snapCounter.assignedStaffName || (existing && existing.locationId === expectedLocationId ? existing.assignedStaffName : undefined),
+          supportedServiceNames: snapCounter.supportedServiceNames || (existing && existing.locationId === expectedLocationId ? existing.supportedServiceNames : undefined),
+        };
+      }).sort((a: CounterItem, b: CounterItem) => a.number - b.number);
+    } else if (this.state.authStatus === 'AUTHENTICATED' || expectedLocationId !== 'e2e00000-0000-0000-0000-000000000002') {
+      this.state.counters = [];
     }
 
     if (snapshot.services) {
@@ -821,16 +867,6 @@ export class QueueStore {
       }));
     }
 
-    try {
-      if (this.state.currentRole === 'STAFF' || this.state.currentRole === 'ORG_ADMIN' || this.state.currentRole === 'PLATFORM_ADMIN') {
-        const { apiClient } = await import('./apiClient');
-        const warnings = await apiClient.getQueueWarnings(expectedLocationId);
-        this.state.queueWarnings = warnings;
-      }
-    } catch (e) {
-      console.error('Failed to fetch queue warnings during snapshot sync', e);
-    }
-
     // Replay buffer
     const buffer = [...this.eventBuffer];
     this.eventBuffer = [];
@@ -838,37 +874,51 @@ export class QueueStore {
 
     this.state.syncStatus = 'LIVE';
     this.saveState();
+
+    if (this.state.currentRole === 'STAFF' || this.state.currentRole === 'ORG_ADMIN' || this.state.currentRole === 'PLATFORM_ADMIN') {
+      import('./apiClient').then(({ apiClient }) => {
+        return apiClient.getQueueWarnings(expectedLocationId);
+      }).then(warnings => {
+        if (warnings && this.syncGenerationId === generationId) {
+          this.state.queueWarnings = warnings;
+          this.saveState();
+        }
+      }).catch(e => {
+        console.error('Failed to fetch queue warnings during snapshot sync', e);
+      });
+    }
   }
 
-  public handleRealtimeEvent(event: any, expectedLocationId: string) {
-    if (!event) return;
+  public handleRealtimeEvent(event: any, expectedLocationId: string): boolean {
+    if (!event) return false;
 
     // Warning events are identified by warningType and do not have eventId/eventType
     if (event.warningType === 'QUEUE_CAPACITY_WARNING' || event.warningType === 'QUEUE_WAIT_WARNING') {
       // Validate warning payload
       if (!event.queueId || (event.transition !== 'TRIGGERED' && event.transition !== 'CLEARED')) {
-        return; // Invalid warning payload
+        return false; // Invalid warning payload
       }
 
-      if (event.locationId !== expectedLocationId) return;
+      if (event.locationId !== expectedLocationId) return false;
 
       // Warning events don't have eventId for deduplication, process directly
       if (this.state.syncStatus === 'SNAPSHOT_SYNC') {
         this.eventBuffer.push(event);
+        return false;
       } else {
         this.processLiveEvent(event);
         this.saveState();
+        return true;
       }
-      return;
     }
 
     // Token Structural Validation (for all non-warning events)
-    if (!event.eventId || !event.eventType || !event.tokenId) return;
-    if (event.locationId !== expectedLocationId) return;
+    if (!event.eventId || !event.eventType || !event.tokenId) return false;
+    if (event.locationId !== expectedLocationId) return false;
 
     // Duplicate Check
     if (this.processedEvents.includes(event.eventId)) {
-      return;
+      return false;
     }
     this.processedEvents.push(event.eventId);
     if (this.processedEvents.length > 500) {
@@ -877,9 +927,11 @@ export class QueueStore {
 
     if (this.state.syncStatus === 'SNAPSHOT_SYNC') {
       this.eventBuffer.push(event);
+      return false;
     } else {
       this.processLiveEvent(event);
       this.saveState();
+      return true;
     }
   }
 
@@ -1590,9 +1642,13 @@ export class QueueStore {
   }
 
   public resetDemoData() {
-    this.state = { ...INITIAL_STATE };
+    this.state = createInitialState();
     this.saveState();
   }
 }
 
 export const queueStore = new QueueStore();
+if (typeof window !== 'undefined') {
+  (window as any).queueStore = queueStore;
+  (window as any).getAppState = () => queueStore.getState();
+}

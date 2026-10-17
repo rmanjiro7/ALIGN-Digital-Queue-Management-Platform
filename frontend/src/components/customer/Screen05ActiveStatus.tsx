@@ -1,24 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Radio, 
-  Clock, 
-  Users, 
-  ShieldCheck, 
-  AlertTriangle, 
-  LogOut, 
-  History, 
-  Volume2, 
-  CheckCircle2, 
-  CornerDownRight,
-  ArrowRight,
-  Coffee,
-  HelpCircle,
-  BellRing
-} from 'lucide-react';
 import { queueStore, AppState } from '../../services/store';
 import { wsClient } from '../../services/websocketClient';
 import { apiClient } from '../../services/apiClient';
 import { QueueToken } from '../../types';
+import { Icon } from '../common/Icon';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { PixelGridLoader } from '../common/PixelGridLoader';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Screen05ActiveStatusProps {
   appState: AppState;
@@ -55,7 +46,7 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
 
   // Handle Token Transfer Recovery
   useEffect(() => {
-    if (token?.state === 'TRANSFERRED' && token?.realtimeToken && !isRecovering) {
+    if (token?.state === 'TRANSFERRED' && token?.id && UUID_REGEX.test(token.id) && token?.realtimeToken && !isRecovering) {
       setIsRecovering(true);
       setRecoveryError(null);
       apiClient.transferRecovery(token.id, token.realtimeToken)
@@ -75,15 +66,13 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
 
   // RT3: Customer Realtime Integration
   useEffect(() => {
-    if (!token?.id || !token?.realtimeToken) {
+    if (!token?.id || !UUID_REGEX.test(token.id) || !token?.realtimeToken) {
       return;
     }
 
     wsClient.connect(
       () => {
         wsClient.subscribeToToken(token.id, (msg) => {
-          // Pass the event to the queueStore to process it
-          // The event payload will contain the token data
           queueStore.handleRealtimeEvent(msg, token.locationId);
         });
       },
@@ -103,13 +92,12 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
 
   // ETA Hardening: Periodically fetch the latest token position/ETA from backend
   useEffect(() => {
-    if (!token?.id || token.state !== 'WAITING') return;
+    if (!token?.id || !UUID_REGEX.test(token.id) || token.state !== 'WAITING') return;
 
     const fetchPosition = async () => {
       try {
         const pos = await apiClient.getTokenPosition(token.id);
         
-        // Update the token directly in the store to reflect backend ETA
         const storeToken = appState.tokens.find(t => t.id === token.id);
         if (storeToken) {
           let hasChanges = false;
@@ -131,7 +119,6 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
           }
           
           if (hasChanges) {
-            // Trigger store re-render by calling an existing method that calls saveState()
             queueStore.setActiveCustomerToken(token.id);
           }
         }
@@ -141,7 +128,7 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
     };
 
     fetchPosition();
-    const interval = setInterval(fetchPosition, 15000); // 15 seconds
+    const interval = setInterval(fetchPosition, 15000);
     
     return () => clearInterval(interval);
   }, [token?.id, token?.state, appState.tokens]);
@@ -171,33 +158,37 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
   if (!token) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center space-y-8">
+        <Card className="max-w-md w-full text-center p-8 space-y-6">
           <div className="space-y-3">
-            <div className="w-12 h-12 border border-border-strong rounded flex items-center justify-center mx-auto text-content-muted">
-              <Clock className="w-6 h-6" />
+            <div className="w-12 h-12 border border-[#e6e5e0] bg-[#fafaf7] rounded-md flex items-center justify-center mx-auto text-[#807d72]">
+              <Icon icon="lucide:clock" className="w-6 h-6" />
             </div>
-            <h2 className="text-2xl font-semibold text-content-primary tracking-tight">
+            <h2 className="text-xl font-semibold text-[#26251e] tracking-tight">
               No Active Token
             </h2>
-            <p className="text-sm text-content-secondary max-w-xs mx-auto leading-relaxed">
-              You do not currently have an active queue token.
+            <p className="text-sm text-[#5a5852] max-w-xs mx-auto leading-relaxed">
+              You do not currently have an active line token in the queue system.
             </p>
           </div>
-          <div className="flex flex-col gap-3 pt-4">
-            <button
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              variant="primary"
+              size="lg"
               onClick={() => queueStore.setScreen('SCREEN_02_DISCOVERY')}
-              className="w-full py-4 bg-content-primary text-base font-semibold text-xs uppercase tracking-widest hover:bg-content-secondary transition-colors cursor-pointer"
+              className="w-full text-xs uppercase tracking-widest font-semibold"
             >
-              Join a Queue
-            </button>
-            <button
+              Browse Queues
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
-              className="w-full py-4 bg-surface border border-border-subtle text-content-primary font-semibold text-xs uppercase tracking-widest hover:bg-surface-interactive transition-colors cursor-pointer"
+              className="w-full text-xs uppercase tracking-widest font-semibold"
             >
-              View History
-            </button>
+              View Ticket History
+            </Button>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -207,23 +198,21 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
   const isTransferred = token.state === 'TRANSFERRED';
 
   return (
-    <div className={`min-h-[calc(100vh-4rem)] flex flex-col transition-colors ${
-      isCalled ? 'bg-content-primary text-base' : 'bg-base text-content-primary'
-    }`}>
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col bg-[#f7f7f4] text-[#26251e]">
       {/* Top Context Bar */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-border-subtle flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#e6e5e0] flex-shrink-0 bg-white">
         <div className="flex items-center gap-3">
-          <div className={`w-1.5 h-1.5 rounded-full ${isCalled ? 'bg-accent animate-pulse' : 'bg-success'} animate-pulse`}></div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-content-secondary">
-            Live Updates
+          <div className="w-2 h-2 rounded-full bg-[#1f8a65] animate-pulse" />
+          <span className="text-[11px] font-mono uppercase tracking-wider text-[#807d72] font-semibold">
+            Live Queue Sync
           </span>
           {activeTokens.length > 1 && (
             <>
-              <span className="text-border-strong">|</span>
+              <span className="text-[#cfcdc4]">/</span>
               <select
                 value={token.id}
                 onChange={(e) => queueStore.setActiveCustomerToken(e.target.value)}
-                className="text-[10px] font-mono uppercase tracking-widest bg-surface border border-border-subtle px-2 py-1 text-content-primary focus:outline-none focus:border-accent cursor-pointer"
+                className="text-[11px] font-mono uppercase tracking-wider bg-[#fafaf7] border border-[#e6e5e0] px-2 py-1 text-[#26251e] rounded-md focus:outline-none focus:border-[#26251e] cursor-pointer"
               >
                 {activeTokens.map(t => (
                   <option key={t.id} value={t.id}>
@@ -238,180 +227,154 @@ export const Screen05ActiveStatus: React.FC<Screen05ActiveStatusProps> = ({ appS
         <button
           id="active-status-history-btn"
           onClick={() => queueStore.setScreen('SCREEN_07_HISTORY')}
-          className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-content-secondary hover:text-accent transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-[#5a5852] hover:text-[#26251e] transition-colors cursor-pointer font-medium"
         >
-          <History className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">History</span>
+          <Icon icon="lucide:history" className="w-4 h-4" />
+          <span>My History</span>
         </button>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col px-4 md:px-6 py-8 md:py-12 max-w-2xl mx-auto w-full">
-        {/* State Badge - Small & Restrained */}
-        <div className="flex items-center justify-between mb-8">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-content-muted">
-            Your Token
-          </span>
-          <div>
-            {isCalled ? (
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border text-[10px] font-mono font-semibold uppercase tracking-widest ${
-                isCalled ? 'bg-accent/10 border-accent text-accent animate-pulse' : 'bg-accent/5 border-border-subtle text-accent'
-              }`}>
-                <BellRing className="w-3 h-3" />
-                Now Serving
-              </span>
-            ) : token?.state === 'AWAY' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-warning/10 border border-warning/30 text-warning text-[10px] font-mono font-semibold uppercase tracking-widest">
-                <Coffee className="w-3 h-3" />
-                Away ({formatAwayTime(awaySecondsLeft)})
-              </span>
-            ) : isCompleted ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-success/10 border border-success/30 text-success text-[10px] font-mono font-semibold uppercase tracking-widest">
-                <CheckCircle2 className="w-3 h-3" />
-                Completed
-              </span>
-            ) : isTransferred ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/10 border border-accent/30 text-accent text-[10px] font-mono font-semibold uppercase tracking-widest">
-                <ArrowRight className="w-3 h-3" />
-                Transferring
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/5 border border-border-subtle text-accent text-[10px] font-mono font-semibold uppercase tracking-widest">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
-                Waiting
-              </span>
-            )}
+      <div className="flex-1 flex flex-col px-4 md:px-8 py-8 md:py-12 max-w-2xl mx-auto w-full">
+        {/* Hero Token Card */}
+        <Card className="p-8 md:p-10 text-center mb-6">
+          <div className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#807d72] mb-3 font-semibold">
+            Your Active Queue Token
           </div>
-        </div>
 
-        {/* Hero Token Number */}
-        <div className="text-center mb-12 md:mb-16">
-          <div className={`text-7xl md:text-8xl lg:text-9xl font-bold font-mono tracking-tighter leading-none mb-4 ${
-            isCalled ? 'text-accent' : 'text-content-primary'
-          }`}>
+          {/* Large Mono Token Number */}
+          <div className="text-7xl md:text-8xl font-mono font-medium tracking-tight text-[#26251e] leading-none mb-4 select-all">
             {token?.tokenNumber || 'A-042'}
           </div>
-          <div className="text-sm text-content-secondary tracking-wide">
-            {service?.name || 'General Inquiry'} <span className="text-content-muted mx-2">•</span> {location?.name || 'Main Branch'}
-          </div>
-        </div>
 
-        {/* Special States: Error, Transfer, Called */}
-        {recoveryError ? (
-          <div className="mb-8 p-6 border border-error/30 bg-error/5 text-center">
-            <AlertTriangle className="w-6 h-6 text-error mx-auto mb-3" />
-            <div className="text-sm font-semibold text-content-primary mb-1">Transfer Failed</div>
-            <div className="text-xs text-content-secondary">{recoveryError}</div>
+          {/* Timeline Pastel Pill Status */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {isCalled ? (
+              <Badge variant="read" size="md" className="px-3 py-1 font-semibold">
+                <Icon icon="lucide:bell-ring" className="w-3.5 h-3.5 mr-1" />
+                Now Serving at Counter
+              </Badge>
+            ) : token?.state === 'AWAY' ? (
+              <Badge variant="grep" size="md" className="px-3 py-1 font-semibold">
+                <Icon icon="lucide:coffee" className="w-3.5 h-3.5 mr-1" />
+                Away ({formatAwayTime(awaySecondsLeft)})
+              </Badge>
+            ) : isCompleted ? (
+              <Badge variant="done" size="md" className="px-3 py-1 font-semibold">
+                <Icon icon="lucide:check-circle-2" className="w-3.5 h-3.5 mr-1" />
+                Service Complete
+              </Badge>
+            ) : isTransferred ? (
+              <Badge variant="thinking" size="md" className="px-3 py-1 font-semibold">
+                <Icon icon="lucide:arrow-right" className="w-3.5 h-3.5 mr-1" />
+                Transfer In Progress
+              </Badge>
+            ) : (
+              <Badge variant="thinking" size="md" className="px-3 py-1 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#26251e] animate-pulse mr-1" />
+                In Queue (Waiting)
+              </Badge>
+            )}
           </div>
-        ) : isTransferred ? (
-          <div className="mb-8 p-8 border border-accent/20 bg-accent/5 text-center">
-            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm font-semibold text-content-primary mb-1">Transferring your token</div>
-            <div className="text-xs text-content-secondary">Please wait while we process your transfer.</div>
+
+          <div className="text-xs text-[#5a5852]">
+            <span className="font-medium text-[#26251e]">{service?.name || 'General Inquiry'}</span>
+            <span className="text-[#cfcdc4] mx-2">/</span>
+            <span>{location?.name || 'Main Branch'}</span>
           </div>
-        ) : isCalled ? (
-          <div className={`mb-8 p-8 border text-center ${
-            isCalled ? 'bg-accent/10 border-accent/30' : 'bg-surface border-border-strong'
-          }`}>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-content-muted mb-2">
-              Please Proceed To
+        </Card>
+
+        {/* Counter Assignment Callout if Called */}
+        {isCalled ? (
+          <Card className="p-8 mb-6 border-2 border-[#f54e00] bg-[#fafaf7] text-center animate-in fade-in">
+            <div className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#f54e00] font-semibold mb-2">
+              Please Proceed Immediately To
             </div>
-            <div className={`text-5xl md:text-6xl font-bold tracking-tight mb-2 ${isCalled ? 'text-accent' : 'text-content-primary'}`}>
+            <div className="text-5xl md:text-6xl font-mono font-medium tracking-tight text-[#26251e] mb-3">
               COUNTER {token.counterNumber || 3}
             </div>
-            <div className="text-[10px] font-mono text-content-secondary tracking-wide">
-              Assigned Staff: Alex Mercer <span className="text-content-muted mx-2">•</span> Station 03
+            <div className="text-xs font-mono text-[#5a5852]">
+              Assigned Staff: Alex Mercer <span className="text-[#cfcdc4] mx-2">/</span> Station 03
             </div>
-          </div>
-        ) : (
-          /* Normal Waiting State - Typography-Driven */
-          <div className="space-y-10 mb-12">
-            {/* People Ahead */}
-            <div className="text-center border-b border-border-subtle pb-8">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-content-muted mb-3 flex items-center justify-center gap-1.5">
-                <Users className="w-3 h-3" />
+          </Card>
+        ) : !isCompleted && !isTransferred && (
+          /* Normal Waiting Metrics */
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Card className="p-6 text-center">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#807d72] mb-1.5 flex items-center justify-center gap-1 font-semibold">
+                <Icon icon="lucide:users" className="w-3.5 h-3.5 text-[#807d72]" />
                 <span>People Ahead</span>
               </div>
-              <div className="text-5xl md:text-6xl font-bold tracking-tight text-content-primary">
+              <div className="text-4xl md:text-5xl font-mono font-medium tracking-tight text-[#26251e]">
                 {token?.peopleAhead ?? 5}
               </div>
-            </div>
+            </Card>
 
-            {/* Estimated Wait */}
-            <div className="text-center">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-content-muted mb-3 flex items-center justify-center gap-1.5">
-                <Clock className="w-3 h-3" />
+            <Card className="p-6 text-center">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#807d72] mb-1.5 flex items-center justify-center gap-1 font-semibold">
+                <Icon icon="lucide:clock" className="w-3.5 h-3.5 text-[#807d72]" />
                 <span>Estimated Wait</span>
               </div>
-              <div className="text-5xl md:text-6xl font-bold tracking-tight text-accent eta-range mb-2">
+              <div className="text-4xl md:text-5xl font-mono font-medium tracking-tight text-[#f54e00] mb-1">
                 {token?.estRange || '15-20 min'}
               </div>
-              <div className={`text-[10px] font-mono uppercase tracking-widest ${
-                token?.confidence === 'High' ? 'text-success' :
-                token?.confidence === 'Medium' ? 'text-warning' :
-                token?.confidence === 'Low' ? 'text-error' : 'text-success'
-              }`}>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#1f8a65] font-semibold">
                 {token?.confidence || 'High'} Confidence
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
         {/* Step Away Control */}
         {!isCalled && !isCompleted && !isTransferred && !recoveryError && (
-          <div className="mb-8 p-6 border border-border-subtle bg-surface">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <Card className="p-5 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className={`p-2 border rounded flex-shrink-0 ${
-                  token?.state === 'AWAY' ? 'border-warning/30 bg-warning/10 text-warning' : 'border-border-strong bg-surface-elevated text-content-muted'
-                }`}>
-                  <Coffee className="w-4 h-4" />
+                <div className="p-2.5 rounded-md bg-[#fafaf7] border border-[#e6e5e0] text-[#5a5852] shrink-0">
+                  <Icon icon="lucide:coffee" className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-content-primary mb-1">
+                  <div className="text-sm font-semibold text-[#26251e] mb-0.5">
                     {token?.state === 'AWAY' ? 'Step Away Active' : 'Need to step away?'}
                   </div>
-                  <div className="text-xs text-content-secondary leading-relaxed">
+                  <div className="text-xs text-[#5a5852]">
                     {token?.state === 'AWAY'
-                      ? `Grace window: ${formatAwayTime(awaySecondsLeft)} remaining before skip.`
+                      ? `Hold window: ${formatAwayTime(awaySecondsLeft)} remaining before skip.`
                       : 'Hold your spot with a 15-minute grace window.'}
                   </div>
                 </div>
               </div>
 
-              <button
+              <Button
                 id="step-away-toggle-btn"
+                variant={token?.state === 'AWAY' ? 'primary' : 'outline'}
+                size="md"
                 onClick={handleToggleAway}
-                className={`w-full md:w-auto px-6 py-3 text-xs font-semibold uppercase tracking-widest transition-colors cursor-pointer flex-shrink-0 ${
-                  token?.state === 'AWAY'
-                    ? 'bg-success text-base hover:bg-success/90'
-                    : 'bg-surface-interactive border border-border-strong text-content-primary hover:bg-surface-elevated'
-                }`}
+                className="w-full sm:w-auto"
               >
                 {token?.state === 'AWAY' ? "I'm Back" : 'Step Away (15m)'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Guidance Notice */}
         {!isCompleted && !isTransferred && (
-          <div className="mb-8 p-4 border border-border-subtle bg-surface flex items-start gap-3 text-xs text-content-secondary">
-            <ShieldCheck className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              <span className="font-semibold text-content-primary">Guidance: </span>
-              You can relax in the waiting area. When called, your screen will highlight the assigned counter. Please have your photo ID ready.
+          <div className="mb-6 px-4 py-3 bg-white border border-[#e6e5e0] rounded-md flex items-start gap-2.5 text-xs text-[#5a5852] leading-relaxed">
+            <Icon icon="lucide:shield-check" className="w-4 h-4 text-[#1f8a65] shrink-0 mt-0.5" />
+            <p>
+              Please keep this screen open. When your token is called, your assigned counter will be prominently displayed above with an audible alert.
             </p>
           </div>
         )}
 
         {/* Cancel Action */}
         {!isCompleted && !isTransferred && (
-          <div className="text-center pt-4 border-t border-border-subtle">
+          <div className="flex justify-end pt-4 border-t border-[#e6e5e0]">
             <button
               id="cancel-token-btn"
               onClick={handleCancelToken}
-              className="text-xs text-error hover:text-error/80 font-semibold uppercase tracking-widest cursor-pointer transition-colors"
+              className="text-xs text-[#cf2d56] hover:text-[#b02246] font-semibold uppercase tracking-wider cursor-pointer transition-colors"
             >
               Cancel Token
             </button>

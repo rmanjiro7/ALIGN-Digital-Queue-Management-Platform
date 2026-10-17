@@ -1,0 +1,358 @@
+# ==============================================================================
+# ALIGN — Digital Queue Management Platform
+# Complete System Startup & Management Script (PowerShell)
+# ==============================================================================
+#
+# Usage:
+#   .\start.ps1             - Start all services (Database, Backend, Frontend)
+#   .\start.ps1 -Stop       - Stop all services and background processes
+#   .\start.ps1 -Restart    - Restart all services cleanly
+#   .\start.ps1 -Status     - Inspect real-time status of all services
+#   .\start.ps1 -NoBrowser  - Start services without auto-opening the browser
+# ==============================================================================
+
+[CmdletBinding()]
+param (
+    [switch]$Stop,
+    [switch]$Restart,
+    [switch]$Status,
+    [switch]$NoBrowser,
+    [int]$TimeoutSeconds = 60
+)
+
+# Ensure script operates from repository root
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } elseif ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { Get-Location }
+Set-Location $ScriptDir
+
+$FrontendDir = Join-Path $ScriptDir "frontend"
+$PidFile     = Join-Path $FrontendDir ".frontend.pid"
+$LogFile     = Join-Path $FrontendDir ".frontend.log"
+$ErrLogFile  = Join-Path $FrontendDir ".frontend.err.log"
+
+function Write-AlignBanner {
+    Write-Host @"
+
+==============================================================================
+   ___    __    ___   ______   _   __
+  /   |  / /   /   | / ____/  / | / /
+ / /| | / /   / /| |/ / __   /  |/ / 
+/ ___ |/ /___/ ___ / /_/ /  / /|  /  
+/_/  |_/_____/_/  |_\____/  /_/ |_/   Digital Queue Management Platform
+
+==============================================================================
+"@ -ForegroundColor Cyan
+}
+
+function Write-InfoMessage ($msg) {
+    Write-Host " [INFO] " -ForegroundColor Cyan -NoNewline
+    Write-Host $msg
+}
+
+function Write-SuccessMessage ($msg) {
+    Write-Host " [OK]   " -ForegroundColor Green -NoNewline
+    Write-Host $msg
+}
+
+function Write-WarnMessage ($msg) {
+    Write-Host " [WARN] " -ForegroundColor Yellow -NoNewline
+    Write-Host $msg
+}
+
+function Write-ErrorMessage ($msg) {
+    Write-Host " [ERR]  " -ForegroundColor Red -NoNewline
+    Write-Host $msg
+}
+
+# ------------------------------------------------------------------------------
+# STOP LOGIC
+# ------------------------------------------------------------------------------
+function Stop-AlignServices {
+    Write-InfoMessage "Stopping ALIGN services..."
+
+    # 1. Stop Frontend process if tracked by PID
+    if (Test-Path $PidFile) {
+        $savedPid = Get-Content $PidFile -ErrorAction SilentlyContinue
+        if ($savedPid) {
+            Write-InfoMessage "Terminating frontend process (PID: $savedPid)..."
+            Stop-Process -Id $savedPid -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+    }
+
+    # 2. Stop any lingering process on port 3000
+    try {
+        $port3000 = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+        if ($port3000) {
+            $pids = $port3000 | Select-Object -ExpandProperty OwningProcess -Unique
+            foreach ($p in $pids) {
+                Write-InfoMessage "Terminating process on port 3000 (PID: $p)..."
+                Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch {}
+
+    # 3. Stop Docker Compose containers
+    if (Get-Command docker -ErrorAction SilentlyContinue) {
+        Write-InfoMessage "Stopping Docker containers (align_backend, align_postgres)..."
+        docker compose stop
+    }
+
+    Write-SuccessMessage "All ALIGN services stopped."
+}
+
+# ------------------------------------------------------------------------------
+# STATUS CHECK LOGIC
+# ------------------------------------------------------------------------------
+function Get-AlignStatus {
+    Write-AlignBanner
+    Write-Host "-- Real-Time Service Status ----------------------------------------------" -ForegroundColor DarkGray
+
+    # 1. PostgreSQL (Port 5432)
+    $pgHealthy = $false
+    try {
+        $pgInspect = docker inspect --format '{{.State.Health.Status}}' align_postgres 2>$null
+        if ($pgInspect -eq "healthy") {
+            $pgHealthy = $true
+            Write-Host " [OK]   " -ForegroundColor Green -NoNewline
+            Write-Host "PostgreSQL Database:  RUNNING (healthy, port 5432, container: align_postgres)"
+        } elseif ($pgInspect) {
+            Write-Host " [WARN] " -ForegroundColor Yellow -NoNewline
+            Write-Host "PostgreSQL Database:  STARTING ($pgInspect, port 5432)"
+        } else {
+            Write-Host " [OFF]  " -ForegroundColor Red -NoNewline
+            Write-Host "PostgreSQL Database:  STOPPED (container align_postgres not running)"
+        }
+    } catch {
+        Write-Host " [OFF]  " -ForegroundColor Red -NoNewline
+        Write-Host "PostgreSQL Database:  UNKNOWN / DOCKER NOT REACHABLE"
+    }
+
+    # 2. Backend (Port 8080)
+    $backendHealthy = $false
+    try {
+        $resp = Invoke-RestMethod -Uri "http://127.0.0.1:8080/actuator/health" -Method Get -TimeoutSec 3 -ErrorAction SilentlyContinue
+        if ($resp -and $resp.status -eq "UP") {
+            $backendHealthy = $true
+            Write-Host " [OK]   " -ForegroundColor Green -NoNewline
+            Write-Host "Spring Boot Backend:  RUNNING (health: UP, port 8080, container: align_backend)"
+        } else {
+            Write-Host " [WARN] " -ForegroundColor Yellow -NoNewline
+            Write-Host "Spring Boot Backend:  RESPONDING but status not UP"
+        }
+    } catch {
+        Write-Host " [OFF]  " -ForegroundColor Red -NoNewline
+        Write-Host "Spring Boot Backend:  NOT REACHABLE (http://localhost:8080)"
+    }
+
+    # 3. Frontend (Port 3000)
+    $frontendHealthy = $false
+    try {
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:3000" -Method Get -TimeoutSec 3 -UseBasicParsing -ErrorAction SilentlyContinue
+        if ($resp -and $resp.StatusCode -eq 200) {
+            $frontendHealthy = $true
+            Write-Host " [OK]   " -ForegroundColor Green -NoNewline
+            Write-Host "Vite React Frontend:  RUNNING (http://localhost:3000, port 3000)"
+        } else {
+            Write-Host " [WARN] " -ForegroundColor Yellow -NoNewline
+            Write-Host "Vite React Frontend:  HTTP Status $($resp.StatusCode)"
+        }
+    } catch {
+        Write-Host " [OFF]  " -ForegroundColor Red -NoNewline
+        Write-Host "Vite React Frontend:  NOT REACHABLE (http://localhost:3000)"
+    }
+
+    Write-Host "--------------------------------------------------------------------------" -ForegroundColor DarkGray
+    return ($pgHealthy -and $backendHealthy -and $frontendHealthy)
+}
+
+# ------------------------------------------------------------------------------
+# DISPATCH COMMAND OPTIONS
+# ------------------------------------------------------------------------------
+if ($Stop) {
+    Write-AlignBanner
+    Stop-AlignServices
+    exit 0
+}
+
+if ($Status) {
+    $allOk = Get-AlignStatus
+    if ($allOk) { exit 0 } else { exit 1 }
+}
+
+if ($Restart) {
+    Write-AlignBanner
+    Stop-AlignServices
+    Start-Sleep -Seconds 2
+}
+
+# ------------------------------------------------------------------------------
+# START LOGIC
+# ------------------------------------------------------------------------------
+Write-AlignBanner
+
+# Step 1: Preflight checks
+Write-InfoMessage "Checking system prerequisites..."
+
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-ErrorMessage "Docker is not installed or not available in PATH. Please install Docker Desktop."
+    exit 1
+}
+
+# Verify Docker daemon is responsive
+try {
+    $dockerInfo = docker info 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMessage "Docker daemon is not running. Please start Docker Desktop and try again."
+        exit 1
+    }
+} catch {
+    Write-ErrorMessage "Unable to connect to Docker. Please ensure Docker Desktop is running."
+    exit 1
+}
+
+# Step 2: Start Infrastructure (PostgreSQL & Spring Boot Backend via Docker Compose)
+Write-InfoMessage "Starting backend infrastructure via Docker Compose..."
+docker compose up -d
+
+if ($LASTEXITCODE -ne 0) {
+    Write-ErrorMessage "Failed to start Docker Compose services."
+    exit 1
+}
+
+# Step 3: Wait for PostgreSQL
+Write-InfoMessage "Waiting for PostgreSQL database to become healthy..."
+$elapsed = 0
+$pgReady = $false
+
+while ($elapsed -lt $TimeoutSeconds) {
+    $pgStatus = docker inspect --format '{{.State.Health.Status}}' align_postgres 2>$null
+    if ($pgStatus -eq "healthy") {
+        $pgReady = $true
+        break
+    }
+    Start-Sleep -Seconds 2
+    $elapsed += 2
+}
+
+if ($pgReady) {
+    Write-SuccessMessage "PostgreSQL is healthy and accepting connections on port 5432."
+} else {
+    Write-ErrorMessage "PostgreSQL did not report healthy within $TimeoutSeconds seconds."
+    exit 1
+}
+
+# Step 4: Wait for Backend Health Endpoint
+Write-InfoMessage "Waiting for Spring Boot backend to become ready on http://localhost:8080..."
+$elapsed = 0
+$backendReady = $false
+
+while ($elapsed -lt $TimeoutSeconds) {
+    try {
+        $health = Invoke-RestMethod -Uri "http://127.0.0.1:8080/actuator/health" -Method Get -TimeoutSec 2 -ErrorAction SilentlyContinue
+        if ($health -and $health.status -eq "UP") {
+            $backendReady = $true
+            break
+        }
+    } catch {
+        # Backend still initializing or migrating DB schema
+    }
+    Start-Sleep -Seconds 2
+    $elapsed += 2
+}
+
+if ($backendReady) {
+    Write-SuccessMessage "Spring Boot backend is UP and healthy on port 8080."
+} else {
+    Write-ErrorMessage "Backend did not report health UP within $TimeoutSeconds seconds."
+    Write-InfoMessage "Inspect container logs with: docker logs --tail 50 align_backend"
+    exit 1
+}
+
+# Step 5: Start Frontend
+Write-InfoMessage "Checking Vite frontend on port 3000..."
+$frontendReady = $false
+try {
+    $testResp = Invoke-WebRequest -Uri "http://127.0.0.1:3000" -Method Get -TimeoutSec 2 -UseBasicParsing -ErrorAction SilentlyContinue
+    if ($testResp -and $testResp.StatusCode -eq 200) {
+        $frontendReady = $true
+        Write-SuccessMessage "Frontend is already running on http://localhost:3000."
+    }
+} catch {}
+
+if (-not $frontendReady) {
+    # Determine package runner (prefer bun.cmd, fallback to npm.cmd)
+    $pkgRunner = if (Get-Command bun.cmd -ErrorAction SilentlyContinue) { "bun.cmd" } else { "npm.cmd" }
+    Write-InfoMessage "Launching Vite dev server via $pkgRunner in background..."
+
+    # Launch detached background process via WMI to survive caller session exit
+    $cmdLine = "cmd.exe /c $pkgRunner run dev > .frontend.log 2> .frontend.err.log"
+    $wmiProc = $null
+    try {
+        $wmiProc = ([wmiclass]"win32_process").Create($cmdLine, $FrontendDir, $null)
+    } catch {}
+
+    if ($wmiProc -and $wmiProc.ReturnValue -eq 0) {
+        $wmiProc.ProcessId | Out-File $PidFile -Force
+        Write-InfoMessage "Frontend background process started (PID: $($wmiProc.ProcessId))."
+    } else {
+        $proc = Start-Process -FilePath "cmd.exe" `
+            -ArgumentList "/c $pkgRunner run dev" `
+            -WorkingDirectory $FrontendDir `
+            -PassThru `
+            -WindowStyle Hidden `
+            -RedirectStandardOutput $LogFile `
+            -RedirectStandardError $ErrLogFile
+        $proc.Id | Out-File $PidFile -Force
+        Write-InfoMessage "Frontend background process started (PID: $($proc.Id))."
+    }
+
+    Write-InfoMessage "Waiting for frontend to become responsive on http://localhost:3000..."
+    $elapsed = 0
+    while ($elapsed -lt 30) {
+        try {
+            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:3000" -Method Get -TimeoutSec 2 -UseBasicParsing -ErrorAction SilentlyContinue
+            if ($resp -and $resp.StatusCode -eq 200) {
+                $frontendReady = $true
+                break
+            }
+        } catch {}
+        Start-Sleep -Seconds 1
+        $elapsed += 1
+    }
+
+    if ($frontendReady) {
+        Write-SuccessMessage "Frontend is UP and responding on http://localhost:3000."
+    } else {
+        Write-ErrorMessage "Frontend did not respond on port 3000 within 30 seconds."
+        Write-InfoMessage "Check log at: $LogFile"
+        exit 1
+    }
+}
+
+# Step 6: Display Access Dashboard
+Write-Host @"
+
+==============================================================================
+  ALIGN Digital Queue Management Platform is ONLINE!
+==============================================================================
+  Frontend Application:   http://localhost:3000
+  Customer Portal:       http://localhost:3000
+  Staff Station Login:   http://localhost:3000
+  Public Lobby Monitor:  http://localhost:3000
+
+  Backend REST API:      http://localhost:8080/api/v1
+  API Health Probe:      http://localhost:8080/actuator/health
+  PostgreSQL Database:   localhost:5432 (align_qms)
+
+  To check status:       .\start.ps1 -Status (or .\start.ps)
+  To stop all services:  .\start.ps1 -Stop   (or .\start.ps)
+==============================================================================
+"@ -ForegroundColor Green
+
+# Step 7: Open in default browser unless -NoBrowser was specified
+if (-not $NoBrowser) {
+    Write-InfoMessage "Opening ALIGN application in default web browser..."
+    Start-Process "http://localhost:3000"
+}
+
+Write-SuccessMessage "ALIGN startup completed successfully."

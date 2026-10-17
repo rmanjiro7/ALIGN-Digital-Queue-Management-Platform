@@ -38,6 +38,11 @@ function check(label, condition) {
 
 async function login(page, email, password) {
   await page.goto(FRONTEND_URL, { waitUntil: 'networkidle0' });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto(FRONTEND_URL, { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 1000));
 
   // Handle Splash Screen if present
@@ -205,14 +210,9 @@ async function run() {
     // ═══════════════════════════════════════════════════════════════════════
     console.log('\n[Scenario 2] PLATFORM_ADMIN Analytics Flow');
 
-    // Use page state to switch to PLATFORM_ADMIN view
-    const platformLogin = await page.evaluate(() => {
-      const store = (window).__appStore;
-      // Try to navigate via direct state manipulation for E2E
-      const btns = Array.from(document.querySelectorAll('button'));
-      const exitBtn = btns.find(b => b.innerText.includes('Exit Console'));
-      if (exitBtn) { exitBtn.click(); return true; }
-      return false;
+    await page.evaluate(() => {
+      const btn = document.querySelector('#nav-logout');
+      if (btn) btn.click();
     });
     await new Promise(r => setTimeout(r, 1000));
 

@@ -1,0 +1,36 @@
+{
+  "runId": "SYNC-438Z",
+  "timestamp": "2026-10-10T16:25:45.857Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "9158a0b0-802c-4b8e-9535-8efe05daa933"
+    ],
+    "locations": [
+      "9cc7d2c5-8bb5-41a1-ab41-08b385741317"
+    ],
+    "services": [
+      "33ee9360-052f-4235-a9a2-997e999d7111"
+    ],
+    "queues": [
+      "07523d43-e547-4cef-a3e0-b3926ef70bcb"
+    ],
+    "counters": [
+      "4dc029a1-fbf6-4940-a899-0bd5998cc6fc"
+    ],
+    "users": [
+      "cd128c36-3db3-45a5-a75b-ad7c869f3f72",
+      "dc6f3e4b-9dcc-4cae-8213-0005b0d49032"
+    ],
+    "tokens": [
+      "75b650cc-57be-4256-ba77-46bb8df09e00",
+      "27e66fd8-6497-4763-91e8-04914ea57143",
+      "f07793d0-ef19-4b3e-8cb9-94e37d989e5c",
+      "224295c8-1d2a-4746-9a72-bcbf48e5cffa",
+      "eb7b0619-9231-45f2-8299-4b9bdc755b41"
+    ]
+  }
+}

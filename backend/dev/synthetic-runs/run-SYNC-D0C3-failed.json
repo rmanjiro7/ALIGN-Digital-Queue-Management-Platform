@@ -1,0 +1,32 @@
+{
+  "runId": "SYNC-D0C3",
+  "timestamp": "2026-10-10T15:27:28.329Z",
+  "config": {
+    "pilot": true,
+    "backdate": false
+  },
+  "generated": {
+    "organizations": [
+      "8607501f-b566-43d2-8437-c25cfe57aeba"
+    ],
+    "locations": [
+      "bc120a13-06c7-47bb-8b03-c11ce5d376d1"
+    ],
+    "services": [
+      "87786595-f286-42fc-9aca-2a0caaaab088"
+    ],
+    "queues": [
+      "3591e372-7739-4e9a-97b3-747001e46f22"
+    ],
+    "counters": [
+      "c8297f10-4a4d-4d3b-a094-534cc00c5a81"
+    ],
+    "users": [
+      "0202caf1-5d7a-4983-94af-bbaf8b3db368",
+      "64845ba5-6118-44b3-88f7-792971b428d5"
+    ],
+    "tokens": [
+      "36f00ac7-8e71-4ad8-a403-e2a734280929"
+    ]
+  }
+}
